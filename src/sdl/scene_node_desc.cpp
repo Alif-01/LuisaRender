@@ -18,6 +18,16 @@ void SceneNodeDesc::add_property(luisa::string_view name, SceneNodeDesc::value_l
     }
 }
 
+void SceneNodeDesc::set_property(luisa::string_view name, SceneNodeDesc::value_list value) noexcept {
+    if (!_properties.contains(luisa::string{name})) {
+        LUISA_ERROR(
+            "Property '{}' unfound in "
+            "scene description node '{}'. [{}]",
+            name, _identifier, _location.string());
+    }
+    _properties[luisa::string{name}] = std::move(value);
+}
+
 void SceneNodeDesc::define(SceneNodeTag tag, luisa::string_view t,
                            SceneNodeDesc::SourceLocation l, const SceneNodeDesc *base) noexcept {
     _tag = tag;

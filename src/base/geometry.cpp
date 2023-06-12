@@ -11,21 +11,23 @@ namespace luisa::render {
 
 void Geometry::build(CommandBuffer &command_buffer,
                      luisa::span<const Shape *const> shapes,
-                     float init_time) noexcept {
+                     float init_time,
+                     const Geometry::TemplateMapping &template_mapping) noexcept {
     // TODO: AccelOption
     _accel = _pipeline.device().create_accel({});
     for (auto i = 0u; i < 3u; ++i) {
         _world_max[i] = -std::numeric_limits<float>::max();
         _world_min[i] = std::numeric_limits<float>::max();
     }
-    for (auto shape : shapes) { _process_shape(command_buffer, shape, init_time, nullptr); }
+    for (auto shape : shapes) { _process_shape(command_buffer, shape, template_mapping, init_time, nullptr); }
     _instance_buffer = _pipeline.device().create_buffer<uint4>(_instances.size());
     command_buffer << _instance_buffer.copy_from(_instances.data())
                    << _accel.build();
 }
 
 void Geometry::_process_shape(
-    CommandBuffer &command_buffer, const Shape *shape, float init_time,
+    CommandBuffer &command_buffer, const Shape *shape,
+    const Geometry::TemplateMapping &template_mapping, float init_time,
     const Surface *overridden_surface,
     const Light *overridden_light,
     const Medium *overridden_medium,
@@ -42,11 +44,16 @@ void Geometry::_process_shape(
                 "Deformable meshes are not yet supported.");
         }
         auto mesh = [&] {
-            if (auto iter = _meshes.find(shape); iter != _meshes.end()) {
+            if (auto iter = _meshes.find(shape); !shape->is_template_mesh() && iter != _meshes.end()) {
                 return iter->second;
             }
             auto mesh_geom = [&] {
-                auto [vertices, triangles] = shape->mesh();
+                if (shape->is_template_mesh() && !template_mapping.contains(shape->template_id())) [[unlikely]] {
+                    LUISA_ERROR_WITH_LOCATION("Template mesh '{}' missing.", shape->template_id());
+                }
+                auto [vertices, triangles] = shape->is_template_mesh()
+                            ? template_mapping.at(shape->template_id())
+                            : shape->mesh();
                 LUISA_ASSERT(!vertices.empty() && !triangles.empty(), "Empty mesh.");
                 auto hash = luisa::hash64(vertices.data(), vertices.size_bytes(), luisa::hash64_default_seed);
                 hash = luisa::hash64(triangles.data(), triangles.size_bytes(), hash);
@@ -144,7 +151,7 @@ void Geometry::_process_shape(
     } else {
         _transform_tree.push(shape->transform());
         for (auto child : shape->children()) {
-            _process_shape(command_buffer, child, init_time,
+            _process_shape(command_buffer, child, template_mapping, init_time,
                            surface, light, medium, visible);
         }
         _transform_tree.pop(shape->transform());

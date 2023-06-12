@@ -1,9 +1,10 @@
 //
-// Created by Mike on 2021/12/7.
+// Modified from cli.cpp
 //
 
 #include <span>
 #include <iostream>
+#include <vector>
 
 #include <cxxopts.hpp>
 
@@ -12,6 +13,13 @@
 #include <sdl/scene_parser.h>
 #include <base/scene.h>
 #include <base/pipeline.h>
+
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
+#include <assimp/mesh.h>
+#include <assimp/scene.h>
+#include <assimp/Subdivision.h>
+#include <util/thread_pool.h>
 
 [[nodiscard]] auto parse_cli_options(int argc, const char *const *argv) noexcept {
     cxxopts::Options cli{"luisa-render-cli"};
@@ -131,9 +139,24 @@ int main(int argc, char *argv[]) {
 
     LUISA_INFO("Parsed scene description file '{}' in {} ms.",
                path.string(), parse_time);
-    auto scene = Scene::create(context, scene_desc.get());
+
+    auto desc = scene_desc.get();
+    auto template_node = desc->node("template_1");
+
+    auto scene = Scene::create(context, desc);
+
+    // std::vector<Shape*> mesh_pool;
+    // std::filesystem::path mesh_dir("/home/zfchen/test_mesh/");
+    // for (auto i = 1; i <= 100; i++) {
+    //     std::filesystem::path mesh_file(luisa::format("untitled_{:06d}.obj", i));
+    //     template_node->set_property("file", SceneNodeDesc::string_list(mesh_dir.append(mesh_file)));
+    //     mesh_pool.emplace_back(scene->load_shape(template_node));
+    // }
+
+    // for (auto &loader : mesh_pool) {
     auto stream = device.create_stream(StreamTag::COMPUTE);
     auto pipeline = Pipeline::create(device, stream, *scene, {});
     pipeline->render(stream);
     stream.synchronize();
+    // }
 }

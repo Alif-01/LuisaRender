@@ -53,6 +53,8 @@ public:
     [[nodiscard]] virtual float shadow_terminator_factor() const noexcept;
     [[nodiscard]] virtual float intersection_offset_factor() const noexcept;
     [[nodiscard]] virtual bool is_mesh() const noexcept;
+    [[nodiscard]] virtual bool is_template_mesh() const noexcept;
+    [[nodiscard]] virtual luisa::string template_id() const noexcept;
     [[nodiscard]] virtual uint vertex_properties() const noexcept;
     [[nodiscard]] bool has_vertex_normal() const noexcept;
     [[nodiscard]] bool has_vertex_uv() const noexcept;

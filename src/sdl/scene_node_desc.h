@@ -171,6 +171,7 @@ public:
     void add_property(luisa::string_view name, string_type value) noexcept { add_property(name, string_list{std::move(value)}); }
     void add_property(luisa::string_view name, const char *value) noexcept { add_property(name, string_list{value}); }
     void add_property(luisa::string_view name, node_type value) noexcept { add_property(name, node_list{value}); }
+    void set_property(luisa::string_view name, value_list values) noexcept;
     [[nodiscard]] SceneNodeDesc *define_internal(
         luisa::string_view impl_type, SourceLocation location = {}, const SceneNodeDesc *base = nullptr) noexcept;
     [[nodiscard]] auto is_root() const noexcept { return _tag == SceneNodeTag::ROOT; }

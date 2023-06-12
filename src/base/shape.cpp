@@ -38,6 +38,8 @@ bool Shape::has_vertex_uv() const noexcept {
 }
 
 bool Shape::is_mesh() const noexcept { return false; }
+bool Shape::is_template_mesh() const noexcept { return false; }
+luisa::string Shape::template_id() const noexcept { return ""; }
 uint Shape::vertex_properties() const noexcept { return 0u; }
 MeshView Shape::mesh() const noexcept { return {}; }
 luisa::span<const Shape *const> Shape::children() const noexcept { return {}; }

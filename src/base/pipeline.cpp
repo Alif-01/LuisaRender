@@ -41,7 +41,8 @@ uint Pipeline::register_medium(CommandBuffer &command_buffer, const Medium *medi
     return tag;
 }
 
-luisa::unique_ptr<Pipeline> Pipeline::create(Device &device, Stream &stream, const Scene &scene) noexcept {
+luisa::unique_ptr<Pipeline> Pipeline::create(Device &device, Stream &stream, const Scene &scene,
+                const Geometry::TemplateMapping &template_mapping) noexcept {
     global_thread_pool().synchronize();
     auto pipeline = luisa::make_unique<Pipeline>(device);
     pipeline->_transform_matrices.resize(transform_matrix_buffer_size);
@@ -68,8 +69,10 @@ luisa::unique_ptr<Pipeline> Pipeline::create(Device &device, Stream &stream, con
         pipeline->_cameras.emplace_back(camera->build(*pipeline, command_buffer));
     }
     update_bindless_if_dirty();
+
     pipeline->_geometry = luisa::make_unique<Geometry>(*pipeline);
-    pipeline->_geometry->build(command_buffer, scene.shapes(), pipeline->_initial_time);
+    pipeline->_geometry->build(command_buffer, scene.shapes(), pipeline->_initial_time, template_mapping);
+
     update_bindless_if_dirty();
     if (auto env = scene.environment(); env != nullptr && !env->is_black()) {
         pipeline->_environment = env->build(*pipeline, command_buffer);

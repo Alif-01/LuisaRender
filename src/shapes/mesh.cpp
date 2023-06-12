@@ -154,7 +154,9 @@ public:
                                    desc->property_uint_or_default("subdivision", 0u),
                                    desc->property_bool_or_default("flip_uv", false),
                                    desc->property_bool_or_default("drop_normal", false),
-                                   desc->property_bool_or_default("drop_uv", false))} {}
+                                   desc->property_bool_or_default("drop_uv", false))} {
+        _loader.wait();
+    }
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] bool is_mesh() const noexcept override { return true; }
     [[nodiscard]] MeshView mesh() const noexcept override { return _loader.get().mesh(); }

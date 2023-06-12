@@ -24,6 +24,7 @@
 #include <base/scene.h>
 #include <base/medium.h>
 #include <base/phase_function.h>
+#include "scene.h"
 
 namespace luisa::render {
 
@@ -196,6 +197,10 @@ Medium *Scene::load_medium(const SceneNodeDesc *desc) noexcept {
 
 PhaseFunction *Scene::load_phase_function(const SceneNodeDesc *desc) noexcept {
     return dynamic_cast<PhaseFunction *>(load_node(SceneNodeTag::PHASE_FUNCTION, desc));
+}
+
+void Scene::append_shape(Shape *shape) noexcept {
+    _config->shapes.emplace_back(shape);
 }
 
 luisa::unique_ptr<Scene> Scene::create(const Context &ctx, const SceneDesc *desc) noexcept {

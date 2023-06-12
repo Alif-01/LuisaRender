@@ -76,6 +76,7 @@ public:
     [[nodiscard]] Spectrum *load_spectrum(const SceneNodeDesc *desc) noexcept;
     [[nodiscard]] Medium *load_medium(const SceneNodeDesc *desc) noexcept;
     [[nodiscard]] PhaseFunction *load_phase_function(const SceneNodeDesc *desc) noexcept;
+    void append_shape(Shape *shape) noexcept;
 
 public:
     [[nodiscard]] static luisa::unique_ptr<Scene> create(const Context &ctx, const SceneDesc *desc) noexcept;
