@@ -42,6 +42,7 @@ public:
         [[nodiscard]] auto light_sampler() noexcept { return _light_sampler.get(); }
         [[nodiscard]] auto light_sampler() const noexcept { return _light_sampler.get(); }
         virtual void render(Stream &stream) noexcept = 0;
+        virtual const float* render_to_buffer(Stream &stream) noexcept;
     };
 
 private:
@@ -72,6 +73,7 @@ public:
                  const ProgressiveIntegrator *node) noexcept;
         ~Instance() noexcept override;
         void render(Stream &stream) noexcept override;
+        const float* render_to_buffer(Stream &stream) noexcept override;
     };
 
 public:

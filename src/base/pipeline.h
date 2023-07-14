@@ -213,6 +213,7 @@ public:
     [[nodiscard]] const PhaseFunction::Instance *build_phasefunction(CommandBuffer &command_buffer, const PhaseFunction *phasefunction) noexcept;
     bool update(CommandBuffer &command_buffer, float time) noexcept;
     void render(Stream &stream) noexcept;
+    const float* render_to_buffer(Stream &stream) noexcept;
     [[nodiscard]] auto &printer() noexcept { return *_printer; }
     [[nodiscard]] auto &printer() const noexcept { return *_printer; }
     [[nodiscard]] uint named_id(luisa::string_view name) const noexcept;

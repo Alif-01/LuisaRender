@@ -131,9 +131,11 @@ int main(int argc, char *argv[]) {
 
     LUISA_INFO("Parsed scene description file '{}' in {} ms.",
                path.string(), parse_time);
-    auto scene = Scene::create(context, scene_desc.get());
-    auto stream = device.create_stream(StreamTag::COMPUTE);
-    auto pipeline = Pipeline::create(device, stream, *scene, {});
-    pipeline->render(stream);
-    stream.synchronize();
+    while (1) {
+		auto scene = Scene::create(context, scene_desc.get());
+		auto stream = device.create_stream(StreamTag::COMPUTE);
+		auto pipeline = Pipeline::create(device, stream, *scene, {});
+		pipeline->render(stream);
+		stream.synchronize();
+    }
 }

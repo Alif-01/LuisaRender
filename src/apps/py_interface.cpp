@@ -1,4 +1,3 @@
-//
 // Modified from cli.cpp
 //
 
@@ -22,6 +21,9 @@
 #include <util/thread_pool.h>
 
 #include <backends/ext/denoiser_ext.h>
+
+#include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
 
 [[nodiscard]] auto parse_cli_options(int argc, const char *const *argv) noexcept {
     cxxopts::Options cli{"luisa-render-cli"};
@@ -247,32 +249,28 @@ public:
     }
 };
 
-int main(int argc, char *argv[]) {
+namespace py = pybind11;
+using buffer_t = py::array_t<float>;
 
-    LUISA_INFO("argc = {}", argc);
-    for (int i = 0; i < argc; i++) {
-        LUISA_INFO("argv[{}] = {}", i, argv[i]);
-    }
+void init(){
+    auto context_path = "/home/winnie/LuisaRender/build/bin";
 
     log_level_info();
-    luisa::compute::Context context{argv[0]};
-    auto macros = parse_cli_macros(argc, argv);
-    for (auto &&[k, v] : macros) {
-        LUISA_INFO("Found CLI Macro: {} = {}", k, v);
-    }
+    luisa::compute::Context context{context_path};
 
-    auto options = parse_cli_options(argc, argv);
-    auto backend = options["backend"].as<luisa::string>();
-    auto index = options["device"].as<uint32_t>();
-    auto path = options["scene"].as<std::filesystem::path>();
+    luisa::string backend = "CUDA";
+    uint32_t index = 0;
+    std::filesystem::path path("/home/winnie/scene/glass-of-water/scene.luisa");
+
     compute::DeviceConfig config;
     config.device_index = index;
     auto device = context.create_device(backend, &config);
 
+    SceneParser::MacroMap macros;
     Clock clock;
     auto scene_desc = SceneParser::parse(path, macros);
     auto parse_time = clock.toc();
-
+;
     LUISA_INFO("Parsed scene description file '{}' in {} ms.",
                path.string(), parse_time);
 
@@ -327,4 +325,9 @@ int main(int argc, char *argv[]) {
         save_image(save_path_denoised, new_buffer, scene->cameras()[0]->film()->resolution());
     }
     denoiser_ext->destroy(stream);
+}
+
+PYBIND11_MODULE(LuisaRenderPy, m) {
+    m.doc() = "Python binding of LuisaRender";
+    m.def("init", &init);
 }

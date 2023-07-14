@@ -119,6 +119,10 @@ void Pipeline::render(Stream &stream) noexcept {
     _integrator->render(stream);
 }
 
+const float* Pipeline::render_to_buffer(Stream &stream) noexcept {
+    return _integrator->render_to_buffer(stream);
+}
+
 const Texture::Instance *Pipeline::build_texture(CommandBuffer &command_buffer, const Texture *texture) noexcept {
     if (texture == nullptr) { return nullptr; }
     if (auto iter = _textures.find(texture); iter != _textures.end()) {

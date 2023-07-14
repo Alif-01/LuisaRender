@@ -302,3 +302,6 @@ CMakeSettings.json
 /imgui.ini
 /set_accel_kernel
 /results.txt
+
+render/*
+tmp

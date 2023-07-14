@@ -28,6 +28,7 @@
     cli.add_option("", "b", "backend", "Compute backend name", cxxopts::value<luisa::string>(), "<backend>");
     cli.add_option("", "d", "device", "Compute device index", cxxopts::value<uint32_t>()->default_value("0"), "<index>");
     cli.add_option("", "", "scene", "Path to scene description file", cxxopts::value<std::filesystem::path>(), "<file>");
+    cli.add_option("", "m", "mark", "Identifier of the scene", cxxopts::value<luisa::string>()->default_value(""), "<mark>");
     cli.add_option("", "D", "define", "Parameter definitions to override scene description macros.",
                    cxxopts::value<std::vector<luisa::string>>()->default_value("<none>"), "<key>=<value>");
     cli.add_option("", "h", "help", "Display this help message", cxxopts::value<bool>()->default_value("false"), "");
@@ -249,11 +250,6 @@ public:
 
 int main(int argc, char *argv[]) {
 
-    LUISA_INFO("argc = {}", argc);
-    for (int i = 0; i < argc; i++) {
-        LUISA_INFO("argv[{}] = {}", i, argv[i]);
-    }
-
     log_level_info();
     luisa::compute::Context context{argv[0]};
     auto macros = parse_cli_macros(argc, argv);
@@ -265,6 +261,11 @@ int main(int argc, char *argv[]) {
     auto backend = options["backend"].as<luisa::string>();
     auto index = options["device"].as<uint32_t>();
     auto path = options["scene"].as<std::filesystem::path>();
+    auto mark = options["mark"].as<luisa::string>();
+    
+    auto folder = path.parent_path();
+    auto img_path = folder / luisa::format("image_{}.exr", mark);
+
     compute::DeviceConfig config;
     config.device_index = index;
     auto device = context.create_device(backend, &config);
@@ -277,17 +278,17 @@ int main(int argc, char *argv[]) {
                path.string(), parse_time);
 
     auto desc = scene_desc.get();
-    auto template_node = desc->node("template_1");
+    // auto template_node = desc->node("template_1");
 
     auto scene = Scene::create(context, desc);
 
     std::vector<MeshView> mesh_pool;
-    for (auto i = 1; i <= 60; i++) {
-        std::filesystem::path mesh_file(luisa::format("/home/winnie/test_mesh/untitled_{:06d}.obj", i));
-        auto loader = _MeshLoader::load(mesh_file, 0u, false, false, false);
-        mesh_pool.emplace_back(loader.get().mesh());
-        LUISA_INFO("Loaded mesh {}.", i);
-    }
+    // for (auto i = 1; i <= 60; i++) {
+    //     std::filesystem::path mesh_file(luisa::format("/home/winnie/test_mesh/untitled_{:06d}.obj", i));
+    //     auto loader = _MeshLoader::load(mesh_file, 0u, false, false, false);
+    //     mesh_pool.emplace_back(loader.get().mesh());
+    //     LUISA_INFO("Loaded mesh {}.", i);
+    // }
 
     auto denoiser_ext = device.extension<DenoiserExt>();
     auto stream = device.create_stream(StreamTag::COMPUTE);
@@ -304,27 +305,28 @@ int main(int argc, char *argv[]) {
     DenoiserExt::DenoiserInput data;
     data.beauty = &hdr_buffer;
 
+    // std::filesystem::path save_path(luisa::format("/home/winnie/LuisaRender/render/image.exr", i));
+    // std::filesystem::path save_path_denoised(luisa::format("/home/winnie/LuisaRender/render/{}_denoised.exr", i));
+    Geometry::TemplateMapping mapping;
+    // mapping["liquid"] = mesh_pool[i];
+    auto pipeline = Pipeline::create(device, stream, *scene, mapping);
+    auto buffer = pipeline->render_to_buffer(stream);
+    stream.synchronize();
+    save_image(img_path, buffer, scene->cameras()[0]->film()->resolution());
+    stream << hdr_buffer.copy_from(buffer);
+    stream.synchronize();
+
+    // denoiser_ext->init(stream, mode, data, resolution);
+    // denoiser_ext->process(stream, data);
+    // denoiser_ext->get_result(stream, denoised_buffer);
+    // stream.synchronize();
+    // float *new_buffer = new float[256*256*4];
+    // stream << denoised_buffer.copy_to(new_buffer);
+    // stream.synchronize();
+    // save_image(save_path_denoised, new_buffer, scene->cameras()[0]->film()->resolution());
 
     // for (auto i = 0u; i < mesh_pool.size(); i++) {
-    for (auto i = 0u; i < 1; i++) {
-        std::filesystem::path save_path(luisa::format("/home/winnie/LuisaRender/render/{}.exr", i));
-        std::filesystem::path save_path_denoised(luisa::format("/home/winnie/LuisaRender/render/{}_denoised.exr", i));
-        Geometry::TemplateMapping mapping;
-        mapping["liquid"] = mesh_pool[i];
-        auto pipeline = Pipeline::create(device, stream, *scene, mapping);
-        auto buffer = pipeline->render_to_buffer(stream);
-        stream.synchronize();
-        save_image(save_path, buffer, scene->cameras()[0]->film()->resolution());
-        stream << hdr_buffer.copy_from(buffer);
-        stream.synchronize();
-        denoiser_ext->init(stream, mode, data, resolution);
-        denoiser_ext->process(stream, data);
-        denoiser_ext->get_result(stream, denoised_buffer);
-        stream.synchronize();
-        float *new_buffer = new float[256*256*4];
-        stream << denoised_buffer.copy_to(new_buffer);
-        stream.synchronize();
-        save_image(save_path_denoised, new_buffer, scene->cameras()[0]->film()->resolution());
-    }
+    // for (auto i = 0u; i < 1; i++) {
+    // }
     denoiser_ext->destroy(stream);
 }
