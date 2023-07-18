@@ -4,6 +4,7 @@
 #include <span>
 #include <iostream>
 #include <vector>
+#include <string>
 
 #include <cxxopts.hpp>
 
@@ -250,20 +251,25 @@ public:
 };
 
 namespace py = pybind11;
+using namespace py::literals;
 using buffer_t = py::array_t<float>;
 
-void init(){
-    auto context_path = "/home/winnie/LuisaRender/build/bin";
+DenoiserExt *denoiser_ext = nullptr;
+Stream stream;
+Buffer<float> hdr_buffer, denoised_buffer;
+
+void init(const std::string &context_path, const std::string &scene_file, uint32_t cuda_device){
+    // auto context_path = "/home/winnie/LuisaRender/build/bin";
 
     log_level_info();
     luisa::compute::Context context{context_path};
 
     luisa::string backend = "CUDA";
-    uint32_t index = 0;
-    std::filesystem::path path("/home/winnie/scene/glass-of-water/scene.luisa");
+    // std::filesystem::path path("/home/winnie/scene/glass-of-water/scene.luisa");
+    std::filesystem::path path(scene_file);
 
     compute::DeviceConfig config;
-    config.device_index = index;
+    config.device_index = cuda_device;
     auto device = context.create_device(backend, &config);
 
     SceneParser::MacroMap macros;
@@ -279,55 +285,72 @@ void init(){
 
     auto scene = Scene::create(context, desc);
 
-    std::vector<MeshView> mesh_pool;
-    for (auto i = 1; i <= 60; i++) {
-        std::filesystem::path mesh_file(luisa::format("/home/winnie/test_mesh/untitled_{:06d}.obj", i));
-        auto loader = _MeshLoader::load(mesh_file, 0u, false, false, false);
-        mesh_pool.emplace_back(loader.get().mesh());
-        LUISA_INFO("Loaded mesh {}.", i);
-    }
-
-    auto denoiser_ext = device.extension<DenoiserExt>();
-    auto stream = device.create_stream(StreamTag::COMPUTE);
+    denoiser_ext = device.extension<DenoiserExt>();
+    stream = device.create_stream(StreamTag::COMPUTE);
 
     DenoiserExt::DenoiserMode mode{};
 
     auto resolution = make_uint2(256u, 256u);
     auto channel_count = 4u;
 
-    auto hdr_image = device.create_image<float>(PixelStorage::FLOAT4, resolution);
-    auto hdr_buffer = device.create_buffer<float>(hdr_image.size_bytes() / 4 * channel_count / sizeof(float));
-    auto denoised_buffer = device.create_buffer<float>(hdr_image.size_bytes() / 4 * channel_count / sizeof(float));
+    hdr_buffer = device.create_buffer<float>(resolution.x * resolution.y * 4);
+    denoised_buffer = device.create_buffer<float>(resolution.x * resolution.y * 4);
 
     DenoiserExt::DenoiserInput data;
     data.beauty = &hdr_buffer;
 
+    denoiser_ext->init(stream, mode, data, resolution);
 
     // for (auto i = 0u; i < mesh_pool.size(); i++) {
-    for (auto i = 0u; i < 1; i++) {
-        std::filesystem::path save_path(luisa::format("/home/winnie/LuisaRender/render/{}.exr", i));
-        std::filesystem::path save_path_denoised(luisa::format("/home/winnie/LuisaRender/render/{}_denoised.exr", i));
-        Geometry::TemplateMapping mapping;
-        mapping["liquid"] = mesh_pool[i];
-        auto pipeline = Pipeline::create(device, stream, *scene, mapping);
-        auto buffer = pipeline->render_to_buffer(stream);
-        stream.synchronize();
-        save_image(save_path, buffer, scene->cameras()[0]->film()->resolution());
-        stream << hdr_buffer.copy_from(buffer);
-        stream.synchronize();
-        denoiser_ext->init(stream, mode, data, resolution);
-        denoiser_ext->process(stream, data);
-        denoiser_ext->get_result(stream, denoised_buffer);
-        stream.synchronize();
-        float *new_buffer = new float[256*256*4];
-        stream << denoised_buffer.copy_to(new_buffer);
-        stream.synchronize();
-        save_image(save_path_denoised, new_buffer, scene->cameras()[0]->film()->resolution());
+    // for (auto i = 0u; i < 1; i++) {
+    // }
+}
+
+void add_rigid_body(const std::string &id, ) {
+
+}
+
+void render_frame(py::dict deformable_mesh) {
+    Geometry::TemplateMapping mapping;
+    for (auto it : deformable_mesh) {
+        auto mesh = py::cast<py::tuple>(it.second);
+        auto vertices = py::cast<py::array_t<float>>(mesh[0]);
+        auto triangles = py::cast<py::array_t<uint32_t>>(mesh[1]);
+        auto v = vertices.unchecked<2>();
+        auto f = triangles.unchecked<2>();
+        LUISA_INFO("{} => vertices: {}, triangles: {}", py::cast<std::string>(it.first), vertices.ndim(), triangles.ndim());
+        mapping[it.first] = 
     }
-    denoiser_ext->destroy(stream);
+    std::filesystem::path save_path(luisa::format("/home/winnie/LuisaRender/render/{}.exr", i));
+    std::filesystem::path save_path_denoised(luisa::format("/home/winnie/LuisaRender/render/{}_denoised.exr", i));
+    Geometry::TemplateMapping mapping;
+    mapping["liquid"] = mesh_pool[i];
+    auto pipeline = Pipeline::create(device, stream, *scene, mapping);
+    auto buffer = pipeline->render_to_buffer(stream);
+    stream.synchronize();
+    save_image(save_path, buffer, scene->cameras()[0]->film()->resolution());
+    stream << hdr_buffer.copy_from(buffer);
+    stream.synchronize();
+    denoiser_ext->process(stream, data);
+    denoiser_ext->get_result(stream, denoised_buffer);
+    stream.synchronize();
+    float *new_buffer = new float[256*256*4];
+    stream << denoised_buffer.copy_to(new_buffer);
+    stream.synchronize();
+    save_image(save_path_denoised, new_buffer, scene->cameras()[0]->film()->resolution());
+}
+
+void destroy() {
+    if (denoiser_ext != nullptr) {
+        denoiser_ext->destroy(stream);
+    }
 }
 
 PYBIND11_MODULE(LuisaRenderPy, m) {
     m.doc() = "Python binding of LuisaRender";
     m.def("init", &init);
+    m.def("destroy", &destroy);
+    m.def("add_body", &add_rigid_body);
+    m.def("add_deformable_body", &add_deformable_body);
+    m.def("render_frame", &render_frame);
 }
