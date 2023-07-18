@@ -306,9 +306,9 @@ void init(const std::string &context_path, const std::string &scene_file, uint32
     // }
 }
 
-void add_rigid_body(const std::string &id, ) {
+// void add_rigid_body(const std::string &id, ) {
 
-}
+// }
 
 void render_frame(py::dict deformable_mesh) {
     Geometry::TemplateMapping mapping;
@@ -319,25 +319,24 @@ void render_frame(py::dict deformable_mesh) {
         auto v = vertices.unchecked<2>();
         auto f = triangles.unchecked<2>();
         LUISA_INFO("{} => vertices: {}, triangles: {}", py::cast<std::string>(it.first), vertices.ndim(), triangles.ndim());
-        mapping[it.first] = 
+        // mapping[it.first] = 
     }
-    std::filesystem::path save_path(luisa::format("/home/winnie/LuisaRender/render/{}.exr", i));
-    std::filesystem::path save_path_denoised(luisa::format("/home/winnie/LuisaRender/render/{}_denoised.exr", i));
-    Geometry::TemplateMapping mapping;
-    mapping["liquid"] = mesh_pool[i];
-    auto pipeline = Pipeline::create(device, stream, *scene, mapping);
-    auto buffer = pipeline->render_to_buffer(stream);
-    stream.synchronize();
-    save_image(save_path, buffer, scene->cameras()[0]->film()->resolution());
-    stream << hdr_buffer.copy_from(buffer);
-    stream.synchronize();
-    denoiser_ext->process(stream, data);
-    denoiser_ext->get_result(stream, denoised_buffer);
-    stream.synchronize();
-    float *new_buffer = new float[256*256*4];
-    stream << denoised_buffer.copy_to(new_buffer);
-    stream.synchronize();
-    save_image(save_path_denoised, new_buffer, scene->cameras()[0]->film()->resolution());
+    // std::filesystem::path save_path(luisa::format("/home/winnie/LuisaRender/render/{}.exr", i));
+    // std::filesystem::path save_path_denoised(luisa::format("/home/winnie/LuisaRender/render/{}_denoised.exr", i));
+    // // mapping["liquid"] = mesh_pool[i];
+    // auto pipeline = Pipeline::create(device, stream, *scene, mapping);
+    // auto buffer = pipeline->render_to_buffer(stream);
+    // stream.synchronize();
+    // save_image(save_path, buffer, scene->cameras()[0]->film()->resolution());
+    // stream << hdr_buffer.copy_from(buffer);
+    // stream.synchronize();
+    // denoiser_ext->process(stream, data);
+    // denoiser_ext->get_result(stream, denoised_buffer);
+    // stream.synchronize();
+    // float *new_buffer = new float[256*256*4];
+    // stream << denoised_buffer.copy_to(new_buffer);
+    // stream.synchronize();
+    // save_image(save_path_denoised, new_buffer, scene->cameras()[0]->film()->resolution());
 }
 
 void destroy() {
@@ -350,7 +349,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
     m.doc() = "Python binding of LuisaRender";
     m.def("init", &init);
     m.def("destroy", &destroy);
-    m.def("add_body", &add_rigid_body);
-    m.def("add_deformable_body", &add_deformable_body);
+    // m.def("add_body", &add_rigid_body);
+    // m.def("add_deformable_body", &add_deformable_body);
     m.def("render_frame", &render_frame);
 }
