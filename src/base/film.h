@@ -49,6 +49,7 @@ private:
 
 public:
     Film(Scene *scene, const SceneNodeDesc *desc) noexcept;
+    Film(Scene *scene, const uint2 &resolution) noexcept;
     [[nodiscard]] auto resolution() const noexcept { return _resolution; }
     [[nodiscard]] virtual luisa::unique_ptr<Instance> build(
         Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept = 0;

@@ -19,6 +19,13 @@ Shape::Shape(Scene *scene, const SceneNodeDesc *desc) noexcept
       _transform{scene->load_transform(desc->property_node_or_default("transform"))},
       _medium{scene->load_medium(desc->property_node_or_default("medium"))} {}
 
+Shape::Shape(Scene *scene, const RawMeshInfo &mesh_info) noexcept
+    : SceneNode{scene, SceneNodeTag::SHAPE},
+      _surface{dynamic_cast<Surface *>(scene->load_node_from_name(mesh_info.surface))},
+      _light{nullptr},
+      _transform{scene->add_transform("transform_matrix", mesh_info.transform)},
+      _medium{nullptr} {}
+
 AccelOption Shape::build_option() const noexcept { return {}; }
 
 bool Shape::visible() const noexcept { return true; }
@@ -44,6 +51,14 @@ uint Shape::vertex_properties() const noexcept { return 0u; }
 MeshView Shape::mesh() const noexcept { return {}; }
 luisa::span<const Shape *const> Shape::children() const noexcept { return {}; }
 bool Shape::deformable() const noexcept { return false; }
+void Shape::update_shape(Scene *scene, const RawMeshInfo& mesh_info) noexcept {
+    if (!mesh_info.surface.empty()) _surface = dynamic_cast<Surface *>(
+        scene->load_node_from_name(mesh_info.surface));
+    // if (shape->light() != nullptr) _light = shape->light();
+    if (!mesh_info.transform.empty()) _transform = scene->add_transform(
+        "transform_matrix", mesh_info.transform);
+    // if (shape->medium() != nullptr) _medium = shape->medium();
+}
 
 uint4 Shape::Handle::encode(
     uint buffer_base, uint flags,

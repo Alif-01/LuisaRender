@@ -24,7 +24,7 @@ Integrator::Instance::Instance(Pipeline &pipeline, CommandBuffer &command_buffer
                          integrator->light_sampler()->build(pipeline, command_buffer) :
                          nullptr} {}
 
-const float* Integrator::Instance::render_to_buffer(Stream &stream) noexcept {
+const float* Integrator::Instance::render_to_buffer(Stream &stream, uint camera_index) noexcept {
     LUISA_ERROR("render_to_buffer not implemented.");
     return nullptr;
 }
@@ -53,12 +53,13 @@ void ProgressiveIntegrator::Instance::render(Stream &stream) noexcept {
     }
 }
 
-const float* ProgressiveIntegrator::Instance::render_to_buffer(Stream &stream) noexcept {
+const float* ProgressiveIntegrator::Instance::render_to_buffer(
+    Stream &stream, uint camera_index) noexcept {
     CommandBuffer command_buffer{&stream};
-    if (pipeline().camera_count()!=1) {
-        LUISA_ERROR("render_to_buffer only supports single camera.");
+    if (camera_index >= pipeline().camera_count()) [[unlikely]] {
+        LUISA_ERROR("Invalid camera number {}.", camera_index);
     }
-    auto camera = pipeline().camera(0u);
+    auto camera = pipeline().camera(camera_index);
     auto resolution = camera->film()->node()->resolution();
     auto pixel_count = resolution.x * resolution.y;
     camera->film()->prepare(command_buffer);
@@ -110,7 +111,7 @@ void ProgressiveIntegrator::Instance::_render_one_camera(
     auto dispatch_count = 0u;
     auto sample_id = 0u;
     for (auto s : shutter_samples) {
-        pipeline().update(command_buffer, s.point.time);
+        auto updated = pipeline().update(command_buffer, s.point.time);
         for (auto i = 0u; i < s.spp; i++) {
             command_buffer << render(sample_id++, s.point.time, s.point.weight)
                                   .dispatch(resolution);

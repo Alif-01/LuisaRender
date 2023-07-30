@@ -6,6 +6,7 @@
 
 #include <span>
 #include <mutex>
+#include <functional>
 
 #include <core/stl.h>
 #include <core/dynamic_module.h>
@@ -37,10 +38,14 @@ class Spectrum;
 class Medium;
 class PhaseFunction;
 
+struct RawMeshInfo;
+struct RawCameraInfo;
+struct RawSurfaceInfo;
+
 class Scene {
 
 public:
-    using NodeCreater = SceneNode *(Scene *, const SceneNodeDesc *);
+    using NodeCreaterDesc = SceneNode *(Scene *, const SceneNodeDesc *);
     using NodeDeleter = void(SceneNode *);
     using NodeHandle = luisa::unique_ptr<SceneNode, NodeDeleter *>;
 
@@ -59,7 +64,17 @@ public:
     Scene(const Scene &scene) noexcept = delete;
     Scene &operator=(Scene &&scene) noexcept = delete;
     Scene &operator=(const Scene &scene) noexcept = delete;
+    
+    template <typename NodeCreater>
+    [[nodiscard]] auto get_handle_creater(
+        luisa::string_view name, SceneNodeTag tag,
+        luisa::string_view impl_type, luisa::string_view creater_name) noexcept;
+    template <typename... Args, typename Callable>
+    [[nodiscard]] std::pair<SceneNode*, bool> load_from_nodes(
+        luisa::string_view name, Callable &&handle_creater, Args&&... args
+    ) noexcept;
     [[nodiscard]] SceneNode *load_node(SceneNodeTag tag, const SceneNodeDesc *desc) noexcept;
+    [[nodiscard]] SceneNode *load_node_from_name(luisa::string name) noexcept;
     [[nodiscard]] Camera *load_camera(const SceneNodeDesc *desc) noexcept;
     [[nodiscard]] Film *load_film(const SceneNodeDesc *desc) noexcept;
     [[nodiscard]] Filter *load_filter(const SceneNodeDesc *desc) noexcept;
@@ -76,16 +91,34 @@ public:
     [[nodiscard]] Spectrum *load_spectrum(const SceneNodeDesc *desc) noexcept;
     [[nodiscard]] Medium *load_medium(const SceneNodeDesc *desc) noexcept;
     [[nodiscard]] PhaseFunction *load_phase_function(const SceneNodeDesc *desc) noexcept;
+    
+    [[nodiscard]] Film *add_film(luisa::string_view name, const uint2 &resolution) noexcept;
+    [[nodiscard]] Filter *add_filter(luisa::string_view name, const float &radius) noexcept;
+    [[nodiscard]] Transform *add_transform(luisa::string_view name, const luisa::vector<float> &m) noexcept;
+    [[nodiscard]] Texture *add_constant_texture(luisa::string_view name, const luisa::vector<float> &v) noexcept;
+    [[nodiscard]] Texture *add_image_texture(
+        luisa::string_view name, luisa::string_view image, const float &image_scale) noexcept;
+    [[nodiscard]] Shape *update_shape(const RawMeshInfo &mesh_info) noexcept;
+    [[nodiscard]] Camera *add_camera(
+        const RawCameraInfo &camera_info,
+        luisa::unordered_map<luisa::string, uint> &camera_index) noexcept;
+    [[nodiscard]] Surface *add_surface(const RawSurfaceInfo &surface_info) noexcept;
     void append_shape(Shape *shape) noexcept;
 
 public:
-    [[nodiscard]] static luisa::unique_ptr<Scene> create(const Context &ctx, const SceneDesc *desc) noexcept;
+    [[nodiscard]] static luisa::unique_ptr<Scene> create(
+        const Context &ctx, const SceneDesc *desc,
+        luisa::unordered_map<luisa::string, uint> &camera_index) noexcept;
     [[nodiscard]] const Integrator *integrator() const noexcept;
     [[nodiscard]] const Environment *environment() const noexcept;
     [[nodiscard]] const Medium *environment_medium() const noexcept;
     [[nodiscard]] const Spectrum *spectrum() const noexcept;
     [[nodiscard]] luisa::span<const Shape *const> shapes() const noexcept;
     [[nodiscard]] luisa::span<const Camera *const> cameras() const noexcept;
+    [[nodiscard]] bool shapes_updated() const noexcept;
+    [[nodiscard]] bool cameras_updated() const noexcept;
+    void clear_shapes_update() noexcept;
+    void clear_cameras_update() noexcept;
     [[nodiscard]] float shadow_terminator_factor() const noexcept;
     [[nodiscard]] float intersection_offset_factor() const noexcept;
 };

@@ -24,6 +24,16 @@ using compute::Var;
 class Sampler;
 class Transform;
 
+struct RawCameraInfo {
+    luisa::string name;
+    float3 position;
+    float3 look_at;
+    float fov;
+    uint spp;
+    float radius;
+    uint2 resolution;
+};
+
 class Camera : public SceneNode {
 
 public:
@@ -98,8 +108,15 @@ private:
     std::filesystem::path _file;
     luisa::vector<ShutterPoint> _shutter_points;
 
+private:
+    void _build_transform(
+        Scene *scene, luisa::string_view name, SceneNodeDesc::SourceLocation l,
+        const float3 &position, const float3 &front, const float3 &up
+    ) noexcept;
+
 public:
     Camera(Scene *scene, const SceneNodeDesc *desc) noexcept;
+    Camera(Scene *scene, const RawCameraInfo &camera_info) noexcept;
     [[nodiscard]] auto film() const noexcept { return _film; }
     [[nodiscard]] auto filter() const noexcept { return _filter; }
     [[nodiscard]] auto transform() const noexcept { return _transform; }
@@ -137,6 +154,8 @@ public:
         _clip_plane = clamp(_clip_plane, 0.f, 1e10f);
         if (_clip_plane.x > _clip_plane.y) { std::swap(_clip_plane.x, _clip_plane.y); }
     }
+    ClipPlaneCameraWrapper(Scene *scene, const RawCameraInfo &camera_info) noexcept
+        : Base{scene, camera_info}, _clip_plane{make_float2(0.f, 1e10f)} {}
 
 public:
     class Instance : public BaseInstance {

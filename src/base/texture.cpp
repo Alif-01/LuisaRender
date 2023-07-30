@@ -10,6 +10,9 @@ namespace luisa::render {
 Texture::Texture(Scene *scene, const SceneNodeDesc *desc) noexcept
     : SceneNode{scene, desc, SceneNodeTag::TEXTURE} {}
 
+Texture::Texture(Scene *scene) noexcept
+    : SceneNode{scene, SceneNodeTag::TEXTURE} {}
+
 luisa::optional<float4> Texture::evaluate_static() const noexcept { return luisa::nullopt; }
 
 [[nodiscard]] inline auto extend_color_to_rgb(auto color, uint n) noexcept {

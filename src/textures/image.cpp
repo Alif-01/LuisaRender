@@ -110,6 +110,26 @@ public:
         if (filter_mode == TextureSampler::Filter::POINT) { _mipmaps = 1u; }
         _load_image(path);
     }
+    
+    ImageTexture(Scene *scene, luisa::string_view image, const float &image_scale) noexcept
+        : Texture{scene},
+          _sampler{TextureSampler::Filter::LINEAR_POINT, TextureSampler::Address::REPEAT},
+          _uv_scale{make_float2(1.0f)}, _uv_offset{make_float2(0.0f)}, _scale{image_scale}, _mipmaps{1u} {
+        
+        std::filesystem::path path = image;
+        luisa::string encoding = [&path] {
+            auto ext = path.extension().string();
+            for (auto &c : ext) { c = static_cast<char>(tolower(c)); }
+            if (ext == ".exr" || ext == ".hdr") { return "linear"; }
+            return "sRGB";
+        }();
+        for (auto &c : encoding) { c = static_cast<char>(tolower(c)); }
+        if (encoding == "srgb") _encoding = Encoding::SRGB;
+        else _encoding = Encoding::LINEAR;
+
+        _load_image(path);
+    }
+
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] bool is_black() const noexcept override { return _scale == 0.f; }
     [[nodiscard]] bool is_constant() const noexcept override { return false; }
@@ -199,3 +219,8 @@ void ImageTexture::_generate_mipmaps_sRGB(Pipeline &pipeline, CommandBuffer &com
 }// namespace luisa::render
 
 LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::ImageTexture)
+
+LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
+    luisa::render::Scene *scene, luisa::string_view image, const float &image_scale) LUISA_NOEXCEPT {
+    return luisa::new_with_allocator<luisa::render::ImageTexture>(scene, image, image_scale);
+}

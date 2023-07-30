@@ -41,8 +41,9 @@ uint Pipeline::register_medium(CommandBuffer &command_buffer, const Medium *medi
     return tag;
 }
 
-luisa::unique_ptr<Pipeline> Pipeline::create(Device &device, Stream &stream, const Scene &scene,
-                const Geometry::TemplateMapping &template_mapping) noexcept {
+luisa::unique_ptr<Pipeline> Pipeline::create(
+    Device &device, Stream &stream, Scene &scene,
+    const Geometry::TemplateMapping &template_mapping) noexcept {
     global_thread_pool().synchronize();
     auto pipeline = luisa::make_unique<Pipeline>(device);
     pipeline->_transform_matrices.resize(transform_matrix_buffer_size);
@@ -68,10 +69,12 @@ luisa::unique_ptr<Pipeline> Pipeline::create(Device &device, Stream &stream, con
     for (auto camera : scene.cameras()) {
         pipeline->_cameras.emplace_back(camera->build(*pipeline, command_buffer));
     }
+    scene.clear_cameras_update();
     update_bindless_if_dirty();
 
     pipeline->_geometry = luisa::make_unique<Geometry>(*pipeline);
     pipeline->_geometry->build(command_buffer, scene.shapes(), pipeline->_initial_time, template_mapping);
+    scene.clear_shapes_update();
 
     update_bindless_if_dirty();
     if (auto env = scene.environment(); env != nullptr && !env->is_black()) {
@@ -101,6 +104,46 @@ luisa::unique_ptr<Pipeline> Pipeline::create(Device &device, Stream &stream, con
     return pipeline;
 }
 
+void Pipeline::scene_update(
+    Stream &stream, Scene &scene, float time,
+    const Geometry::TemplateMapping &template_mapping) noexcept {
+    global_thread_pool().synchronize();
+    CommandBuffer command_buffer{&stream};
+
+    auto update_bindless_if_dirty = [this, &command_buffer] {
+        if (_bindless_array.dirty()) {
+            command_buffer << _bindless_array.update();
+        }
+    };
+
+    if (scene.cameras_updated()) {
+        _cameras.clear();
+        _cameras.reserve(scene.cameras().size());
+
+        update_bindless_if_dirty();
+        for (auto camera : scene.cameras()) {
+            _cameras.emplace_back(camera->build(*this, command_buffer));
+        }
+        update_bindless_if_dirty();
+        scene.clear_cameras_update();
+    }
+
+    if (scene.shapes_updated()) {
+        _geometry = luisa::make_unique<Geometry>(*this);
+        _geometry->build(command_buffer, scene.shapes(), time, template_mapping);
+        scene.clear_shapes_update();
+        update_bindless_if_dirty();
+
+        if (!_transforms.empty()) {             // camera has no transforms
+            command_buffer << _transform_matrix_buffer
+                              .view(0u, _transforms.size())
+                              .copy_from(_transform_matrices.data());
+        }
+        update_bindless_if_dirty();
+        command_buffer << compute::commit();
+    }
+}
+
 bool Pipeline::update(CommandBuffer &command_buffer, float time) noexcept {
     // TODO: support deformable meshes
     auto updated = _geometry->update(command_buffer, time);
@@ -119,8 +162,8 @@ void Pipeline::render(Stream &stream) noexcept {
     _integrator->render(stream);
 }
 
-const float* Pipeline::render_to_buffer(Stream &stream) noexcept {
-    return _integrator->render_to_buffer(stream);
+const float* Pipeline::render_to_buffer(Stream &stream, uint camera_index) noexcept {
+    return _integrator->render_to_buffer(stream, camera_index);
 }
 
 const Texture::Instance *Pipeline::build_texture(CommandBuffer &command_buffer, const Texture *texture) noexcept {

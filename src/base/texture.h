@@ -61,6 +61,7 @@ public:
 
 public:
     Texture(Scene *scene, const SceneNodeDesc *desc) noexcept;
+    Texture(Scene *scene) noexcept;
     [[nodiscard]] virtual bool is_black() const noexcept = 0;
     [[nodiscard]] virtual bool is_constant() const noexcept = 0;
     [[nodiscard]] virtual luisa::optional<float4> evaluate_static() const noexcept;

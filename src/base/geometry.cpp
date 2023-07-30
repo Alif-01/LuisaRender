@@ -39,14 +39,14 @@ void Geometry::_process_shape(
     auto visible = overridden_visible && shape->visible();
 
     if (shape->is_mesh()) {
-        if (shape->deformable()) [[unlikely]] {
-            LUISA_ERROR_WITH_LOCATION(
-                "Deformable meshes are not yet supported.");
-        }
+        // if (shape->deformable()) [[unlikely]] {
+        //     LUISA_ERROR_WITH_LOCATION(
+        //         "Deformable meshes are not yet supported.");
+        // }
         auto mesh = [&] {
-            if (auto iter = _meshes.find(shape); !shape->is_template_mesh() && iter != _meshes.end()) {
-                return iter->second;
-            }
+            // if (auto iter = _meshes.find(shape); !shape->is_template_mesh() && iter != _meshes.end()) {
+            //     return iter->second;
+            // }
             auto mesh_geom = [&] {
                 if (shape->is_template_mesh() && !template_mapping.contains(shape->template_id())) [[unlikely]] {
                     LUISA_ERROR_WITH_LOCATION("Template mesh '{}' missing.", shape->template_id());
@@ -105,7 +105,7 @@ void Geometry::_process_shape(
                 .intersection_offset = encode_fixed_point(shape->intersection_offset_factor()),
                 .geometry_buffer_id_base = mesh_geom.buffer_id_base,
                 .vertex_properties = shape->vertex_properties()};
-            _meshes.emplace(shape, mesh_data);
+            _meshes[shape] = mesh_data;
             return mesh_data;
         }();
         auto instance_id = static_cast<uint>(_accel.size());
@@ -114,6 +114,8 @@ void Geometry::_process_shape(
         if (!is_static) { _dynamic_transforms.emplace_back(inst_xform); }
         auto object_to_world = inst_xform.matrix(init_time);
         _accel.emplace_back(*mesh.resource, object_to_world, visible);
+
+        // TODO: _world_max/min cannot support deleting objects
         auto vertices = shape->mesh().vertices;
         for (auto &v : vertices) {
             _world_max = max(_world_max, make_float3(object_to_world * make_float4(v.position(), 1.f)));

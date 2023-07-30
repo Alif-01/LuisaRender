@@ -25,6 +25,22 @@ struct MeshView {
     luisa::span<const Triangle> triangles;
 };
 
+struct RawMeshInfo {
+    luisa::string name;
+    luisa::vector<float> vertices;
+    luisa::vector<uint> triangles;
+    luisa::vector<float> uvs;
+    luisa::vector<float> normals;
+    luisa::vector<float> transform;
+
+    luisa::string surface;
+    // luis *light;
+    luisa::string medium;
+    // const SceneNodeDesc *surface;
+    // const SceneNodeDesc *light;
+    // const SceneNodeDesc *medium;
+};
+
 class Shape : public SceneNode {
 
 public:
@@ -45,6 +61,7 @@ private:
 
 public:
     Shape(Scene *scene, const SceneNodeDesc *desc) noexcept;
+    Shape(Scene *scene, const RawMeshInfo& mesh_info) noexcept;
     [[nodiscard]] const Surface *surface() const noexcept;
     [[nodiscard]] const Light *light() const noexcept;
     [[nodiscard]] const Medium *medium() const noexcept;
@@ -62,6 +79,7 @@ public:
     [[nodiscard]] virtual luisa::span<const Shape *const> children() const noexcept;// empty if the shape is a mesh
     [[nodiscard]] virtual bool deformable() const noexcept;                         // true if the shape will not deform
     [[nodiscard]] virtual AccelOption build_option() const noexcept;                // accel struct build quality, only considered for meshes
+    virtual void update_shape(Scene *scene, const RawMeshInfo& mesh_info) noexcept;
 };
 
 template<typename BaseShape>
@@ -78,6 +96,10 @@ public:
                   "shadow_terminator",
                   scene->shadow_terminator_factor()),
               0.f, 1.f)} {}
+    ShadowTerminatorShapeWrapper(Scene *scene, const RawMeshInfo& mesh_info) noexcept
+        : BaseShape{scene, mesh_info},
+           _shadow_terminator{std::clamp(scene->shadow_terminator_factor(), 0.f, 1.f)} {}
+    
     [[nodiscard]] float shadow_terminator_factor() const noexcept override {
         return _shadow_terminator;
     }
@@ -97,6 +119,9 @@ public:
                   "intersection_offset",
                   scene->intersection_offset_factor()),
               0.f, 1.f)} {}
+    IntersectionOffsetShapeWrapper(Scene *scene, const RawMeshInfo& mesh_info) noexcept
+        : BaseShape{scene, mesh_info},
+          _intersection_offset{std::clamp(scene->intersection_offset_factor(), 0.f, 1.f)} {}
     [[nodiscard]] float intersection_offset_factor() const noexcept override {
         return _intersection_offset;
     }
@@ -112,6 +137,8 @@ public:
     VisibilityShapeWrapper(Scene *scene, const SceneNodeDesc *desc) noexcept
         : BaseShape{scene, desc},
           _visible{desc->property_bool_or_default("visible", true)} {}
+    VisibilityShapeWrapper(Scene *scene, const RawMeshInfo& mesh_info) noexcept
+        : BaseShape{scene, mesh_info}, _visible{true} {}
     [[nodiscard]] bool visible() const noexcept override { return _visible; }
 };
 

@@ -58,6 +58,16 @@ public:
           _eta{scene->load_texture(desc->property_node_or_default("eta"))},
           _thickness{scene->load_texture(desc->property_node_or_default("thickness"))},
           _remap_roughness{desc->property_bool_or_default("remap_roughness", true)} {}
+
+    PlasticSurface(Scene *scene, const RawSurfaceInfo &surface_info) noexcept
+        : Surface{scene},
+          _kd{surface_info.is_color ? 
+              scene->add_constant_texture("texture_constant", {
+                surface_info.color[0], surface_info.color[1], surface_info.color[2]}) :
+              scene->add_image_texture("texture_image", surface_info.image, surface_info.image_scale)},
+          _roughness{scene->add_constant_texture("texture_constant", {surface_info.roughness})},
+          _sigma_a{nullptr}, _eta{nullptr}, _thickness{nullptr}, _remap_roughness{true} {}
+
     [[nodiscard]] auto remap_roughness() const noexcept { return _remap_roughness; }
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] uint properties() const noexcept override { return property_reflective; }
@@ -288,3 +298,9 @@ using NormalMapOpacityPlasticSurface = NormalMapWrapper<OpacitySurfaceWrapper<
 }// namespace luisa::render
 
 LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::NormalMapOpacityPlasticSurface)
+
+LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
+    luisa::render::Scene *scene,
+    const luisa::render::RawSurfaceInfo &surface_info) LUISA_NOEXCEPT {
+    return luisa::new_with_allocator<luisa::render::NormalMapOpacityPlasticSurface>(scene, surface_info);
+}

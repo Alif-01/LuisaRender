@@ -13,6 +13,9 @@ Film::Film(Scene *scene, const SceneNodeDesc *desc) noexcept
           "resolution", lazy_construct([desc] {
               return make_uint2(desc->property_uint_or_default("resolution", 1024u));
           }))} {}
+Film::Film(Scene *scene, const uint2 &resolution) noexcept
+    : SceneNode{scene, SceneNodeTag::FILM},
+      _resolution{resolution} {}
 
 void Film::Instance::accumulate(Expr<uint2> pixel, Expr<float3> rgb,
                                 Expr<float> effective_spp) const noexcept {

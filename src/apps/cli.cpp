@@ -132,7 +132,8 @@ int main(int argc, char *argv[]) {
     LUISA_INFO("Parsed scene description file '{}' in {} ms.",
                path.string(), parse_time);
     while (1) {
-		auto scene = Scene::create(context, scene_desc.get());
+        luisa::unordered_map<luisa::string, uint> camera_index;
+		auto scene = Scene::create(context, scene_desc.get(), camera_index);
 		auto stream = device.create_stream(StreamTag::COMPUTE);
 		auto pipeline = Pipeline::create(device, stream, *scene, {});
 		pipeline->render(stream);

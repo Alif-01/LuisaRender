@@ -9,6 +9,9 @@ namespace luisa::render {
 Transform::Transform(Scene *scene, const SceneNodeDesc *desc) noexcept
     : SceneNode{scene, desc, SceneNodeTag::TRANSFORM} {}
 
+Transform::Transform(Scene *scene) noexcept
+    : SceneNode{scene, SceneNodeTag::TRANSFORM} {}
+
 TransformTree::Node::Node(
     const TransformTree::Node *parent,
     const Transform *t) noexcept

@@ -249,7 +249,7 @@ public:
 };
 
 int main(int argc, char *argv[]) {
-
+    
     log_level_info();
     luisa::compute::Context context{argv[0]};
     auto macros = parse_cli_macros(argc, argv);
@@ -279,8 +279,8 @@ int main(int argc, char *argv[]) {
 
     auto desc = scene_desc.get();
     // auto template_node = desc->node("template_1");
-
-    auto scene = Scene::create(context, desc);
+    luisa::unordered_map<luisa::string, uint> camera_index;
+    auto scene = Scene::create(context, desc, camera_index);
 
     std::vector<MeshView> mesh_pool;
     // for (auto i = 1; i <= 60; i++) {
@@ -310,7 +310,7 @@ int main(int argc, char *argv[]) {
     Geometry::TemplateMapping mapping;
     // mapping["liquid"] = mesh_pool[i];
     auto pipeline = Pipeline::create(device, stream, *scene, mapping);
-    auto buffer = pipeline->render_to_buffer(stream);
+    auto buffer = pipeline->render_to_buffer(stream, 0);
     stream.synchronize();
     save_image(img_path, buffer, scene->cameras()[0]->film()->resolution());
     stream << hdr_buffer.copy_from(buffer);

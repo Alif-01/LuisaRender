@@ -835,7 +835,7 @@ void WavefrontPathTracingv2Instance::_render_one_camera(
 
         shutter_spp += s.spp;
         auto time = s.point.time;
-        pipeline().update(command_buffer, time);
+        auto updated = pipeline().update(command_buffer, time);
         for (auto & queue : queues) {
             queue.clear_counter_buffer(command_buffer);
         }

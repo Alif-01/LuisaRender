@@ -31,6 +31,20 @@ class Interaction;
 template<typename BaseSurface, typename BaseInstance>
 class OpacitySurfaceWrapper;
 
+struct RawSurfaceInfo {
+    static const luisa::string mat_string[5];
+    luisa::string name;
+    enum RawMaterial: uint { 
+        RAW_NULL, RAW_METAL, RAW_SUBSTRATE, RAW_MATTE, RAW_GLASS
+    } material;
+    bool is_color;
+    float3 color;
+    luisa::string image;
+    float image_scale;
+    float roughness;
+    float alpha;
+};
+
 class Surface : public SceneNode {
 
 public:
@@ -144,6 +158,7 @@ protected:
 
 public:
     Surface(Scene *scene, const SceneNodeDesc *desc) noexcept;
+    Surface(Scene *scene) noexcept;
     [[nodiscard]] virtual uint properties() const noexcept = 0;
     [[nodiscard]] virtual bool is_null() const noexcept { return false; }
     [[nodiscard]] auto is_reflective() const noexcept { return static_cast<bool>(properties() & property_reflective); }
@@ -266,6 +281,9 @@ public:
                       return desc->property_node_or_default("opacity");
                   })));
           }(scene, desc)} {}
+    OpacitySurfaceWrapper(Scene *scene, const RawSurfaceInfo &surface_info) noexcept
+        : BaseSurface{scene, surface_info},
+          _opacity{scene->add_constant_texture("texture_constant", {surface_info.alpha})} {}
 
 protected:
     [[nodiscard]] luisa::unique_ptr<Surface::Instance> _build(
@@ -330,6 +348,8 @@ public:
               return scene->load_texture(desc->property_node_or_default("normal_map"));
           }(scene, desc)},
           _strength{desc->property_float_or_default("normal_map_strength", 1.f)} {}
+    NormalMapWrapper(Scene *scene, const RawSurfaceInfo &surface_info) noexcept
+        : BaseSurface{scene, surface_info}, _normal_map{nullptr}, _strength{1.f} {}
 
 protected:
     [[nodiscard]] luisa::unique_ptr<Surface::Instance> _build(

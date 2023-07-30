@@ -16,6 +16,11 @@ Filter::Filter(Scene *scene, const SceneNodeDesc *desc) noexcept
               return make_float2(desc->property_float_or_default("shift", 0.f));
           }))} {}
 
+Filter::Filter(Scene *scene, const float &radius) noexcept
+    : SceneNode{scene, SceneNodeTag::FILTER},
+      _radius{std::max(radius, 1e-3f)},
+      _shift{make_float2(0.f)} {}
+
 luisa::unique_ptr<Filter::Instance> Filter::build(
     Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept {
     return luisa::make_unique<Instance>(pipeline, this);

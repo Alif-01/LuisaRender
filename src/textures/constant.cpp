@@ -17,29 +17,44 @@ private:
     bool _black{false};
     bool _should_inline;
 
-public:
-    ConstantTexture(Scene *scene, const SceneNodeDesc *desc) noexcept
-        : Texture{scene, desc},
-          _should_inline{desc->property_bool_or_default("inline", true)} {
-        auto scale = desc->property_float_or_default("scale", 1.f);
-        auto v = desc->property_float_list_or_default("v");
+private:
+    void _build_constant(
+        SceneNodeDesc::SourceLocation l, float scale, const luisa::vector<float> &ov
+    ) noexcept {
+        luisa::vector<float> v(ov.begin(), ov.end());
         if (v.empty()) [[unlikely]] {
             LUISA_WARNING(
                 "No value for ConstantTexture. "
                 "Fallback to single-channel zero. [{}]",
-                desc->source_location().string());
+                l.string());
             v.emplace_back(0.f);
         } else if (v.size() > 4u) [[unlikely]] {
             LUISA_WARNING(
                 "Too many values (count = {}) for ConstantTexture. "
                 "Additional values will be discarded. [{}]",
-                v.size(), desc->source_location().string());
+                v.size(), l.string());
             v.resize(4u);
         }
         _channels = v.size();
         for (auto i = 0u; i < v.size(); i++) { _v[i] = scale * v[i]; }
         _black = all(_v == 0.f);
     }
+
+public:
+    ConstantTexture(Scene *scene, const SceneNodeDesc *desc) noexcept
+        : Texture{scene, desc},
+          _should_inline{desc->property_bool_or_default("inline", true)} {
+        auto scale = desc->property_float_or_default("scale", 1.f);
+        auto v = desc->property_float_list_or_default("v");
+        
+        _build_constant(desc->source_location(), scale, v);
+    }
+    
+    ConstantTexture(Scene *scene, const luisa::vector<float> &v) noexcept
+        : Texture{scene}, _should_inline{true} {
+        _build_constant(SceneNodeDesc::SourceLocation(), 1.f, v);
+    }
+
     [[nodiscard]] auto v() const noexcept { return _v; }
     [[nodiscard]] bool is_black() const noexcept override { return _black; }
     [[nodiscard]] bool is_constant() const noexcept override { return true; }
@@ -88,3 +103,8 @@ luisa::unique_ptr<Texture::Instance> ConstantTexture::build(
 }// namespace luisa::render
 
 LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::ConstantTexture)
+
+LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
+    luisa::render::Scene *scene, const luisa::vector<float> &v) LUISA_NOEXCEPT {
+    return luisa::new_with_allocator<luisa::render::ConstantTexture>(scene, v);
+}

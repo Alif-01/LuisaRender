@@ -28,10 +28,10 @@ Camera::Camera(Scene *scene, const SceneNodeDesc *desc) noexcept
       _spp{desc->property_uint_or_default("spp", 1024u)} {
 
     // For compatibility with older scene description versions
+    static constexpr auto default_position = make_float3(0.f, 0.f, 0.f);
+    static constexpr auto default_front = make_float3(0.f, 0.f, -1.f);
+    static constexpr auto default_up = make_float3(0.f, 1.f, 0.f);
     if (_transform == nullptr) {
-        static constexpr auto default_position = make_float3(0.f, 0.f, 0.f);
-        static constexpr auto default_front = make_float3(0.f, 0.f, -1.f);
-        static constexpr auto default_up = make_float3(0.f, 1.f, 0.f);
         auto position = desc->property_float3_or_default("position", default_position);
         auto front = desc->property_float3_or_default(
             "front", lazy_construct([desc, position] {
@@ -40,12 +40,7 @@ Camera::Camera(Scene *scene, const SceneNodeDesc *desc) noexcept
             }));
         auto up = desc->property_float3_or_default("up", default_up);
         if (!all(position == default_position && front == default_front && up == default_up)) {
-            SceneNodeDesc d{luisa::format("{}$transform", desc->identifier()), SceneNodeTag::TRANSFORM};
-            d.define(SceneNodeTag::TRANSFORM, "View", desc->source_location());
-            d.add_property("position", SceneNodeDesc::number_list{position.x, position.y, position.z});
-            d.add_property("front", SceneNodeDesc::number_list{front.x, front.y, front.z});
-            d.add_property("up", SceneNodeDesc::number_list{up.x, up.y, up.z});
-            _transform = scene->load_transform(&d);
+            _build_transform(scene, desc->identifier(), desc->source_location(), position, front, up);
         }
     }
 
@@ -145,6 +140,37 @@ Camera::Camera(Scene *scene, const SceneNodeDesc *desc) noexcept
         !std::filesystem::exists(folder)) {
         std::filesystem::create_directories(folder);
     }
+}
+
+Camera::Camera(Scene *scene, const RawCameraInfo &camera_info) noexcept
+    : SceneNode{scene, SceneNodeTag::CAMERA},
+      _film{scene->add_film("film_color", camera_info.resolution)},
+      _filter{scene->add_filter("filter_gaussian", camera_info.radius)},
+      _transform{nullptr},
+      _shutter_span{make_float2(0.0f)},
+      _shutter_samples{0u},                     // 0 means default
+      _spp{camera_info.spp} {
+    // build transform
+    auto position = std::move(camera_info.position);
+    auto front = std::move(normalize(camera_info.look_at - camera_info.position));
+    auto up = make_float3(0.f, 1.f, 0.f);
+    _build_transform(scene, camera_info.name, SceneNodeDesc::SourceLocation(),
+                     position, front, up);
+    
+    // render file
+    _file = std::filesystem::current_path() / luisa::format("render_{}.exr", camera_info.name);
+}
+
+void Camera::_build_transform(
+    Scene *scene, luisa::string_view name, SceneNodeDesc::SourceLocation l,
+    const float3 &position, const float3 &front, const float3 &up
+) noexcept {
+    SceneNodeDesc d{luisa::format("{}$transform", name), SceneNodeTag::TRANSFORM};
+    d.define(SceneNodeTag::TRANSFORM, "View", l);
+    d.add_property("position", SceneNodeDesc::number_list{position.x, position.y, position.z});
+    d.add_property("front", SceneNodeDesc::number_list{front.x, front.y, front.z});
+    d.add_property("up", SceneNodeDesc::number_list{up.x, up.y, up.z});
+    _transform = scene->load_transform(&d);
 }
 
 auto Camera::shutter_weight(float time) const noexcept -> float {

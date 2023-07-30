@@ -418,7 +418,7 @@ void AuxiliaryBufferPathTracingInstance::_render_one_camera(
     }
     auto sample_count = 0u;
     for (auto s : shutter_samples) {
-        pipeline().update(command_buffer, s.point.time);
+        auto updated = pipeline().update(command_buffer, s.point.time);
         clear_auxiliary_buffers();
         auto parent_path = camera->node()->file().parent_path();
         auto filename = camera->node()->file().stem().string();

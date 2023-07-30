@@ -9,8 +9,15 @@
 
 namespace luisa::render {
 
+const luisa::string RawSurfaceInfo::mat_string[5] = {
+    "null", "metal", "substrate", "matte", "glass"
+};
+
 Surface::Surface(Scene *scene, const SceneNodeDesc *desc) noexcept
     : SceneNode{scene, desc, SceneNodeTag::SURFACE} {}
+
+Surface::Surface(Scene *scene) noexcept
+    : SceneNode{scene, SceneNodeTag::SURFACE} {}
 
 luisa::unique_ptr<Surface::Instance> Surface::build(
     Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept {

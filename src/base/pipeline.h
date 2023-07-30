@@ -192,8 +192,9 @@ public:
 public:
     [[nodiscard]] auto &device() const noexcept { return _device; }
     [[nodiscard]] static luisa::unique_ptr<Pipeline> create(
-        Device &device, Stream &stream, const Scene &scene,
+        Device &device, Stream &stream, Scene &scene,
         const Geometry::TemplateMapping &template_mapping) noexcept;
+        
     [[nodiscard]] auto &bindless_array() noexcept { return _bindless_array; }
     [[nodiscard]] auto &bindless_array() const noexcept { return _bindless_array; }
     [[nodiscard]] auto camera_count() const noexcept { return _cameras.size(); }
@@ -211,9 +212,10 @@ public:
     [[nodiscard]] const Texture::Instance *build_texture(CommandBuffer &command_buffer, const Texture *texture) noexcept;
     [[nodiscard]] const Filter::Instance *build_filter(CommandBuffer &command_buffer, const Filter *filter) noexcept;
     [[nodiscard]] const PhaseFunction::Instance *build_phasefunction(CommandBuffer &command_buffer, const PhaseFunction *phasefunction) noexcept;
-    bool update(CommandBuffer &command_buffer, float time) noexcept;
+    void scene_update(Stream &stream, Scene &scene, float time, const Geometry::TemplateMapping &template_mapping) noexcept;
+    [[nodiscard]] bool update(CommandBuffer &command_buffer, float time) noexcept;
     void render(Stream &stream) noexcept;
-    const float* render_to_buffer(Stream &stream) noexcept;
+    [[nodiscard]] const float* render_to_buffer(Stream &stream, uint camera_index) noexcept;
     [[nodiscard]] auto &printer() noexcept { return *_printer; }
     [[nodiscard]] auto &printer() const noexcept { return *_printer; }
     [[nodiscard]] uint named_id(luisa::string_view name) const noexcept;

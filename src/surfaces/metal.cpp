@@ -56,49 +56,35 @@ public:
           _roughness{scene->load_texture(desc->property_node_or_default("roughness"))},
           _kd{scene->load_texture(desc->property_node_or_default("Kd"))},
           _remap_roughness{desc->property_bool_or_default("remap_roughness", true)} {
-        auto register_eta_k = [&](const luisa::string &name, luisa::span<float2> eta_k) noexcept {
-            std::scoped_lock lock{_mutex()};
-            auto [iter, success] = _known_ior().try_emplace(name, ComplexIOR{});
-            if (success) {
-                auto &ior = iter->second;
-                ior.eta.resize(eta_k.size());
-                ior.k.resize(eta_k.size());
-                for (auto i = 0u; i < eta_k.size(); i++) {
-                    ior.eta[i] = eta_k[i].x;
-                    ior.k[i] = eta_k[i].y;
-                }
-            }
-            return iter->first;
-        };
         if (auto eta_name = desc->property_string_or_default("eta"); !eta_name.empty()) {
             for (auto &c : eta_name) { c = static_cast<char>(tolower(c)); }
             if (eta_name == "ag" || eta_name == "silver") {
-                _ior = register_eta_k("__internal_ior_Ag", ior::Ag);
+                _ior = _register_eta_k("__internal_ior_Ag", ior::Ag);
             } else if (eta_name == "al" || eta_name == "aluminium") {
-                _ior = register_eta_k("__internal_ior_Al", ior::Al);
+                _ior = _register_eta_k("__internal_ior_Al", ior::Al);
             } else if (eta_name == "au" || eta_name == "gold") {
-                _ior = register_eta_k("__internal_ior_Au", ior::Au);
+                _ior = _register_eta_k("__internal_ior_Au", ior::Au);
             } else if (eta_name == "cu" || eta_name == "copper") {
-                _ior = register_eta_k("__internal_ior_Cu", ior::Cu);
+                _ior = _register_eta_k("__internal_ior_Cu", ior::Cu);
             } else if (eta_name == "cuzn" || eta_name == "cu-zn" || eta_name == "brass") {
-                _ior = register_eta_k("__internal_ior_CuZn", ior::CuZn);
+                _ior = _register_eta_k("__internal_ior_CuZn", ior::CuZn);
             } else if (eta_name == "fe" || eta_name == "iron") {
-                _ior = register_eta_k("__internal_ior_Fe", ior::Fe);
+                _ior = _register_eta_k("__internal_ior_Fe", ior::Fe);
             } else if (eta_name == "ti" || eta_name == "titanium") {
-                _ior = register_eta_k("__internal_ior_Ti", ior::Ti);
+                _ior = _register_eta_k("__internal_ior_Ti", ior::Ti);
             } else if (eta_name == "v" || eta_name == "vanadium") {
-                _ior = register_eta_k("__internal_ior_V", ior::V);
+                _ior = _register_eta_k("__internal_ior_V", ior::V);
             } else if (eta_name == "vn") {
-                _ior = register_eta_k("__internal_ior_VN", ior::VN);
+                _ior = _register_eta_k("__internal_ior_VN", ior::VN);
             } else if (eta_name == "li" || eta_name == "lithium") {
-                _ior = register_eta_k("__internal_ior_Li", ior::Li);
+                _ior = _register_eta_k("__internal_ior_Li", ior::Li);
             } else [[unlikely]] {
                 LUISA_WARNING_WITH_LOCATION(
                     "Unknown metal '{}'. "
                     "Fallback to Aluminium. [{}]",
                     eta_name,
                     desc->source_location().string());
-                _ior = register_eta_k("__internal_ior_Al", ior::Al);
+                _ior = _register_eta_k("__internal_ior_Al", ior::Al);
             }
         } else {
             auto eta = desc->property_float_list("eta");
@@ -145,9 +131,21 @@ public:
             auto name = luisa::format(
                 "__custom_ior_{:016x}",
                 luisa::hash64(eta.data(), eta.size() * sizeof(float), 19980810u));
-            _ior = register_eta_k(name, lut);
+            _ior = _register_eta_k(name, lut);
         }
     }
+
+    MetalSurface(Scene *scene, const RawSurfaceInfo &surface_info) noexcept
+        : Surface{scene},
+          _roughness{scene->add_constant_texture("texture_constant", {surface_info.roughness})},
+          _kd{surface_info.is_color ? 
+              scene->add_constant_texture("texture_constant", {
+                surface_info.color[0], surface_info.color[1], surface_info.color[2]}) :
+              scene->add_image_texture("texture_image", surface_info.image, surface_info.image_scale)},
+          _remap_roughness{true} {
+        _ior = _register_eta_k("__internal_ior_Al", ior::Al);
+    }
+
     [[nodiscard]] auto ior() const noexcept { return _ior; }
     [[nodiscard]] auto remap_roughness() const noexcept { return _remap_roughness; }
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
@@ -156,6 +154,23 @@ public:
 protected:
     [[nodiscard]] luisa::unique_ptr<Instance> _build(
         Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept override;
+
+private:
+    [[nodiscard]] luisa::string _register_eta_k(
+        const luisa::string &name, luisa::span<float2> eta_k) noexcept {
+        std::scoped_lock lock{_mutex()};
+        auto [iter, success] = _known_ior().try_emplace(name, ComplexIOR{});
+        if (success) {
+            auto &ior = iter->second;
+            ior.eta.resize(eta_k.size());
+            ior.k.resize(eta_k.size());
+            for (auto i = 0u; i < eta_k.size(); i++) {
+                ior.eta[i] = eta_k[i].x;
+                ior.k[i] = eta_k[i].y;
+            }
+        }
+        return iter->first;
+    }
 };
 
 class MetalInstance : public Surface::Instance {
@@ -311,3 +326,9 @@ using NormalMapOpacityMetalSurface = NormalMapWrapper<OpacitySurfaceWrapper<
 }// namespace luisa::render
 
 LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::NormalMapOpacityMetalSurface)
+
+LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
+    luisa::render::Scene *scene,
+    const luisa::render::RawSurfaceInfo &surface_info) LUISA_NOEXCEPT {
+    return luisa::new_with_allocator<luisa::render::NormalMapOpacityMetalSurface>(scene, surface_info);
+}

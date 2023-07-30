@@ -519,7 +519,7 @@ void WavefrontPathTracingInstance::_render_one_camera(
     progress_bar.update(0.0);
     for (auto s : shutter_samples) {
         auto time = s.point.time;
-        pipeline().update(command_buffer, time);
+        auto updated = pipeline().update(command_buffer, time);
         for (auto i = 0u; i < s.spp; i += samples_per_pass) {
             auto launch_spp = std::min(s.spp - i, samples_per_pass);
             auto launch_state_count = launch_spp * pixel_count;

@@ -35,6 +35,9 @@ public:
         _scale[2] = std::pow(2.0f, exposure.z);
         _clamp = std::max(1.f, desc->property_float_or_default("clamp", 256.f));
     }
+    ColorFilm(Scene *scene, const uint2 &resolution) noexcept
+        : Film{scene, resolution},
+          _scale{1.0f, 1.0f, 1.0f}, _clamp{256.f}, _warn_nan{false} {}
     [[nodiscard]] auto scale() const noexcept { return make_float3(_scale[0], _scale[1], _scale[2]); }
     [[nodiscard]] float clamp() const noexcept override { return _clamp; }
     [[nodiscard]] auto warn_nan() const noexcept { return _warn_nan; }
@@ -156,3 +159,9 @@ luisa::unique_ptr<Film::Instance> ColorFilm::build(
 }// namespace luisa::render
 
 LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::ColorFilm)
+
+LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
+    luisa::render::Scene *scene,
+    const luisa::uint2 &resolution) LUISA_NOEXCEPT {
+    return luisa::new_with_allocator<luisa::render::ColorFilm>(scene, resolution);
+}

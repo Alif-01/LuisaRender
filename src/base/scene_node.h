@@ -43,6 +43,7 @@ private:
 
 public:
     SceneNode(const Scene *scene, const SceneNodeDesc *desc, Tag tag) noexcept;
+    SceneNode(const Scene *scene, Tag tag) noexcept;
     SceneNode(SceneNode &&) noexcept = delete;
     SceneNode(const SceneNode &) noexcept = delete;
     SceneNode &operator=(SceneNode &&) noexcept = delete;
