@@ -236,15 +236,16 @@ void init(const std::string &context_path,
     denoiser_ext->init(stream, mode, data, resolution);
 
     /* build scene and pipeline */
-    luisa::string scene_file = luisa::format("default_{}.luisa", scene_index);
-    std::filesystem::path path(scene_file);
+    std::filesystem::path ctx(context_path);
+    auto scene_path = ctx / luisa::format("/default_scene/scene_{}.luisa", scene_index);
+    // std::filesystem::path path(scene_file);
 
     SceneParser::MacroMap macros;
     Clock clock;
-    auto scene_desc = SceneParser::parse(path, macros);
+    auto scene_desc = SceneParser::parse(scene_path, macros);
     auto parse_time = clock.toc();
     LUISA_INFO("Parsed scene description file '{}' in {} ms.",
-               path.string(), parse_time);
+               scene_path.string(), parse_time);
 
     auto desc = scene_desc.get();
     scene = Scene::create(context, desc, camera_index);
@@ -292,13 +293,13 @@ void update_body(
 }
 
 RawCameraInfo get_camera_info(
-    const py::str &name, const py::array_t<float> &from, const py::array_t<float> &to, py::float_ fov,
-    py::int_ spp, py::float_ radius, const py::array_t<int> &resolution
+    const py::str &name, const py::array_t<float> &position, const py::array_t<float> &look_at,
+    py::float_ fov, py::int_ spp, py::float_ radius, const py::array_t<int> &resolution
 ) noexcept {
     return std::move(RawCameraInfo {
         pystr_to_string(name),
-        pyarray_to_pack<float, 3>(from),
-        pyarray_to_pack<float, 3>(to),
+        pyarray_to_pack<float, 3>(position),
+        pyarray_to_pack<float, 3>(look_at),
         py::cast<float>(fov),
         uint(py::cast<int>(spp)),
         py::cast<float>(radius),
@@ -307,11 +308,11 @@ RawCameraInfo get_camera_info(
 }
 
 void add_camera(
-    py::str name, py::array_t<float> from, py::array_t<float> to, py::float_ fov,
-    py::int_ spp = 10000, py::float_ radius = 1.0f,
+    py::str name, py::array_t<float> position, py::array_t<float> look_at,
+    py::float_ fov, py::int_ spp = 10000, py::float_ radius = 1.0f,
     py::array_t<int> resolution = get_default_array(luisa::vector<int>{ 512, 512 })
 ) noexcept {
-    auto camera_info = get_camera_info(name, from, to, fov, spp, radius, resolution);
+    auto camera_info = get_camera_info(name, position, look_at, fov, spp, radius, resolution);
     LUISA_INFO(
         "Adding camera {} => from: {}, to: {}, fov: {}, spp: {}, res: {}", camera_info.name,
         format_pack<float, 3>(camera_info.position),

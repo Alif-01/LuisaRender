@@ -14,3 +14,7 @@ find_package(pybind11 REQUIRED)
 
 pybind11_add_module(LuisaRenderPy py_interface.cpp)
 target_link_libraries(LuisaRenderPy PRIVATE luisa::render)
+
+set(SCENE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/default_scene")
+set(SCENE_TARGET_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+file(COPY ${SCENE_SOURCE_DIR} DESTINATION ${SCENE_TARGET_DIR})
