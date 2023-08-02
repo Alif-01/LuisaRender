@@ -73,8 +73,10 @@ luisa::unique_ptr<Pipeline> Pipeline::create(
     update_bindless_if_dirty();
 
     pipeline->_geometry = luisa::make_unique<Geometry>(*pipeline);
-    pipeline->_geometry->build(command_buffer, scene.shapes(), pipeline->_initial_time, template_mapping);
-    scene.clear_shapes_update();
+    if (scene.shapes_updated()) {
+        pipeline->_geometry->build(command_buffer, scene.shapes(), pipeline->_initial_time, template_mapping);
+        scene.clear_shapes_update();
+    }
 
     update_bindless_if_dirty();
     if (auto env = scene.environment(); env != nullptr && !env->is_black()) {

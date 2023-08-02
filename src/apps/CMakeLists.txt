@@ -10,6 +10,7 @@ luisa_render_add_application(luisa-render-export SOURCES export.cpp)
 luisa_render_add_application(luisa-render-pipe SOURCES pipe.cpp)
 luisa_render_add_application(luisa-render-pipe-render SOURCES pipe_render.cpp)
 
+find_package(Python 3.10 REQUIRED COMPONENTS Interpreter Development)
 find_package(pybind11 REQUIRED)
 
 pybind11_add_module(LuisaRenderPy py_interface.cpp)
