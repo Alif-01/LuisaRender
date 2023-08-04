@@ -3,7 +3,7 @@
 //
 
 #include <util/medium_tracker.h>
-#include <dsl/sugar.h>
+#include <luisa/dsl/sugar.h>
 
 namespace luisa::render {
 

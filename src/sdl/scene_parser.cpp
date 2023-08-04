@@ -6,7 +6,7 @@
 #include <streambuf>
 #include <fast_float/fast_float.h>
 
-#include <core/logging.h>
+#include <luisa/core/logging.h>
 #include <util/thread_pool.h>
 #include <sdl/scene_parser.h>
 #include <sdl/scene_desc.h>

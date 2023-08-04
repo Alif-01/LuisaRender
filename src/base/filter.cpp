@@ -2,7 +2,7 @@
 // Created by Mike on 2021/12/8.
 //
 
-#include <core/logging.h>
+#include <luisa/core/logging.h>
 #include <util/sampling.h>
 #include <base/filter.h>
 

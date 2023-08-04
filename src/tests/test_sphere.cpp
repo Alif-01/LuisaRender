@@ -6,7 +6,7 @@
 
 #define LUISA_RENDER_PLUGIN_NAME "sphere"
 #include <shapes/sphere.cpp>
-#include <core/clock.h>
+#include <luisa/core/clock.h>
 #include <util/thread_pool.h>
 
 using namespace luisa;

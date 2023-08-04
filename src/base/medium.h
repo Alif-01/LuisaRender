@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <luisa-compute.h>
+#include <luisa/luisa-compute.h>
 #include <util/spec.h>
 #include <base/scene_node.h>
 #include <base/spectrum.h>

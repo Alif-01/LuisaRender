@@ -2,7 +2,7 @@
 // Created by Mike on 2022/1/7.
 //
 
-#include <luisa-compute.h>
+#include <luisa/luisa-compute.h>
 
 #include <util/rng.h>
 #include <base/pipeline.h>

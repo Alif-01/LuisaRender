@@ -24,9 +24,18 @@ luisa::optional<float4> Texture::evaluate_static() const noexcept { return luisa
 Spectrum::Decode Texture::Instance::evaluate_albedo_spectrum(
     const Interaction &it, const SampledWavelengths &swl, Expr<float> time) const noexcept {
     // skip the expensive encoding/decoding if the texture is static
+
+    LUISA_INFO("DEBUG_10.482");
+
     if (auto v = node()->evaluate_static()) {
+
+        LUISA_INFO("DEBUG_10.483, in, {}, {}, {}, {}", v->x, v->y, v->z, v->w);
+
         return _evaluate_static_albedo_spectrum(swl, *v);
     }
+
+    LUISA_INFO("DEBUG_10.483, out");
+
     // we have got no luck, do the expensive encoding/decoding
     auto v = evaluate(it, swl, time);
     v = pipeline().spectrum()->encode_srgb_albedo(
@@ -59,10 +68,21 @@ Spectrum::Decode Texture::Instance::evaluate_illuminant_spectrum(
     return pipeline().spectrum()->decode_illuminant(swl, v);
 }
 
+void DDDDDD(Expr<float4> v) { v.xyz(); }
+
 Spectrum::Decode Texture::Instance::_evaluate_static_albedo_spectrum(
     const SampledWavelengths &swl, float4 v) const noexcept {
+
+    LUISA_INFO("DEBUG_10.484 {}", node()->channels());
+
     auto enc = pipeline().spectrum()->node()->encode_static_srgb_albedo(
         extend_color_to_rgb(v.xyz(), node()->channels()));
+
+    enc.xyz();
+    Expr<float4> vvvv(enc);
+    vvvv.xyz();
+    LUISA_INFO("DEBUG_10.487");
+
     return pipeline().spectrum()->decode_albedo(swl, enc);
 }
 

@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <core/platform.h>
+#include <luisa/core/platform.h>
 
 namespace luisa::render {
 

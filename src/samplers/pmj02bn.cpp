@@ -4,7 +4,7 @@
 
 #include <bit>
 
-#include <dsl/sugar.h>
+#include <luisa/dsl/sugar.h>
 #include <util/rng.h>
 #include <util/bluenoise.h>
 #include <util/pmj02tables.h>

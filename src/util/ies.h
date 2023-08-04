@@ -7,7 +7,7 @@
 #include <fstream>
 #include <filesystem>
 
-#include <core/stl.h>
+#include <luisa/core/stl.h>
 
 namespace luisa::render {
 

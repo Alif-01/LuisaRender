@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include <core/stl.h>
-#include <runtime/rtx/triangle.h>
+#include <luisa/core/stl.h>
+#include <luisa/runtime/rtx/triangle.h>
 #include <util/vertex.h>
 
 namespace luisa::render {

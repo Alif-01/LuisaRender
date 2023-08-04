@@ -7,7 +7,7 @@
 
 #include <cxxopts.hpp>
 
-#include <core/stl/format.h>
+#include <luisa/core/stl/format.h>
 #include <sdl/scene_desc.h>
 #include <sdl/scene_parser.h>
 #include <base/scene.h>

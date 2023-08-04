@@ -2,7 +2,7 @@
 // Created by Mike Smith on 2022/1/13.
 //
 
-#include <dsl/sugar.h>
+#include <luisa/dsl/sugar.h>
 #include <util/scattering.h>
 #include <util/frame.h>
 

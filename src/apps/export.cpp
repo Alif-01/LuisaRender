@@ -16,9 +16,9 @@
 #include <stb/stb_image.h>
 #include <stb/stb_image_write.h>
 
-#include <core/stl.h>
-#include <core/logging.h>
-#include <core/mathematics.h>
+#include <luisa/core/stl.h>
+#include <luisa/core/logging.h>
+#include <luisa/core/mathematics.h>
 
 using luisa::uint;
 using nlohmann::json;

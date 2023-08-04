@@ -4,7 +4,7 @@
 
 #include <iostream>
 
-#include <core/stl.h>
+#include <luisa/core/stl.h>
 #include <util/progress_bar.h>
 
 namespace luisa::render {

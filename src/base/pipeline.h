@@ -4,12 +4,12 @@
 
 #pragma once
 
-#include <runtime/buffer.h>
-#include <runtime/buffer_arena.h>
-#include <runtime/image.h>
-#include <runtime/bindless_array.h>
-#include <runtime/rtx/mesh.h>
-#include <runtime/rtx/accel.h>
+#include <luisa/runtime/buffer.h>
+#include <luisa/runtime/buffer_arena.h>
+#include <luisa/runtime/image.h>
+#include <luisa/runtime/bindless_array.h>
+#include <luisa/runtime/rtx/mesh.h>
+#include <luisa/runtime/rtx/accel.h>
 
 #include <util/spec.h>
 #include <base/shape.h>

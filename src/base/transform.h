@@ -4,9 +4,9 @@
 
 #pragma once
 
-#include <core/basic_types.h>
-#include <core/stl.h>
-#include <runtime/buffer.h>
+#include <luisa/core/basic_types.h>
+#include <luisa/core/stl.h>
+#include <luisa/runtime/buffer.h>
 #include <base/scene_node.h>
 
 namespace luisa::render {

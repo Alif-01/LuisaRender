@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include <runtime/command_list.h>
-#include <runtime/stream.h>
+#include <luisa/runtime/command_list.h>
+#include <luisa/runtime/stream.h>
 
 namespace luisa::render {
 

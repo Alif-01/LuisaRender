@@ -8,10 +8,10 @@
 #include <mutex>
 #include <functional>
 
-#include <core/stl.h>
-#include <core/dynamic_module.h>
-#include <core/basic_types.h>
-#include <runtime/context.h>
+#include <luisa/core/stl.h>
+#include <luisa/core/dynamic_module.h>
+#include <luisa/core/basic_types.h>
+#include <luisa/runtime/context.h>
 #include <base/scene_node.h>
 
 namespace luisa::render {

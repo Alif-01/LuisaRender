@@ -2,8 +2,8 @@
 // Created by Mike Smith on 2022/10/13.
 //
 
-#include <core/mathematics.h>
-#include <core/logging.h>
+#include <luisa/core/mathematics.h>
+#include <luisa/core/logging.h>
 #include <util/thread_pool.h>
 #include <util/imageio.h>
 #include <textures/sky_precompute.h>

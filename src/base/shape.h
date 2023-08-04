@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <runtime/rtx/mesh.h>
+#include <luisa/runtime/rtx/mesh.h>
 #include <util/half.h>
 #include <util/vertex.h>
 #include <base/scene_node.h>

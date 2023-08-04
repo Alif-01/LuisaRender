@@ -2,8 +2,8 @@
 // Created by Mike Smith on 2022/11/8.
 //
 
-#include <core/pool.h>
-#include <core/logging.h>
+#include <luisa/core/pool.h>
+#include <luisa/core/logging.h>
 #include <util/loop_subdiv.h>
 
 namespace luisa::render {

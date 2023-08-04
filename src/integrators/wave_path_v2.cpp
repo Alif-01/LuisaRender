@@ -8,7 +8,7 @@
 #include <util/thread_pool.h>
 #include <base/pipeline.h>
 #include <base/integrator.h>
-#include <dsl/syntax.h>
+#include <luisa/dsl/syntax.h>
 
 namespace luisa::render {
 

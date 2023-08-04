@@ -4,7 +4,7 @@
 
 #include <array>
 
-#include <core/logging.h>
+#include <luisa/core/logging.h>
 #include <util/xform.h>
 
 namespace luisa::render {

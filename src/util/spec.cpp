@@ -2,9 +2,9 @@
 // Created by Mike Smith on 2022/1/19.
 //
 
-#include <core/logging.h>
-#include <dsl/syntax.h>
-#include <dsl/sugar.h>
+#include <luisa/core/logging.h>
+#include <luisa/dsl/syntax.h>
+#include <luisa/dsl/sugar.h>
 #include <util/spec.h>
 
 namespace luisa::render {

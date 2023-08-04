@@ -8,7 +8,7 @@
 
 #include <cxxopts.hpp>
 
-#include <core/stl/format.h>
+#include <luisa/core/stl/format.h>
 #include <sdl/scene_desc.h>
 #include <sdl/scene_parser.h>
 #include <base/scene.h>
@@ -21,7 +21,7 @@
 #include <assimp/Subdivision.h>
 #include <util/thread_pool.h>
 
-#include <backends/ext/denoiser_ext.h>
+#include <luisa/backends/ext/denoiser_ext.h>
 
 [[nodiscard]] auto parse_cli_options(int argc, const char *const *argv) noexcept {
     cxxopts::Options cli{"luisa-render-cli"};
@@ -298,9 +298,12 @@ int main(int argc, char *argv[]) {
     auto resolution = make_uint2(256u, 256u);
     auto channel_count = 4u;
 
-    auto hdr_image = device.create_image<float>(PixelStorage::FLOAT4, resolution);
-    auto hdr_buffer = device.create_buffer<float>(hdr_image.size_bytes() / 4 * channel_count / sizeof(float));
-    auto denoised_buffer = device.create_buffer<float>(hdr_image.size_bytes() / 4 * channel_count / sizeof(float));
+    // auto hdr_image = device.create_image<float>(PixelStorage::FLOAT4, resolution);
+    // auto hdr_buffer = device.create_buffer<float>(hdr_image.size_bytes() / 4 * channel_count / sizeof(float));
+    // auto denoised_buffer = device.create_buffer<float>(hdr_image.size_bytes() / 4 * channel_count / sizeof(float));
+    auto hdr_buffer = device.create_buffer<float>(resolution.x * resolution.y * channel_count);
+    auto denoised_buffer = device.create_buffer<float>(resolution.x * resolution.y * channel_count);
+
 
     DenoiserExt::DenoiserInput data;
     data.beauty = &hdr_buffer;

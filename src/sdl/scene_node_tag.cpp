@@ -2,7 +2,7 @@
 // Created by Mike Smith on 2022/9/27.
 //
 
-#include <core/stl.h>
+#include <luisa/core/stl.h>
 #include <sdl/scene_node_tag.h>
 
 namespace luisa::render {

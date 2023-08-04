@@ -2,7 +2,7 @@
 // Created by Mike Smith on 2022/2/9.
 //
 
-#include <dsl/sugar.h>
+#include <luisa/dsl/sugar.h>
 #include <util/u64.h>
 #include <util/sobolmatrices.h>
 #include <base/sampler.h>

@@ -7,9 +7,9 @@
 #include <string>
 #include <filesystem>
 
-#include <core/stl.h>
-#include <core/logging.h>
-#include <core/basic_types.h>
+#include <luisa/core/stl.h>
+#include <luisa/core/logging.h>
+#include <luisa/core/basic_types.h>
 #include <sdl/scene_node_tag.h>
 
 namespace luisa::render {

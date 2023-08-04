@@ -29,9 +29,15 @@ luisa::unique_ptr<Surface::Instance> Surface::build(
 void Surface::Instance::closure(PolymorphicCall<Closure> &call,
                                 const Interaction &it, const SampledWavelengths &swl,
                                 Expr<float3> wo, Expr<float> eta_i, Expr<float> time) const noexcept {
+    
+    LUISA_INFO("DEBUG_10.47");
+
     auto cls = call.collect(closure_identifier(), [&] {
         return create_closure(swl, time);
     });
+
+    LUISA_INFO("DEBUG_10.48");
+
     populate_closure(cls, it, wo, eta_i);
 }
 

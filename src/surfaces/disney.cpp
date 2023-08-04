@@ -3,7 +3,7 @@
 //
 
 #include <utility>
-#include <dsl/builtin.h>
+#include <luisa/dsl/builtin.h>
 #include <util/sampling.h>
 #include <util/scattering.h>
 #include <base/surface.h>

@@ -7,8 +7,8 @@
 #include <cstddef>
 #include <string_view>
 
-#include <core/basic_types.h>
-#include <dsl/syntax.h>
+#include <luisa/core/basic_types.h>
+#include <luisa/dsl/syntax.h>
 #include <sdl/scene_node_desc.h>
 
 namespace luisa::compute {

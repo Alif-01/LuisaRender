@@ -8,8 +8,8 @@
 
 #include <cxxopts.hpp>
 
-#include <core/stl/format.h>
-#include <core/basic_types.h>
+#include <luisa/core/stl/format.h>
+#include <luisa/core/basic_types.h>
 #include <sdl/scene_desc.h>
 #include <sdl/scene_parser.h>
 #include <base/scene.h>
@@ -22,7 +22,7 @@
 #include <assimp/Subdivision.h>
 #include <util/thread_pool.h>
 
-#include <backends/ext/denoiser_ext.h>
+#include <luisa/backends/ext/denoiser_ext.h>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/embed.h>
@@ -127,11 +127,11 @@ namespace py = pybind11;
 using namespace py::literals;
 // using buffer_t = py::array_t<float>;
 
-DenoiserExt *denoiser_ext = nullptr;
 luisa::unique_ptr<Stream> stream;
 luisa::unique_ptr<Device> device;
 luisa::unique_ptr<Context> context;
-Buffer<float> hdr_buffer, denoised_buffer;
+luisa::unique_ptr<DenoiserExt::DenoiserMode> mode;
+DenoiserExt *denoiser_ext = nullptr;
 
 // luisa::unordered_map<luisa::string, Shape*> shape_setting;
 // luisa::unordered_map<luisa::string, > cameras;
@@ -226,21 +226,14 @@ void init(std::string_view context_path, int cuda_device, int scene_index) noexc
     device = luisa::make_unique<Device>(context->create_device(backend, &config));
 
     /* build denoiser */
-    auto resolution = make_uint2(256u, 256u);
     auto channel_count = 4u;
     // denoiser_ext = device.extension<DenoiserExt>();
     // stream = device.create_stream(StreamTag::COMPUTE);
     // hdr_buffer = device.create_buffer<float>(resolution.x * resolution.y * 4);
     // denoised_buffer = device.create_buffer<float>(resolution.x * resolution.y * 4);
-    denoiser_ext = device->extension<DenoiserExt>();
     stream = luisa::make_unique<Stream>(device->create_stream(StreamTag::COMPUTE));
-    hdr_buffer = device->create_buffer<float>(resolution.x * resolution.y * 4);
-    denoised_buffer = device->create_buffer<float>(resolution.x * resolution.y * 4);
-
-    DenoiserExt::DenoiserMode mode{};
-    DenoiserExt::DenoiserInput data;
-    data.beauty = &hdr_buffer;
-    denoiser_ext->init(*stream, mode, data, resolution);
+    denoiser_ext = device->extension<DenoiserExt>();
+    mode = luisa::make_unique<DenoiserExt::DenoiserMode>();
 
     /* build scene and pipeline */
     auto scene_path = std::filesystem::path(context_storage) /
@@ -250,8 +243,7 @@ void init(std::string_view context_path, int cuda_device, int scene_index) noexc
     Clock clock;
     auto scene_desc = SceneParser::parse(scene_path, macros);
     auto parse_time = clock.toc();
-    LUISA_INFO("Parsed scene description file '{}' in {} ms.",
-               scene_path.string(), parse_time);
+    LUISA_INFO("Parsed scene description file '{}' in {} ms.", scene_path.string(), parse_time);
 
     auto desc = scene_desc.get();
     scene = Scene::create(*context, desc, camera_index);
@@ -375,62 +367,76 @@ void add_surface(
     // }
 
 uint8_t *convert_to_int_pixel(const float *buffer, uint2 resolution) {
+    static float gamma = 2.2f;
     auto pixel_count = resolution.x * resolution.y;
     uint8_t *int_buffer = new uint8_t[pixel_count * 4];
     for (int i = 0; i < pixel_count * 4; ++i) {
-        if (buffer[i] < 0 || buffer[i] > 1) {
-            LUISA_WARNING("Exceeded pixel! {}: {}", i, buffer[i]);
+        // if (buffer[i] < 0 || buffer[i] > 1) {
+        //     LUISA_WARNING("Exceeded pixel! {}: {}", i, buffer[i]);
+        // }
+        if ((i & 3) == 3) {
+            int_buffer[i] = std::clamp(int(buffer[i] * 255 + 0.5), 0, 255);
+        } else {
+            int_buffer[i] = std::clamp(int(std::pow(buffer[i], 1.0f / gamma) * 255 + 0.5), 0, 255);
         }
-        int_buffer[i] = std::clamp(int(buffer[i] * 255 + 0.5), 0, 255);
-
-        LUISA_ASSERT(int_buffer[i] >= 0 && int_buffer[i] <= 255,
-                     "Exceeded pixel! {}: {}", i, int_buffer[i]);
+        // LUISA_ASSERT(int_buffer[i] >= 0 && int_buffer[i] <= 255, "Exceeded pixel! {}: {}", i, int_buffer[i]);
     }
     return int_buffer;
 }
 
-void render_frame_exr(std::string_view name, std::string_view path, float time, bool render_png) noexcept {
+void render_frame_exr(std::string_view name, std::string_view path, float time, bool denoise, bool render_png) noexcept {
     LUISA_INFO("Start rendering camera {} at {}", name, path);
     pipeline->scene_update(*stream, *scene, time, mapping);
 
     auto camera_name = luisa::string(name);
     auto idx = camera_index[camera_name];
+    auto resolution = scene->cameras()[idx]->film()->resolution();
+    std::filesystem::path exr_path = path;
     if (auto it = camera_index.find(camera_name); it == camera_index.end()) {
         LUISA_ERROR_WITH_LOCATION("Failed to find camera name '{}'.", camera_name);
     }
     auto buffer = pipeline->render_to_buffer(*stream, idx);
     stream->synchronize();
 
+    if (denoise) {
+        // Buffer<float> hdr_buffer, denoised_buffer;
+        auto hdr_buffer = device->create_buffer<float>(resolution.x * resolution.y * 4);
+        auto denoised_buffer = device->create_buffer<float>(resolution.x * resolution.y * 4);
+        (*stream) << hdr_buffer.copy_from(buffer);
+        stream->synchronize();
+
+        LUISA_INFO("DEBUG_11");
+
+        DenoiserExt::DenoiserInput data;
+        data.beauty = &hdr_buffer;
+        denoiser_ext->init(*stream, *mode, data, resolution);
+        
+        LUISA_INFO("DEBUG_11.1");
+        
+        denoiser_ext->process(*stream, data);
+        
+        LUISA_INFO("DEBUG_11.2");
+
+        denoiser_ext->get_result(*stream, denoised_buffer);
+        stream->synchronize();
+
+        LUISA_INFO("DEBUG_11.5");
+
+        float *new_buffer = new float[resolution.x * resolution.y * 4];
+        (*stream) << denoised_buffer.copy_to(new_buffer);
+        stream->synchronize();
+        buffer = new_buffer;
+    }
+
     // save image
-    std::filesystem::path exr_path = path;
-    auto resolution = scene->cameras()[idx]->film()->resolution();
     save_image(exr_path, buffer, resolution);
-    
+
     if (render_png) {
         std::filesystem::path png_path = path;
         png_path.replace_extension(".png");
         auto int_buffer = convert_to_int_pixel(buffer, resolution);
         save_image(png_path, int_buffer, resolution);
     }
-
-    // build hdr image
-    (*stream) << hdr_buffer.copy_from(buffer);
-    stream->synchronize();
-    // std::filesystem::path save_path(luisa::format("/home/winnie/LuisaRender/render/{}.exr", i));
-    // std::filesystem::path save_path_denoised(luisa::format("/home/winnie/LuisaRender/render/{}_denoised.exr", i));
-    // // mapping["liquid"] = mesh_pool[i];
-    // auto pipeline = Pipeline::create(device, stream, *scene, mapping);
-    // stream.synchronize();
-    // save_image(save_path, buffer, scene->cameras()[0]->film()->resolution());
-    // stream << hdr_buffer.copy_from(buffer);
-    // stream.synchronize();
-    // denoiser_ext->process(stream, data);
-    // denoiser_ext->get_result(stream, denoised_buffer);
-    // stream.synchronize();
-    // float *new_buffer = new float[256*256*4];
-    // stream << denoised_buffer.copy_to(new_buffer);
-    // stream.synchronize();
-    // save_image(save_path_denoised, new_buffer, scene->cameras()[0]->film()->resolution());
 }
 
 void destroy() {
@@ -474,9 +480,10 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
     // m.def("add_body", &add_rigid_body);
     // m.def("add_deformable_body", &add_deformable_body);
     m.def("render_frame_exr", [](
-        std::string name, std::string path, float time = 0.f, bool render_png = false
-    ) { render_frame_exr(name, path, time, render_png); },
-        py::arg("name"), py::arg("path"), py::arg("time"), py::arg("render_png")
+        std::string name, std::string path, float time = 0.f,
+        bool denoise = true, bool render_png = false
+    ) { render_frame_exr(name, path, time, denoise, render_png); },
+        py::arg("name"), py::arg("path"), py::arg("time"), py::arg("denoise"), py::arg("render_png")
     );
     py::enum_<RawSurfaceInfo::RawMaterial>(m, "Material")
         .value("METAL", RawSurfaceInfo::RawMaterial::RAW_METAL)

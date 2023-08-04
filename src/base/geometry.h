@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include <dsl/syntax.h>
-#include <runtime/rtx/accel.h>
+#include <luisa/dsl/syntax.h>
+#include <luisa/runtime/rtx/accel.h>
 #include <base/transform.h>
 #include <base/light.h>
 #include <base/shape.h>

@@ -4,7 +4,7 @@
 
 #include <stdexcept>
 
-#include <core/logging.h>
+#include <luisa/core/logging.h>
 #include <sdl/scene_node_desc.h>
 
 namespace luisa::render {

@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <dsl/syntax.h>
+#include <luisa/dsl/syntax.h>
 #include <util/command_buffer.h>
 #include <base/spd.h>
 #include <base/scene_node.h>

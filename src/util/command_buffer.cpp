@@ -2,7 +2,7 @@
 // Created by Mike Smith on 2023/5/18.
 //
 
-#include <core/logging.h>
+#include <luisa/core/logging.h>
 #include <util/command_buffer.h>
 
 namespace luisa::render {

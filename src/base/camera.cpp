@@ -2,7 +2,7 @@
 // Created by Mike on 2021/12/8.
 //
 
-#include "core/basic_types.h"
+#include <luisa/core/basic_types.h>
 #include <random>
 
 #include <sdl/scene_node_desc.h>

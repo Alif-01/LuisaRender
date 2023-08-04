@@ -1,8 +1,8 @@
 #pragma once
-#include <backends/cuda/optix_api.h>
-#include <backends/cuda/cuda_device.h>
-#include <backends/cuda/cuda_buffer.h>
-#include <runtime/stream.h>
+#include <luisa/backends/cuda/optix_api.h>
+#include <luisa/backends/cuda/cuda_device.h>
+#include <luisa/backends/cuda/cuda_buffer.h>
+#include <luisa/runtime/stream.h>
 
 namespace luisa::compute::cuda {
 

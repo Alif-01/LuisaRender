@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include <luisa-compute.h>
-#include <dsl/syntax.h>
+#include <luisa/luisa-compute.h>
+#include <luisa/dsl/syntax.h>
 #include <base/spectrum.h>
 #include <base/medium.h>
 

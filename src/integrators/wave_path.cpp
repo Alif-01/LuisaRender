@@ -371,17 +371,29 @@ void WavefrontPathTracingInstance::_render_one_camera(
     });
 
     LUISA_INFO("Compiling surface evaluation kernel.");
+
+    LUISA_INFO("DEBUG_10");
+
     auto evaluate_surface_shader = compile_async<1>(device, [&](BufferUInt path_indices, UInt trace_depth, BufferUInt queue, BufferUInt queue_size,
                                                                 BufferRay in_rays, BufferHit in_hits, BufferRay out_rays,
                                                                 BufferUInt out_queue, BufferUInt out_queue_size, Float time) noexcept {
+
+        LUISA_INFO("DEBUG_10.1");
+
         auto queue_id = dispatch_x();
         $if(queue_id < queue_size.read(0u)) {
+
+            LUISA_INFO("DEBUG_10.2");
+
             auto ray_id = queue.read(queue_id);
             auto path_id = path_indices.read(ray_id);
             sampler()->load_state(path_id);
             auto u_lobe = sampler()->generate_1d();
             auto u_bsdf = sampler()->generate_2d();
             auto u_rr = def(0.f);
+
+            LUISA_INFO("DEBUG_10.3");
+
             auto rr_depth = node<WavefrontPathTracing>()->rr_depth();
             $if(trace_depth + 1u >= rr_depth) { u_rr = sampler()->generate_1d(); };
             sampler()->save_state(path_id);
@@ -396,10 +408,14 @@ void WavefrontPathTracingInstance::_render_one_camera(
             auto eta_scale = def(1.f);
             auto wo = -ray->direction();
 
+            LUISA_INFO("DEBUG_10.4");
+
             PolymorphicCall<Surface::Closure> call;
             pipeline().surfaces().dispatch(surface_tag, [&](auto surface) noexcept {
                 surface->closure(call, *it, swl, wo, 1.f, time);
             });
+
+            LUISA_INFO("DEBUG_10.5");
 
             call.execute([&](const Surface::Closure *closure) noexcept {
                 // apply opacity map
@@ -410,11 +426,19 @@ void WavefrontPathTracingInstance::_render_one_camera(
                     u_lobe = ite(alpha_skip, (u_lobe - opacity) / (1.f - opacity), u_lobe / opacity);
                 }
 
+                LUISA_INFO("DEBUG_10.6");
+
                 $if(alpha_skip) {
+
+                    LUISA_INFO("DEBUG_10.7 skip");
+
                     ray = it->spawn_ray(ray->direction());
                     path_states.write_pdf_bsdf(path_id, 1e16f);
                 }
                 $else {
+
+                    LUISA_INFO("DEBUG_10.7 accepted");
+
                     if (auto dispersive = closure->is_dispersive()) {
                         $if(*dispersive) {
                             swl.terminate_secondary();
@@ -448,6 +472,8 @@ void WavefrontPathTracingInstance::_render_one_camera(
                 };
             });
 
+            LUISA_INFO("DEBUG_10.9");
+
             // prepare for next bounce
             auto terminated = def(false);
             beta = zero_if_any_nan(beta);
@@ -463,6 +489,9 @@ void WavefrontPathTracingInstance::_render_one_camera(
                     beta *= ite(q < rr_threshold, 1.f / q, 1.f);
                 };
             };
+
+            LUISA_INFO("DEBUG_10.95");
+
             $if(!terminated) {
                 auto out_queue_id = out_queue_size.atomic(0u).fetch_add(1u);
                 out_queue.write(out_queue_id, path_id);
@@ -471,6 +500,8 @@ void WavefrontPathTracingInstance::_render_one_camera(
             };
         };
     });
+
+    LUISA_INFO("DEBUG_11");
 
     LUISA_INFO("Compiling accumulation kernel.");
     auto accumulate_shader = compile_async<1>(device, [&](Float shutter_weight) noexcept {

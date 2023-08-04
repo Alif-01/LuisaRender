@@ -2,7 +2,7 @@
 // Created by Mike Smith on 2022/1/10.
 //
 
-#include <luisa-compute.h>
+#include <luisa/luisa-compute.h>
 #include <base/filter.h>
 
 namespace luisa::render {

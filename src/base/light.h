@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include <dsl/rtx/ray.h>
-#include <runtime/bindless_array.h>
+#include <luisa/dsl/rtx/ray.h>
+#include <luisa/runtime/bindless_array.h>
 #include <util/spec.h>
 #include <base/scene_node.h>
 #include <base/sampler.h>

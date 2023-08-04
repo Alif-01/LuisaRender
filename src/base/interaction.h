@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <dsl/rtx/ray.h>
+#include <luisa/dsl/rtx/ray.h>
 #include <base/shape.h>
 #include <util/frame.h>
 

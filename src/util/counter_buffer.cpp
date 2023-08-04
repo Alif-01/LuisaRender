@@ -2,7 +2,7 @@
 // Created by Mike on 2022/11/14.
 //
 
-#include <dsl/sugar.h>
+#include <luisa/dsl/sugar.h>
 #include <util/counter_buffer.h>
 
 namespace luisa::render {

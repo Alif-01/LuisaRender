@@ -8,7 +8,7 @@
 #include <assimp/scene.h>
 #include <assimp/Subdivision.h>
 
-#include <core/clock.h>
+#include <luisa/core/clock.h>
 #include <util/thread_pool.h>
 #include <base/shape.h>
 

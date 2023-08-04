@@ -2,7 +2,7 @@
 // Created by Mike on 2022/1/7.
 //
 
-#include <dsl/rtx/ray.h>
+#include <luisa/dsl/rtx/ray.h>
 #include <util/sampling.h>
 #include <base/camera.h>
 #include <base/film.h>

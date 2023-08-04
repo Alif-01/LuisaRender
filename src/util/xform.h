@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include <core/basic_types.h>
-#include <core/mathematics.h>
+#include <luisa/core/basic_types.h>
+#include <luisa/core/mathematics.h>
 
 namespace luisa::render {
 

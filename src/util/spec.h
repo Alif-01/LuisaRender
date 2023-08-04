@@ -4,10 +4,10 @@
 
 #pragma once
 
-#include <core/basic_types.h>
-#include <core/stl.h>
-#include <core/logging.h>
-#include <dsl/syntax.h>
+#include <luisa/core/basic_types.h>
+#include <luisa/core/stl.h>
+#include <luisa/core/logging.h>
+#include <luisa/dsl/syntax.h>
 #include <util/command_buffer.h>
 #include <util/colorspace.h>
 

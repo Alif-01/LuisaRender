@@ -4,9 +4,9 @@
 
 #pragma once
 
-#include <runtime/buffer.h>
-#include <runtime/device.h>
-#include <dsl/expr.h>
+#include <luisa/runtime/buffer.h>
+#include <luisa/runtime/device.h>
+#include <luisa/dsl/expr.h>
 
 namespace luisa::render {
 

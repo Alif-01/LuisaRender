@@ -2,7 +2,7 @@
 // Created by Mike on 2022/1/7.
 //
 
-#include <dsl/syntax.h>
+#include <luisa/dsl/syntax.h>
 #include <util/rng.h>
 #include <base/pipeline.h>
 #include <base/integrator.h>

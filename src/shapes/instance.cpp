@@ -2,7 +2,7 @@
 // Created by Mike Smith on 2022/1/9.
 //
 
-#include <luisa-compute.h>
+#include <luisa/luisa-compute.h>
 #include <base/shape.h>
 #include <base/scene.h>
 

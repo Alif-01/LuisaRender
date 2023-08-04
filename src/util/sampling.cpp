@@ -4,7 +4,7 @@
 
 #include <util/sampling.h>
 #include <util/scattering.h>
-#include <dsl/sugar.h>
+#include <luisa/dsl/sugar.h>
 
 namespace luisa::render {
 

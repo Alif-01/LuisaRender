@@ -2,7 +2,7 @@
 // Created by Mike on 2021/12/14.
 //
 
-#include <dsl/sugar.h>
+#include <luisa/dsl/sugar.h>
 #include <base/film.h>
 
 namespace luisa::render {

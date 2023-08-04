@@ -127,10 +127,16 @@ luisa::unique_ptr<Surface::Closure> MatteInstance::create_closure(
 
 void MatteInstance::populate_closure(Surface::Closure *closure, const Interaction &it,
                                      Expr<float3> wo, Expr<float> eta_i) const noexcept {
+
+    printf("DEBUG_10.481 %d\n", _kd ? 1 : 0);
+
     auto &swl = closure->swl();
     auto time = closure->time();
     auto [Kd, _] = _kd ? _kd->evaluate_albedo_spectrum(it, swl, time) :
                          Spectrum::Decode::one(swl.dimension());
+
+    printf("DEBUG_10.49\n");
+
     auto sigma = _sigma && !_sigma->node()->is_black() ?
                      luisa::make_optional(saturate(_sigma->evaluate(it, swl, time).x) * 90.f) :
                      luisa::nullopt;

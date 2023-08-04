@@ -9,7 +9,7 @@
 #include <stb/stb_image_write.h>
 #include <stb/stb_image_resize.h>
 
-#include <core/logging.h>
+#include <luisa/core/logging.h>
 #include <util/imageio.h>
 #include <util/half.h>
 

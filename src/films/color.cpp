@@ -3,7 +3,7 @@
 //
 
 #include <limits>
-#include <luisa-compute.h>
+#include <luisa/luisa-compute.h>
 
 #include <base/film.h>
 #include <base/pipeline.h>

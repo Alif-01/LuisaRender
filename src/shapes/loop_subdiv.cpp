@@ -2,7 +2,7 @@
 // Created by Mike Smith on 2022/11/8.
 //
 
-#include <core/clock.h>
+#include <luisa/core/clock.h>
 #include <base/shape.h>
 #include <base/scene.h>
 #include <util/thread_pool.h>

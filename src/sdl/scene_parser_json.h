@@ -8,7 +8,7 @@
 #include <filesystem>
 #include <future>
 
-#include <core/stl.h>
+#include <luisa/core/stl.h>
 #include <nlohmann/json_fwd.hpp>
 #include <sdl/scene_node_desc.h>
 
