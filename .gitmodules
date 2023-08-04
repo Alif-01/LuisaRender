@@ -1,25 +1,19 @@
 [submodule "src/ext/cxxopts"]
 	path = src/ext/cxxopts
 	url = https://github.com/jarro2783/cxxopts.git
-	ignore = dirty
 [submodule "src/ext/assimp"]
 	path = src/ext/assimp
 	url = https://github.com/assimp/assimp.git
-	ignore = dirty
 [submodule "src/ext/fast_float"]
 	path = src/ext/fast_float
 	url = https://github.com/fastfloat/fast_float.git
-	ignore = dirty
 [submodule "src/ext/tinyexr"]
 	path = src/ext/tinyexr
 	url = https://github.com/syoyo/tinyexr.git
-	ignore = dirty
 [submodule "src/compute"]
 	path = src/compute
 	url = https://github.com/LuisaGroup/LuisaCompute.git
 	branch = next
-	ignore = dirty
 [submodule "src/ext/json"]
 	path = src/ext/json
 	url = https://github.com/nlohmann/json.git
-	ignore = dirty
