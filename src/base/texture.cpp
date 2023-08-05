@@ -60,8 +60,6 @@ Spectrum::Decode Texture::Instance::evaluate_illuminant_spectrum(
     return pipeline().spectrum()->decode_illuminant(swl, v);
 }
 
-void DDDDDD(Expr<float4> v) { v.xyz(); }
-
 Spectrum::Decode Texture::Instance::_evaluate_static_albedo_spectrum(
     const SampledWavelengths &swl, float4 v) const noexcept {
     auto enc = pipeline().spectrum()->node()->encode_static_srgb_albedo(

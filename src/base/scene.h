@@ -107,8 +107,8 @@ public:
 
 public:
     [[nodiscard]] static luisa::unique_ptr<Scene> create(
-        const Context &ctx, const SceneDesc *desc,
-        luisa::unordered_map<luisa::string, uint> &camera_index) noexcept;
+        const Context &ctx, const SceneDesc *desc, Device &device,
+        luisa::unordered_map<luisa::string, CameraStorage> &camera_storage) noexcept;
     [[nodiscard]] const Integrator *integrator() const noexcept;
     [[nodiscard]] const Environment *environment() const noexcept;
     [[nodiscard]] const Medium *environment_medium() const noexcept;

@@ -215,7 +215,7 @@ public:
     void scene_update(Stream &stream, Scene &scene, float time, const Geometry::TemplateMapping &template_mapping) noexcept;
     [[nodiscard]] bool update(CommandBuffer &command_buffer, float time) noexcept;
     void render(Stream &stream) noexcept;
-    [[nodiscard]] const float* render_to_buffer(Stream &stream, uint camera_index) noexcept;
+    [[nodiscard]] luisa::unique_ptr<luisa::vector<float4>> render_to_buffer(Stream &stream, uint camera_index) noexcept;
     [[nodiscard]] auto &printer() noexcept { return *_printer; }
     [[nodiscard]] auto &printer() const noexcept { return *_printer; }
     [[nodiscard]] uint named_id(luisa::string_view name) const noexcept;

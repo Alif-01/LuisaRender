@@ -328,7 +328,7 @@ Camera *Scene::add_camera(
     if (first_def) {
         auto resolution = camera->film()->resolution();
         camera_storage[camera_info.name] = CameraStorage {
-            _config->cameras.size(),
+            uint(_config->cameras.size()),
             device.create_buffer<float>(resolution.x * resolution.y * 4),
             device.create_buffer<float>(resolution.x * resolution.y * 4)
         };
@@ -380,8 +380,8 @@ void Scene::append_shape(Shape *shape) noexcept {
 }
 
 luisa::unique_ptr<Scene> Scene::create(
-    const Context &ctx, const SceneDesc *desc,
-    luisa::unordered_map<luisa::string, uint> &camera_index) noexcept {
+    const Context &ctx, const SceneDesc *desc, Device &device,
+    luisa::unordered_map<luisa::string, CameraStorage> &camera_storage) noexcept {
     if (!desc->root()->is_defined()) [[unlikely]] {
         LUISA_ERROR_WITH_LOCATION("Root node is not defined in the scene description.");
     }
@@ -404,8 +404,14 @@ luisa::unique_ptr<Scene> Scene::create(
     scene->_config->cameras_updated = cameras.size() > 0;
     scene->_config->shapes_updated = shapes.size() > 0;
     for (auto c : cameras) {
-        camera_index[c->identifier()] = scene->_config->cameras.size();
-        scene->_config->cameras.emplace_back(scene->load_camera(c));
+        auto camera = scene->load_camera(c);
+        auto resolution = camera->film()->resolution();
+        camera_storage[c->identifier()] = CameraStorage {
+            uint(scene->_config->cameras.size()),
+            device.create_buffer<float>(resolution.x * resolution.y * 4),
+            device.create_buffer<float>(resolution.x * resolution.y * 4)
+        };
+        scene->_config->cameras.emplace_back(camera);
     }
     for (auto s : shapes) {
         scene->_config->shapes.emplace_back(scene->load_shape(s));

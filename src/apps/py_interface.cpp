@@ -243,7 +243,7 @@ void init(std::string_view context_path, int cuda_device, int scene_index) noexc
     LUISA_INFO("Parsed scene description file '{}' in {} ms.", scene_path.string(), parse_time);
 
     auto desc = scene_desc.get();
-    scene = Scene::create(*context, desc, camera_index);
+    scene = Scene::create(*context, desc, *device, camera_storage);
     LUISA_INFO("Scene created!");
     pipeline = Pipeline::create(*device, *stream, *scene, mapping);
     LUISA_INFO("Pipeline created!");
@@ -355,7 +355,7 @@ luisa::unique_ptr<luisa::vector<uint8_t>> convert_to_int_pixel(const float *buff
         }
         // LUISA_ASSERT(int_buffer[i] >= 0 && int_buffer[i] <= 255, "Exceeded pixel! {}: {}", i, int_buffer[i]);
     }
-    return std::move(int_buffer);
+    return std::move(int_buffer_handle);
 }
 
 void render_frame_exr(std::string_view name, std::string_view path, float time, bool denoise, bool render_png) noexcept {
@@ -363,12 +363,12 @@ void render_frame_exr(std::string_view name, std::string_view path, float time, 
     pipeline->scene_update(*stream, *scene, time, mapping);
 
     auto camera_name = luisa::string(name);
+    if (auto it = camera_storage.find(camera_name); it == camera_storage.end()) {
+        LUISA_ERROR_WITH_LOCATION("Failed to find camera name '{}'.", camera_name);
+    }
     auto idx = camera_storage[camera_name].index;
     auto resolution = scene->cameras()[idx]->film()->resolution();
     std::filesystem::path exr_path = path;
-    if (auto it = camera_index.find(camera_name); it == camera_index.end()) {
-        LUISA_ERROR_WITH_LOCATION("Failed to find camera name '{}'.", camera_name);
-    }
     auto picture = pipeline->render_to_buffer(*stream, idx);
     auto buffer = reinterpret_cast<float *>((*picture).data());
     stream->synchronize();

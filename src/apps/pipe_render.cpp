@@ -274,22 +274,14 @@ int main(int argc, char *argv[]) {
     auto scene_desc = SceneParser::parse(path, macros);
     auto parse_time = clock.toc();
 
-    LUISA_INFO("Parsed scene description file '{}' in {} ms.",
-               path.string(), parse_time);
+    LUISA_INFO("Parsed scene description file '{}' in {} ms.", path.string(), parse_time);
 
     auto desc = scene_desc.get();
     // auto template_node = desc->node("template_1");
-    luisa::unordered_map<luisa::string, uint> camera_index;
-    auto scene = Scene::create(context, desc, camera_index);
+    luisa::unordered_map<luisa::string, CameraStorage> camera_storage;
+    auto scene = Scene::create(context, desc, device, camera_storage);
 
     std::vector<MeshView> mesh_pool;
-    // for (auto i = 1; i <= 60; i++) {
-    //     std::filesystem::path mesh_file(luisa::format("/home/winnie/test_mesh/untitled_{:06d}.obj", i));
-    //     auto loader = _MeshLoader::load(mesh_file, 0u, false, false, false);
-    //     mesh_pool.emplace_back(loader.get().mesh());
-    //     LUISA_INFO("Loaded mesh {}.", i);
-    // }
-
     auto denoiser_ext = device.extension<DenoiserExt>();
     auto stream = device.create_stream(StreamTag::COMPUTE);
 
@@ -312,7 +304,9 @@ int main(int argc, char *argv[]) {
     Geometry::TemplateMapping mapping;
     // mapping["liquid"] = mesh_pool[i];
     auto pipeline = Pipeline::create(device, stream, *scene, mapping);
-    auto buffer = pipeline->render_to_buffer(stream, 0);
+    // auto buffer = pipeline->render_to_buffer(stream, 0);
+    auto picture = pipeline->render_to_buffer(stream, 0);
+    auto buffer = reinterpret_cast<float *>((*picture).data());
     stream.synchronize();
     save_image(img_path, buffer, scene->cameras()[0]->film()->resolution());
     stream << hdr_buffer.copy_from(buffer);
