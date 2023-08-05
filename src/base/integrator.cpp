@@ -24,7 +24,7 @@ Integrator::Instance::Instance(Pipeline &pipeline, CommandBuffer &command_buffer
                          integrator->light_sampler()->build(pipeline, command_buffer) :
                          nullptr} {}
 
-const float* Integrator::Instance::render_to_buffer(Stream &stream, uint camera_index) noexcept {
+luisa::unique_ptr<luisa::vector<float4>> Integrator::Instance::render_to_buffer(Stream &stream, uint camera_index) noexcept {
     LUISA_ERROR("render_to_buffer not implemented.");
     return nullptr;
 }
@@ -53,7 +53,7 @@ void ProgressiveIntegrator::Instance::render(Stream &stream) noexcept {
     }
 }
 
-const float* ProgressiveIntegrator::Instance::render_to_buffer(
+luisa::unique_ptr<luisa::vector<float4>> ProgressiveIntegrator::Instance::render_to_buffer(
     Stream &stream, uint camera_index) noexcept {
     CommandBuffer command_buffer{&stream};
     if (camera_index >= pipeline().camera_count()) [[unlikely]] {
@@ -64,11 +64,11 @@ const float* ProgressiveIntegrator::Instance::render_to_buffer(
     auto pixel_count = resolution.x * resolution.y;
     camera->film()->prepare(command_buffer);
     _render_one_camera(command_buffer, camera);
-    float4 *buffer = new float4[pixel_count];
-    camera->film()->download(command_buffer, buffer);
+    auto buffer = luisa::make_unique<luisa::vector<float4>>(pixel_count);
+    camera->film()->download(command_buffer, (*buffer).data());
     command_buffer << compute::synchronize();
     camera->film()->release();
-    return reinterpret_cast<const float *>(buffer);
+    return std::move(buffer);
 }
 
 void ProgressiveIntegrator::Instance::_render_one_camera(

@@ -34,6 +34,12 @@ struct RawCameraInfo {
     uint2 resolution;
 };
 
+struct CameraStorage {
+    uint index;
+    Buffer<float> hdr_buffer;
+    Buffer<float> denoised_buffer;
+}
+
 class Camera : public SceneNode {
 
 public:

@@ -33,11 +33,7 @@ public:
     RGBSigmoidPolynomial() noexcept = default;
     RGBSigmoidPolynomial(Expr<float> c0, Expr<float> c1, Expr<float> c2) noexcept
         : _c{make_float3(c0, c1, c2)} {}
-    explicit RGBSigmoidPolynomial(Expr<float3> c) noexcept : _c{(printf("DEBUG_10.4881\n"), c)} {
-
-        printf("DEBUG_10.4882\n");
-
-    }
+    explicit RGBSigmoidPolynomial(Expr<float3> c) noexcept : _c{c} {}
     [[nodiscard]] Float operator()(Expr<float> lambda) const noexcept {
         return _s(polynomial(lambda, _c.z, _c.y, _c.x));// c0 * x * x + c1 * x + c2
     }
@@ -104,9 +100,6 @@ public:
         auto z = rgb[maxc];
         auto x = rgb[(maxc + 1u) % 3u] * (resolution - 1u) / z;
         auto y = rgb[(maxc + 2u) % 3u] * (resolution - 1u) / z;
-
-        printf("DEBUG_10.4895\n");
-
         auto zz = _inverse_smooth_step(_inverse_smooth_step(z)) * (resolution - 1u);
 
         // Compute integer indices and offsets for coefficient interpolation
@@ -116,8 +109,6 @@ public:
         auto dx = x - static_cast<float>(xi);
         auto dy = y - static_cast<float>(yi);
         auto dz = zz - static_cast<float>(zi);
-
-        printf("DEBUG_10.4896\n");
 
         // Trilinearly interpolate sigmoid polynomial coefficients _c_
         auto c = make_float3();
@@ -174,11 +165,7 @@ private:
     RGBSigmoidPolynomial _rsp;
 
 public:
-    explicit RGBAlbedoSpectrum(RGBSigmoidPolynomial rsp) noexcept : _rsp{std::move(rsp)} {
-
-        printf("DEBUG_10.4883\n");
-
-    }
+    explicit RGBAlbedoSpectrum(RGBSigmoidPolynomial rsp) noexcept : _rsp{std::move(rsp)} {}
     [[nodiscard]] auto sample(Expr<float> lambda) const noexcept { return _rsp(lambda); }
 };
 
@@ -261,33 +248,11 @@ public:
           _rgb2spec_t0{t0} {}
     [[nodiscard]] Spectrum::Decode decode_albedo(
         const SampledWavelengths &swl, Expr<float4> v) const noexcept override {
-
-        v.xyz();
-
-        printf("DEBUG_10.488\n");
-        auto ooo = v.xyz();
-        printf("DEBUG_10.48801\n");
-
-        auto oooo = RGBSigmoidPolynomial{ooo};
-        printf("DEBUG_10.48821\n");
-
-        auto spec = RGBAlbedoSpectrum{oooo};
-
-        printf("DEBUG_10.4886\n");
-
+        auto spec = RGBAlbedoSpectrum{RGBSigmoidPolynomial{v.xyz()}};
         SampledSpectrum s{node()->dimension()};
-
-        printf("DEBUG_10.4887 %d\n", int(s.dimension()));
-
         for (auto i = 0u; i < s.dimension(); i++) {
-
-        printf("DEBUG_10.4888\n");
-
             s[i] = spec.sample(swl.lambda(i));
         }
-
-        printf("DEBUG_10.4889\n");
-
         return {.value = s, .strength = v.w};
     }
     [[nodiscard]] Spectrum::Decode decode_unbounded(
