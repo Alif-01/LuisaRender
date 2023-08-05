@@ -137,7 +137,7 @@ DenoiserExt *denoiser_ext = nullptr;
 // luisa::unordered_map<luisa::string, > cameras;
 luisa::unique_ptr<Pipeline> pipeline;
 luisa::unique_ptr<Scene> scene;
-luisa::unordered_map<luisa::string, uint> camera_index;
+luisa::unordered_map<luisa::string, CameraStorage> camera_storage;
 luisa::string context_storage;
 Geometry::TemplateMapping mapping;
 
@@ -223,14 +223,11 @@ void init(std::string_view context_path, int cuda_device, int scene_index) noexc
     luisa::string backend = "CUDA";
     compute::DeviceConfig config;
     config.device_index = cuda_device;
+    /* Please make sure that cuda:cuda_device has enough space */
     device = luisa::make_unique<Device>(context->create_device(backend, &config));
 
     /* build denoiser */
     auto channel_count = 4u;
-    // denoiser_ext = device.extension<DenoiserExt>();
-    // stream = device.create_stream(StreamTag::COMPUTE);
-    // hdr_buffer = device.create_buffer<float>(resolution.x * resolution.y * 4);
-    // denoised_buffer = device.create_buffer<float>(resolution.x * resolution.y * 4);
     stream = luisa::make_unique<Stream>(device->create_stream(StreamTag::COMPUTE));
     denoiser_ext = device->extension<DenoiserExt>();
     mode = luisa::make_unique<DenoiserExt::DenoiserMode>();
@@ -311,7 +308,7 @@ void add_camera(
         camera_info.fov, camera_info.spp,
         format_pack<uint, 2>(camera_info.resolution)
     );
-    auto camera = scene->add_camera(camera_info, camera_index);
+    auto camera = scene->add_camera(camera_info, camera_storage, *device);
 }
 
 RawSurfaceInfo get_surface_info (
@@ -345,35 +342,12 @@ void add_surface(
     auto surface = scene->add_surface(surface_info);
 }
 
-    // pipeline->update_shapes(stream, *scene, time, mapping);
-    // luisa::unordered_map<luisa::string, Shape*> update_shapes;
-    // for (auto it: raw_meshes) {
-    //     auto name = it.first;
-    //     auto shape = scene->update_shape(name, it.second);
-    //     // update_shapes.emplace(name, shape);
-    // }
-
-    // const luisa::unordered_map<luisa::string, RawMeshInfo> &raw_meshes;
-    // if (auto iter = shape_setting.find(name);
-    //     iter != shape_setting.end()) {
-    //     shape = iter.second();
-    //     shape->update(vertices, triangles, uvs, normals, texture, transform);
-    //     update_shapes.emplace(name, shape);
-    // } else {
-    //     auto new_shape = luisa::make_unique<Shape>(
-    //         Shape::create(vertices, triangles, uvs, normals, texture, transform)
-    //     );
-    //     update_shapes.emplace(name, new_shape);
-    // }
-
-uint8_t *convert_to_int_pixel(const float *buffer, uint2 resolution) {
+luisa::unique_ptr<luisa::vector<uint8_t>> convert_to_int_pixel(const float *buffer, uint2 resolution) {
     static float gamma = 2.2f;
     auto pixel_count = resolution.x * resolution.y;
-    uint8_t *int_buffer = new uint8_t[pixel_count * 4];
+    auto int_buffer_handle = luisa::make_unique<luisa::vector<uint8_t>>(pixel_count * 4);
+    auto int_buffer = *int_buffer_handle;
     for (int i = 0; i < pixel_count * 4; ++i) {
-        // if (buffer[i] < 0 || buffer[i] > 1) {
-        //     LUISA_WARNING("Exceeded pixel! {}: {}", i, buffer[i]);
-        // }
         if ((i & 3) == 3) {
             int_buffer[i] = std::clamp(int(buffer[i] * 255 + 0.5), 0, 255);
         } else {
@@ -381,7 +355,7 @@ uint8_t *convert_to_int_pixel(const float *buffer, uint2 resolution) {
         }
         // LUISA_ASSERT(int_buffer[i] >= 0 && int_buffer[i] <= 255, "Exceeded pixel! {}: {}", i, int_buffer[i]);
     }
-    return int_buffer;
+    return std::move(int_buffer);
 }
 
 void render_frame_exr(std::string_view name, std::string_view path, float time, bool denoise, bool render_png) noexcept {
@@ -389,53 +363,42 @@ void render_frame_exr(std::string_view name, std::string_view path, float time, 
     pipeline->scene_update(*stream, *scene, time, mapping);
 
     auto camera_name = luisa::string(name);
-    auto idx = camera_index[camera_name];
+    auto idx = camera_storage[camera_name].index;
     auto resolution = scene->cameras()[idx]->film()->resolution();
     std::filesystem::path exr_path = path;
     if (auto it = camera_index.find(camera_name); it == camera_index.end()) {
         LUISA_ERROR_WITH_LOCATION("Failed to find camera name '{}'.", camera_name);
     }
-    auto buffer = pipeline->render_to_buffer(*stream, idx);
+    auto picture = pipeline->render_to_buffer(*stream, idx);
+    auto buffer = reinterpret_cast<float *>((*picture).data());
     stream->synchronize();
 
     if (denoise) {
-        // Buffer<float> hdr_buffer, denoised_buffer;
-        auto hdr_buffer = device->create_buffer<float>(resolution.x * resolution.y * 4);
-        auto denoised_buffer = device->create_buffer<float>(resolution.x * resolution.y * 4);
+        // auto denoised_buffer = device->create_buffer<float>(resolution.x * resolution.y * 4);
+        Buffer<float> &hdr_buffer = camera_storage[camera_name].hdr_buffer;
+        Buffer<float> &denoised_buffer = camera_storage[camera_name].denoised_buffer;
         (*stream) << hdr_buffer.copy_from(buffer);
         stream->synchronize();
-
-        LUISA_INFO("DEBUG_11");
 
         DenoiserExt::DenoiserInput data;
         data.beauty = &hdr_buffer;
         denoiser_ext->init(*stream, *mode, data, resolution);
-        
-        LUISA_INFO("DEBUG_11.1");
-        
         denoiser_ext->process(*stream, data);
-        
-        LUISA_INFO("DEBUG_11.2");
-
         denoiser_ext->get_result(*stream, denoised_buffer);
         stream->synchronize();
 
-        LUISA_INFO("DEBUG_11.5");
-
-        float *new_buffer = new float[resolution.x * resolution.y * 4];
-        (*stream) << denoised_buffer.copy_to(new_buffer);
+        (*stream) << denoised_buffer.copy_to(buffer);
         stream->synchronize();
-        buffer = new_buffer;
     }
 
-    // save image
+    /* save image */
     save_image(exr_path, buffer, resolution);
 
     if (render_png) {
         std::filesystem::path png_path = path;
         png_path.replace_extension(".png");
         auto int_buffer = convert_to_int_pixel(buffer, resolution);
-        save_image(png_path, int_buffer, resolution);
+        save_image(png_path, (*int_buffer).data(), resolution);
     }
 }
 

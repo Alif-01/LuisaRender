@@ -318,7 +318,7 @@ Texture *Scene::add_image_texture(
 }
 
 Camera *Scene::add_camera(
-    const RawCameraInfo &camera_info, luisa::unordered_map<luisa::string, uint> &camera_index
+    const RawCameraInfo &camera_info, luisa::unordered_map<luisa::string, CameraStorage> &camera_storage, Device &device
 ) noexcept {
     using NodeCreater = SceneNode *(Scene *, const RawCameraInfo &);
     auto handle_creater = get_handle_creater<NodeCreater>(camera_info.name, SceneNodeTag::CAMERA, "pinhole", "create_raw");
@@ -326,7 +326,12 @@ Camera *Scene::add_camera(
     Camera *camera = dynamic_cast<Camera *>(node);
 
     if (first_def) {
-        camera_index[camera_info.name] = _config->cameras.size();
+        auto resolution = camera->film()->resolution();
+        camera_storage[camera_info.name] = CameraStorage {
+            _config->cameras.size(),
+            device.create_buffer<float>(resolution.x * resolution.y * 4),
+            device.create_buffer<float>(resolution.x * resolution.y * 4)
+        };
         _config->cameras.emplace_back(camera);
         _config->cameras_updated = true;
     } else {

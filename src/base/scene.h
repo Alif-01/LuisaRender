@@ -100,8 +100,7 @@ public:
         luisa::string_view name, luisa::string_view image, const float &image_scale) noexcept;
     [[nodiscard]] Shape *update_shape(const RawMeshInfo &mesh_info) noexcept;
     [[nodiscard]] Camera *add_camera(
-        const RawCameraInfo &camera_info,
-        luisa::unordered_map<luisa::string, uint> &camera_index) noexcept;
+        const RawCameraInfo &camera_info, luisa::unordered_map<luisa::string, CameraStorage> &camera_storage, Device &device) noexcept;
     [[nodiscard]] Surface *add_surface(const RawSurfaceInfo &surface_info) noexcept;
     void append_shape(Shape *shape) noexcept;
 
