@@ -346,7 +346,7 @@ luisa::unique_ptr<luisa::vector<uint8_t>> convert_to_int_pixel(const float *buff
     static float gamma = 2.2f;
     auto pixel_count = resolution.x * resolution.y;
     auto int_buffer_handle = luisa::make_unique<luisa::vector<uint8_t>>(pixel_count * 4);
-    auto int_buffer = *int_buffer_handle;
+    luisa::vector<uint8_t> &int_buffer = *int_buffer_handle;
     for (int i = 0; i < pixel_count * 4; ++i) {
         if ((i & 3) == 3) {
             int_buffer[i] = std::clamp(int(buffer[i] * 255 + 0.5), 0, 255);
@@ -374,7 +374,10 @@ void render_frame_exr(std::string_view name, std::string_view path, float time, 
     stream->synchronize();
 
     if (denoise) {
-        // auto denoised_buffer = device->create_buffer<float>(resolution.x * resolution.y * 4);
+        std::filesystem::path origin_path(exr_path);
+        origin_path.replace_filename(origin_path.stem().string() + "_ori" + origin_path.extension().string());
+        save_image(origin_path, buffer, resolution);
+
         Buffer<float> &hdr_buffer = camera_storage[camera_name].hdr_buffer;
         Buffer<float> &denoised_buffer = camera_storage[camera_name].denoised_buffer;
         (*stream) << hdr_buffer.copy_from(buffer);
@@ -389,6 +392,8 @@ void render_frame_exr(std::string_view name, std::string_view path, float time, 
 
         (*stream) << denoised_buffer.copy_to(buffer);
         stream->synchronize();
+        denoiser_ext->destroy(*stream);
+        stream->synchronize();
     }
 
     /* save image */
@@ -402,11 +407,7 @@ void render_frame_exr(std::string_view name, std::string_view path, float time, 
     }
 }
 
-void destroy() {
-    if (denoiser_ext != nullptr) {
-        denoiser_ext->destroy(*stream);
-    }
-}
+void destroy() {}
 
 PYBIND11_MODULE(LuisaRenderPy, m) {
     m.doc() = "Python binding of LuisaRender";
