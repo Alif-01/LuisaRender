@@ -140,6 +140,7 @@ luisa::unique_ptr<Scene> scene;
 luisa::unordered_map<luisa::string, CameraStorage> camera_storage;
 luisa::string context_storage;
 Geometry::TemplateMapping mapping;
+float gamma_factor = 2.2f;
 
 template <typename T>
 luisa::vector<T> pyarray_to_vector(const py::array_t<T> &array) noexcept {
@@ -342,8 +343,8 @@ void add_surface(
     auto surface = scene->add_surface(surface_info);
 }
 
-luisa::unique_ptr<luisa::vector<uint8_t>> convert_to_int_pixel(const float *buffer, uint2 resolution) {
-    static float gamma = 2.2f;
+luisa::unique_ptr<luisa::vector<uint8_t>> convert_to_int_pixel(
+    const float *buffer, uint2 resolution) noexcept {
     auto pixel_count = resolution.x * resolution.y;
     auto int_buffer_handle = luisa::make_unique<luisa::vector<uint8_t>>(pixel_count * 4);
     luisa::vector<uint8_t> &int_buffer = *int_buffer_handle;
@@ -351,14 +352,16 @@ luisa::unique_ptr<luisa::vector<uint8_t>> convert_to_int_pixel(const float *buff
         if ((i & 3) == 3) {
             int_buffer[i] = std::clamp(int(buffer[i] * 255 + 0.5), 0, 255);
         } else {
-            int_buffer[i] = std::clamp(int(std::pow(buffer[i], 1.0f / gamma) * 255 + 0.5), 0, 255);
+            int_buffer[i] = std::clamp(int(std::pow(buffer[i], 1.0f / gamma_factor) * 255 + 0.5), 0, 255);
         }
-        // LUISA_ASSERT(int_buffer[i] >= 0 && int_buffer[i] <= 255, "Exceeded pixel! {}: {}", i, int_buffer[i]);
     }
     return std::move(int_buffer_handle);
 }
 
-void render_frame_exr(std::string_view name, std::string_view path, float time, bool denoise, bool render_png) noexcept {
+py::array_t<float> render_frame_exr(
+    std::string_view name, std::string_view path, float time, bool denoise,
+    bool save_picture, bool render_png
+) noexcept {
     LUISA_INFO("Start rendering camera {} at {}", name, path);
     pipeline->scene_update(*stream, *scene, time, mapping);
 
@@ -397,14 +400,25 @@ void render_frame_exr(std::string_view name, std::string_view path, float time, 
     }
 
     /* save image */
-    save_image(exr_path, buffer, resolution);
-
-    if (render_png) {
-        std::filesystem::path png_path = path;
-        png_path.replace_extension(".png");
-        auto int_buffer = convert_to_int_pixel(buffer, resolution);
-        save_image(png_path, (*int_buffer).data(), resolution);
+    if (save_picture) {
+        save_image(exr_path, buffer, resolution);
+        if (render_png) {
+            std::filesystem::path png_path = path;
+            png_path.replace_extension(".png");
+            auto int_buffer = convert_to_int_pixel(buffer, resolution);
+            save_image(png_path, (*int_buffer).data(), resolution);
+        }
     }
+
+    auto pixel_count = resolution.x * resolution.y;
+    for (int i = 0; i < pixel_count * 4; ++i) {
+        if ((i & 3) != 3) {
+            buffer[i] = std::clamp(std::pow(buffer[i], 1.0f / gamma_factor), 0.0f, 1.0f);
+        }
+    }
+    auto array_buffer = py::array_t<float>(pixel_count * 4);
+    std::memcpy(array_buffer.mutable_data(), buffer, array_buffer.size() * sizeof(float));
+    return std::move(array_buffer);
 }
 
 void destroy() {}
@@ -445,9 +459,9 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
     // m.def("add_deformable_body", &add_deformable_body);
     m.def("render_frame_exr", [](
         std::string name, std::string path, float time = 0.f,
-        bool denoise = true, bool render_png = false
-    ) { render_frame_exr(name, path, time, denoise, render_png); },
-        py::arg("name"), py::arg("path"), py::arg("time"), py::arg("denoise"), py::arg("render_png")
+        bool denoise = true, bool save_picture = false, bool render_png = true
+    ) { return std::move(render_frame_exr(name, path, time, denoise, save_picture, render_png)); },
+        py::arg("name"), py::arg("path"), py::arg("time"), py::arg("denoise"), py::arg("save_picture"), py::arg("render_png")
     );
     py::enum_<RawSurfaceInfo::RawMaterial>(m, "Material")
         .value("METAL", RawSurfaceInfo::RawMaterial::RAW_METAL)
