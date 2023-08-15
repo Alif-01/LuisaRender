@@ -132,6 +132,12 @@ public:
             camera->film()->release();
         }
     }
+
+    luisa::unique_ptr<luisa::vector<float4>> render_to_buffer(
+        Stream &stream, uint camera_index) noexcept override {
+        LUISA_ERROR("Do not support aov integrator.");
+        return nullptr;
+    }
 };
 
 luisa::unique_ptr<Integrator::Instance> AuxiliaryBufferPathTracing::build(

@@ -61,7 +61,7 @@ public:
 OrthoCameraInstance::OrthoCameraInstance(
     Pipeline &ppl, CommandBuffer &command_buffer, const OrthoCamera *camera) noexcept
     : Camera::Instance{ppl, command_buffer, camera},
-      _device_data{ppl.arena_buffer<OrthoCameraData>(1u)} {
+      _device_data{ppl.create<Buffer<OrthoCameraData>>(1u)->view()} {
     OrthoCameraData host_data{make_float2(camera->film()->resolution()),
                               std::pow(2.f, camera->zoom())};
     command_buffer << _device_data.copy_from(&host_data)

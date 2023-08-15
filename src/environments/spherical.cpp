@@ -212,10 +212,8 @@ luisa::unique_ptr<Environment::Instance> Spherical::build(
                 pdfs[offset + x] *= scale;
             }
         }
-        auto [alias_buffer_view, alias_buffer_id] =
-            pipeline.bindless_arena_buffer<AliasEntry>(aliases.size());
-        auto [pdf_buffer_view, pdf_buffer_id] =
-            pipeline.bindless_arena_buffer<float>(pdfs.size());
+        auto [alias_buffer_view, _, alias_buffer_id] = pipeline.bindless_buffer<AliasEntry>(aliases.size());
+        auto [pdf_buffer_view, __, pdf_buffer_id] = pipeline.bindless_buffer<float>(pdfs.size());
         command_buffer << alias_buffer_view.copy_from(aliases.data())
                        << pdf_buffer_view.copy_from(pdfs.data())
                        << commit();

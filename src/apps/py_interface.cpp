@@ -335,7 +335,7 @@ void add_surface(
 ) noexcept {
     auto surface_info = get_surface_info(name, material, color, image, image_scale, roughness, alpha);
     LUISA_INFO(
-        "Updating camera {} => material {} {}",
+        "Updating surface {} => material {} {}",
         surface_info.name, RawSurfaceInfo::mat_string[surface_info.material],
         surface_info.is_color ? luisa::format("Color: {}", format_pack<float, 3>(surface_info.color)):
             luisa::format("Image: path {}, scale {}", surface_info.image, surface_info.image_scale)
@@ -362,7 +362,7 @@ py::array_t<float> render_frame_exr(
     std::string_view name, std::string_view path, float time, bool denoise,
     bool save_picture, bool render_png
 ) noexcept {
-    LUISA_INFO("Start rendering camera {} at {}", name, path);
+    LUISA_INFO("Start rendering camera {}, saving {}", name, save_picture);
     pipeline->scene_update(*stream, *scene, time, mapping);
 
     auto camera_name = luisa::string(name);
@@ -377,6 +377,7 @@ py::array_t<float> render_frame_exr(
     stream->synchronize();
 
     if (denoise) {
+        LUISA_INFO("Start denoising...");
         std::filesystem::path origin_path(exr_path);
         origin_path.replace_filename(origin_path.stem().string() + "_ori" + origin_path.extension().string());
         save_image(origin_path, buffer, resolution);

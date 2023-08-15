@@ -62,6 +62,7 @@ private:
     Pipeline &_pipeline;
     Accel _accel;
     TransformTree _transform_tree;
+    luisa::vector<uint> _resource_store;
     luisa::unordered_map<uint64_t, MeshGeometry> _mesh_cache;
     luisa::unordered_map<const Shape *, MeshData> _meshes;
     luisa::vector<Light::Handle> _instanced_lights;
@@ -82,6 +83,7 @@ private:
 
 public:
     explicit Geometry(Pipeline &pipeline) noexcept : _pipeline{pipeline} {};
+    ~Geometry() noexcept;
     void build(CommandBuffer &command_buffer,
                luisa::span<const Shape *const> shapes,
                float init_time,

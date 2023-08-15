@@ -9,6 +9,12 @@
 
 namespace luisa::render {
 
+Geometry::~Geometry() noexcept {
+    for (auto index: _resource_store) {
+        _pipeline.remove_resource(index);
+    }
+}
+
 void Geometry::build(CommandBuffer &command_buffer,
                      luisa::span<const Shape *const> shapes,
                      float init_time,
@@ -61,10 +67,13 @@ void Geometry::_process_shape(
                     mesh_iter != _mesh_cache.end()) {
                     return mesh_iter->second;
                 }
+
                 // create mesh
-                auto vertex_buffer = _pipeline.create<Buffer<Vertex>>(vertices.size());
-                auto triangle_buffer = _pipeline.create<Buffer<Triangle>>(triangles.size());
-                auto mesh = _pipeline.create<Mesh>(*vertex_buffer, *triangle_buffer, shape->build_option());
+                // auto [vertex_buffer, vertex_index, vertex_buffer_id] = _pipeline.bindless_buffer<Vertex>(vertices.size());
+                // auto [triangle_buffer, triangle_index, triangle_buffer_id] = _pipeline.bindless_buffer<Triangle>(triangles.size());
+                auto [vertex_buffer, vertex_index] = _pipeline.create_with_index<Buffer<Vertex>>(vertices.size());
+                auto [triangle_buffer, triangle_index] = _pipeline.create_with_index<Buffer<Triangle>>(triangles.size());
+                auto [mesh, mesh_index] = _pipeline.create_with_index<Mesh>(*vertex_buffer, *triangle_buffer, shape->build_option());
                 command_buffer << vertex_buffer->copy_from(vertices.data())
                                << triangle_buffer->copy_from(triangles.data())
                                << compute::commit()
@@ -82,8 +91,11 @@ void Geometry::_process_shape(
                     triangle_areas[i] = std::abs(length(cross(p1 - p0, p2 - p0)));
                 }
                 auto [alias_table, pdf] = create_alias_table(triangle_areas);
-                auto [alias_table_buffer_view, alias_buffer_id] = _pipeline.bindless_arena_buffer<AliasEntry>(alias_table.size());
-                auto [pdf_buffer_view, pdf_buffer_id] = _pipeline.bindless_arena_buffer<float>(pdf.size());
+                auto [alias_table_buffer_view, alias_table_index, alias_buffer_id] =
+                     _pipeline.bindless_buffer<AliasEntry>(alias_table.size());
+                auto [pdf_buffer_view, pdf_index, pdf_buffer_id] = _pipeline.bindless_buffer<float>(pdf.size());
+                _resource_store.insert(_resource_store.end(), {vertex_index, triangle_index, mesh_index, alias_table_index, pdf_index});
+
                 LUISA_ASSERT(triangle_buffer_id - vertex_buffer_id == Shape::Handle::triangle_buffer_id_offset, "Invalid.");
                 LUISA_ASSERT(alias_buffer_id - vertex_buffer_id == Shape::Handle::alias_table_buffer_id_offset, "Invalid.");
                 LUISA_ASSERT(pdf_buffer_id - vertex_buffer_id == Shape::Handle::pdf_buffer_id_offset, "Invalid.");
@@ -95,8 +107,7 @@ void Geometry::_process_shape(
                 return geom;
             }();
             auto encode_fixed_point = [](float x) noexcept {
-                return static_cast<uint16_t>(std::clamp(
-                    std::round(x * 65535.f), 0.f, 65535.f));
+                return static_cast<uint16_t>(std::clamp(std::round(x * 65535.f), 0.f, 65535.f));
             };
             // assign mesh data
             MeshData mesh_data{

@@ -24,10 +24,10 @@ Integrator::Instance::Instance(Pipeline &pipeline, CommandBuffer &command_buffer
                          integrator->light_sampler()->build(pipeline, command_buffer) :
                          nullptr} {}
 
-luisa::unique_ptr<luisa::vector<float4>> Integrator::Instance::render_to_buffer(Stream &stream, uint camera_index) noexcept {
-    LUISA_ERROR("render_to_buffer not implemented.");
-    return nullptr;
-}
+// luisa::unique_ptr<luisa::vector<float4>> Integrator::Instance::render_to_buffer(Stream &stream, uint camera_index) noexcept {
+//     LUISA_ERROR("render_to_buffer not implemented.");
+//     return nullptr;
+// }
 
 ProgressiveIntegrator::Instance::Instance(Pipeline &pipeline,
                                           CommandBuffer &command_buffer,

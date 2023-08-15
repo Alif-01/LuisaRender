@@ -159,6 +159,16 @@ public:
         return p;
     }
 
+    template<typename T, typename... Args>
+        requires std::is_base_of_v<Resource, T>
+    [[nodiscard]] auto create_with_index(Args &&...args) noexcept -> std::pair<T *, uint> {
+        auto resource = luisa::make_unique<T>(_device.create<T>(std::forward<Args>(args)...));
+        auto p = resource.get();
+        auto index = _resources.size();
+        _resources.emplace_back(std::move(resource));
+        return std::make_pair(p, index);
+    }
+
     template<uint dim, typename Def>
     void register_shader(luisa::string_view name, Def &&def) noexcept {
         static_assert(dim == 1u || dim == 2u || dim == 3u);
@@ -171,19 +181,33 @@ public:
         });
     }
 
-    template<typename T>
-    [[nodiscard]] BufferView<T> arena_buffer(size_t n) noexcept {
-        return create<Buffer<T>>(n)->view();
-        // FIXME: buffer arena is broken
-        return _general_buffer_arena->allocate<T>(
-            std::max(n, static_cast<size_t>(1u)));
+    void remove_resource(uint index) noexcept {
+        _resources[index] = nullptr;
     }
 
+    // template<typename T>
+    // [[nodiscard]] BufferView<T> arena_buffer(size_t n) noexcept {
+    //     return create<Buffer<T>>(n)->view();
+    //     // FIXME: buffer arena is broken
+    //     return _general_buffer_arena->allocate<T>(
+    //         std::max(n, static_cast<size_t>(1u)));
+    // }
+
+    // template<typename T>
+    // [[nodiscard]] std::pair<BufferView<T>, uint /* bindless id */> bindless_arena_buffer(size_t n) noexcept {
+    //     auto view = arena_buffer<T>(n);
+    //     auto buffer_id = register_bindless(view);
+    //     return std::make_pair(view, buffer_id);
+    // }
+
+    /* buffer view, resource id, bindless id */
     template<typename T>
-    [[nodiscard]] std::pair<BufferView<T>, uint /* bindless id */> bindless_arena_buffer(size_t n) noexcept {
-        auto view = arena_buffer<T>(n);
+    [[nodiscard]] std::tuple<BufferView<T>, uint, uint> bindless_buffer(size_t n) noexcept {
+        // auto view = arena_buffer<T>(n);
+        auto [buffer, buffer_index] = create_with_index<Buffer<T>>(n);
+        auto view = buffer->view();
         auto buffer_id = register_bindless(view);
-        return std::make_pair(view, buffer_id);
+        return std::make_tuple(view, buffer_index, buffer_id);
     }
 
     [[nodiscard]] std::pair<BufferView<float4>, uint> allocate_constant_slot() noexcept;

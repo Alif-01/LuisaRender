@@ -67,7 +67,7 @@ public:
         Pipeline &ppl, CommandBuffer &command_buffer,
         const ThinLensCamera *camera) noexcept
         : Camera::Instance{ppl, command_buffer, camera},
-          _device_data{ppl.arena_buffer<ThinLensCameraData>(1u)} {
+          _device_data{ppl.create<Buffer<ThinLensCameraData>>(1u)->view()} {
         auto v = camera->focus_distance();
         auto f = camera->focal_length() * 1e-3;
         auto u = 1. / (1. / f - 1. / v);// 1 / f = 1 / v + 1 / sensor_plane

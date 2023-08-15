@@ -42,7 +42,7 @@ public:
         [[nodiscard]] auto light_sampler() noexcept { return _light_sampler.get(); }
         [[nodiscard]] auto light_sampler() const noexcept { return _light_sampler.get(); }
         virtual void render(Stream &stream) noexcept = 0;
-        virtual luisa::unique_ptr<luisa::vector<float4>> render_to_buffer(Stream &stream, uint camera_index) noexcept;
+        virtual luisa::unique_ptr<luisa::vector<float4>> render_to_buffer(Stream &stream, uint camera_index) noexcept = 0;
     };
 
 private:
