@@ -23,6 +23,17 @@ public:
                   luisa::rotation(normalize(rotation.xyz()), radians(rotation.w)) *
                   luisa::scaling(scaling);
     }
+
+    ScaleRotateTranslate(Scene *scene, const RawTransform &trans) noexcept
+        : Transform{scene} {
+        auto scaling = trans.scale;
+        auto rotation = trans.rotate;
+        auto translation = trans.translate;
+        _matrix = luisa::translation(translation) *
+                  luisa::rotation(normalize(rotation.xyz()), radians(rotation.w)) *
+                  luisa::scaling(scaling);
+    }
+
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] bool is_static() const noexcept override { return true; }
     [[nodiscard]] float4x4 matrix(float) const noexcept override { return _matrix; }
@@ -32,8 +43,21 @@ public:
                all(_matrix[2] == make_float4(0.0f, 0.0f, 1.0f, 0.0f)) &&
                all(_matrix[3] == make_float4(0.0f, 0.0f, 0.0f, 1.0f));
     }
+    void update_transform(Scene *scene, const RawTransform &trans) noexcept override {
+        auto scaling = trans.scale;
+        auto rotation = trans.rotate;
+        auto translation = trans.translate;
+        _matrix = luisa::translation(translation) *
+                  luisa::rotation(normalize(rotation.xyz()), radians(rotation.w)) *
+                  luisa::scaling(scaling);
+    }
 };
 
 }// namespace luisa::render
 
 LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::ScaleRotateTranslate)
+
+LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
+    luisa::render::Scene *scene, const luisa::render::RawTransform &trans) LUISA_NOEXCEPT {
+    return luisa::new_with_allocator<luisa::render::ScaleRotateTranslate>(scene, trans);
+}

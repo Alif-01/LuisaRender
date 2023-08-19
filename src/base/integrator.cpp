@@ -111,10 +111,9 @@ void ProgressiveIntegrator::Instance::_render_one_camera(
     auto dispatch_count = 0u;
     auto sample_id = 0u;
     for (auto s : shutter_samples) {
-        auto updated = pipeline().update(command_buffer, s.point.time);
+        auto updated = pipeline().update(command_buffer, s.point.time);     // TODO: UniSim, update is not needed
         for (auto i = 0u; i < s.spp; i++) {
-            command_buffer << render(sample_id++, s.point.time, s.point.weight)
-                                  .dispatch(resolution);
+            command_buffer << render(sample_id++, s.point.time, s.point.weight).dispatch(resolution);
             if (auto &&p = pipeline().printer(); !p.empty()) {
                 command_buffer << p.retrieve();
             }

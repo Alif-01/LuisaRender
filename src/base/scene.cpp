@@ -101,18 +101,15 @@ std::pair<SceneNode*, bool> Scene::load_from_nodes(
 
 template<typename NodeCreater> 
 auto Scene::get_handle_creater(
-    luisa::string_view name, SceneNodeTag tag,
-    luisa::string_view impl_type, luisa::string_view creater_name
+    SceneNodeTag tag, luisa::string_view impl_type, luisa::string_view creater_name
 ) noexcept {
     return [=, this]<typename... Args>(Args&&... args) -> NodeHandle {
-
-        LUISA_INFO("DEBUG_HANDLE_CREATER: {}, {}, {}", name, impl_type, creater_name);
-
+        // LUISA_INFO("DEBUG_HANDLE_CREATER: {}, {}, {}", name, impl_type, creater_name);
         auto &&plugin = detail::scene_plugin_load(
             _context.runtime_directory(), tag, impl_type);
         auto create = plugin.function<NodeCreater>(creater_name);
         auto destroy = plugin.function<NodeDeleter>("destroy");
-        LUISA_VERBOSE_WITH_LOCATION("Constructing scene node '{}'.", name);
+        // LUISA_VERBOSE_WITH_LOCATION("Constructing scene node '{}'.", name);
         return std::move(NodeHandle(create(std::forward<Args>(args)...), destroy));
     };
 }
@@ -143,9 +140,7 @@ SceneNode *Scene::load_node(SceneNodeTag tag, const SceneNodeDesc *desc) noexcep
     //     return std::move(NodeHandle{create(), destroy});
     // };
     
-    auto handle_creater = get_handle_creater<NodeCreaterDesc>(
-        desc->identifier(), tag, desc->impl_type(), "create"
-    );
+    auto handle_creater = get_handle_creater<NodeCreaterDesc>(tag, desc->impl_type(), "create");
 
     if (desc->is_internal()) {
         NodeHandle node = handle_creater(this, desc);
@@ -261,7 +256,7 @@ PhaseFunction *Scene::load_phase_function(const SceneNodeDesc *desc) noexcept {
 
 Film *Scene::add_film(luisa::string_view name, const uint2 &resolution) noexcept {
     using NodeCreater = SceneNode *(Scene *, const uint2 &);
-    auto handle_creater = get_handle_creater<NodeCreater>(name, SceneNodeTag::FILM, "color", "create_raw");
+    auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::FILM, "color", "create_raw");
     NodeHandle node = handle_creater(this, resolution);
 
     std::scoped_lock lock{_mutex};
@@ -272,35 +267,43 @@ Film *Scene::add_film(luisa::string_view name, const uint2 &resolution) noexcept
 
 Filter *Scene::add_filter(luisa::string_view name, const float &radius) noexcept {
     using NodeCreater = SceneNode *(Scene *, const float &);
-    auto handle_creater = get_handle_creater<NodeCreater>(name, SceneNodeTag::FILTER, "gaussian", "create_raw");
-    NodeHandle node = handle_creater(this, radius);
+    auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::FILTER, "gaussian", "create_raw");
+    NodeHandle handle = handle_creater(this, radius);
 
     std::scoped_lock lock{_mutex};
     return dynamic_cast<Filter *>(
-        _config->internal_nodes.emplace_back(std::move(node)).get()
+        _config->internal_nodes.emplace_back(std::move(handle)).get()
     );
 }
 
-Transform *Scene::add_transform(luisa::string_view name, const luisa::vector<float> &m) noexcept {
-    if (m.empty()) return nullptr;
-    using NodeCreater = SceneNode *(Scene *, const luisa::vector<float> &);
-    auto handle_creater = get_handle_creater<NodeCreater>(name, SceneNodeTag::TRANSFORM, "matrix", "create_raw");
-    NodeHandle node = handle_creater(this, m);
+Transform *Scene::update_transform(luisa::string_view name, const RawTransform &trans) noexcept {
+    using NodeCreater = SceneNode *(Scene *, const RawTransform &);
+    luisa::string impl_type;
+
+    if (trans.is_matrix()) {
+        impl_type = "matrix";
+    } else if (trans.is_srt()) {
+        impl_type = "srt";
+    } else return nullptr;
     
-    std::scoped_lock lock{_mutex};
-    return dynamic_cast<Transform *>(
-        _config->internal_nodes.emplace_back(std::move(node)).get()
-    );
+    auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::TRANSFORM, impl_type, "create_raw");
+    auto [node, first_def] = load_from_nodes(luisa::format("{}_{}", name, impl_type), handle_creater, this, trans);
+    Transform *transform = dynamic_cast<Transform *>(node);
+
+    if (!first_def) {
+        tranform->update_transform(this, trans);
+    }
+    return transform;
 }
 
 Texture *Scene::add_constant_texture(luisa::string_view name, const luisa::vector<float> &v) noexcept {
     using NodeCreater = SceneNode *(Scene *, const luisa::vector<float> &);
-    auto handle_creater = get_handle_creater<NodeCreater>(name, SceneNodeTag::TEXTURE, "constant", "create_raw");
-    NodeHandle node = handle_creater(this, v);
+    auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::TEXTURE, "constant", "create_raw");
+    NodeHandle handle = handle_creater(this, v);
     
     std::scoped_lock lock{_mutex};
     return dynamic_cast<Texture *>(
-        _config->internal_nodes.emplace_back(std::move(node)).get()
+        _config->internal_nodes.emplace_back(std::move(handle)).get()
     );
 }
 
@@ -308,20 +311,20 @@ Texture *Scene::add_image_texture(
     luisa::string_view name, luisa::string_view image, const float &image_scale
 ) noexcept {
     using NodeCreater = SceneNode *(Scene *, luisa::string_view, const float &);
-    auto handle_creater = get_handle_creater<NodeCreater>(name, SceneNodeTag::TEXTURE, "image", "create_raw");
-    NodeHandle node = handle_creater(this, image, image_scale);
+    auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::TEXTURE, "image", "create_raw");
+    NodeHandle handle = handle_creater(this, image, image_scale);
     
     std::scoped_lock lock{_mutex};
     return dynamic_cast<Texture *>(
-        _config->internal_nodes.emplace_back(std::move(node)).get()
+        _config->internal_nodes.emplace_back(std::move(handle)).get()
     );
 }
 
-Camera *Scene::add_camera(
+Camera *Scene::update_camera(
     const RawCameraInfo &camera_info, luisa::unordered_map<luisa::string, CameraStorage> &camera_storage, Device &device
 ) noexcept {
     using NodeCreater = SceneNode *(Scene *, const RawCameraInfo &);
-    auto handle_creater = get_handle_creater<NodeCreater>(camera_info.name, SceneNodeTag::CAMERA, "pinhole", "create_raw");
+    auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::CAMERA, "pinhole", "create_raw");
     auto [node, first_def] = load_from_nodes(camera_info.name, handle_creater, this, camera_info);
     Camera *camera = dynamic_cast<Camera *>(node);
 
@@ -341,11 +344,9 @@ Camera *Scene::add_camera(
 }
 
 Surface *Scene::add_surface(const RawSurfaceInfo &surface_info) noexcept {
-    // typedef SceneNode *(*NodeCreater)(Scene *, const RawSurfaceInfo &);
     using NodeCreater = SceneNode *(Scene *, const RawSurfaceInfo &);
     auto handle_creater = get_handle_creater<NodeCreater>(
-        surface_info.name, SceneNodeTag::SURFACE,
-        RawSurfaceInfo::mat_string[surface_info.material], "create_raw"
+        SceneNodeTag::SURFACE, RawSurfaceInfo::mat_string[surface_info.material], "create_raw"
     );
     auto [node, first_def] = load_from_nodes(surface_info.name, handle_creater, this, surface_info);
     Surface *surface = dynamic_cast<Surface *>(node);
@@ -356,19 +357,37 @@ Surface *Scene::add_surface(const RawSurfaceInfo &surface_info) noexcept {
     return surface;
 }
 
+luisa::vector<Shape *> Scene::update_particles(const luisa::vector<RawSphereInfo> &sphere_infos) noexcept {
+    using NodeCreater = SceneNode *(Scene *, const RawSphereInfo &);
+    luisa::vector<Shape *> shapes;
+    for (auto i = 0u; i < sphere_infos.size(); ++i) {
+        auto sphere_info = sphere_infos[i];
+        auto name = luisa::format("{}_{}", sphere_info.name, i);
+        auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::SHAPE, "sphere", "create_raw");
+        auto [node, first_def] = load_from_nodes(name, handle_creater, this, sphere_info);
+        Shape *shape = dynamic_cast<Shape *>(node);
+        if (first_def) {
+            _config->shapes.emplace_back(shape);
+        } else {
+            shape->update_shape(this, sphere_info.shape_info);
+        }
+        shapes.emplace_back(shape);
+    }
+    _config->shapes_updated = true;
+    return std::move(shapes);
+}
+
 Shape *Scene::update_shape(const RawMeshInfo &mesh_info) noexcept {
-    // typedef SceneNode *(*NodeCreater)(Scene *, const RawMeshInfo &);
     using NodeCreater = SceneNode *(Scene *, const RawMeshInfo &);
-    auto handle_creater = get_handle_creater<NodeCreater>(mesh_info.name, SceneNodeTag::SHAPE, "dynamicmesh", "create_raw");
+    auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::SHAPE, "dynamicmesh", "create_raw");
     auto [node, first_def] = load_from_nodes(mesh_info.name, handle_creater, this, mesh_info);
     Shape *shape = dynamic_cast<Shape *>(node);
 
     if (first_def) {
-        LUISA_INFO("DEBUG_SHAPE: Insert shape");
+        // LUISA_INFO("DEBUG_SHAPE: Insert shape");
         _config->shapes.emplace_back(shape);
-        
     } else {
-        LUISA_INFO("DEBUG_SHAPE: Update shape");
+        // LUISA_INFO("DEBUG_SHAPE: Update shape");
         shape->update_shape(this, mesh_info);
     }
     _config->shapes_updated = true;

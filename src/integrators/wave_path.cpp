@@ -259,6 +259,7 @@ void WavefrontPathTracingInstance::_render_one_camera(
         auto pixel_coord = make_uint2(pixel_id % resolution.x, pixel_id / resolution.x);
         sampler()->start(pixel_coord, sample_id);
         auto u_filter = sampler()->generate_pixel_2d();
+        // TODO: No need for u_lens
         auto u_lens = camera->node()->requires_lens_sampling() ? sampler()->generate_2d() : make_float2(.5f);
         auto u_wavelength = spectrum->node()->is_fixed() ? 0.f : sampler()->generate_1d();
         sampler()->save_state(state_id);
@@ -529,8 +530,7 @@ void WavefrontPathTracingInstance::_render_one_camera(
             auto rays = ray_buffer.view();
             auto hits = hit_buffer.view();
             auto out_rays = ray_buffer_out.view();
-            command_buffer << generate_rays_shader.get()(path_indices, rays, sample_id, time)
-                                  .dispatch(launch_state_count);
+            command_buffer << generate_rays_shader.get()(path_indices, rays, sample_id, time).dispatch(launch_state_count);
             for (auto depth = 0u; depth < node<WavefrontPathTracing>()->max_depth(); depth++) {
                 auto surface_indices = surface_queue.prepare_index_buffer(command_buffer);
                 auto surface_count = surface_queue.prepare_counter_buffer(command_buffer);

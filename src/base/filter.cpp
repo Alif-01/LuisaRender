@@ -35,13 +35,13 @@ Filter::Instance::Instance(const Pipeline &pipeline, const Filter *filter) noexc
     auto integral = 0.0f;
     for (auto i = 0u; i < n; i++) {
         auto x = static_cast<float>(i + 1u) * inv_n * 2.0f - 1.0f;
-        _lut[i + 1u] = filter->evaluate(x * filter->radius());
+        _lut[i + 1u] = filter->evaluate(x * filter->radius());      // Look_up: 2i / n - 1 (-1 ~ 1) (0, +, 0)
         auto f_mid = 0.5f * (_lut[i] + _lut[i + 1u]);
         integral += f_mid;
         abs_f[i] = std::abs(f_mid);
     }
     auto inv_integral = 1.0f / integral;
-    for (auto &f : _lut) { f *= inv_integral; }
+    for (auto &f : _lut) { f *= inv_integral; }             // Normalized (for gaussian)
     auto [alias_table, pdf] = create_alias_table(abs_f);
     assert(alias_table.size() == n && pdf.size() == n);
     for (auto i = 0u; i < n; i++) {

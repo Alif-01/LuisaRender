@@ -12,6 +12,10 @@ Transform::Transform(Scene *scene, const SceneNodeDesc *desc) noexcept
 Transform::Transform(Scene *scene) noexcept
     : SceneNode{scene, SceneNodeTag::TRANSFORM} {}
 
+void Transform::update_transform(Scene *scene, const RawTransform &trans) noexcept {
+    LUISA_ERROR("Not implemented error!");
+}
+
 TransformTree::Node::Node(
     const TransformTree::Node *parent,
     const Transform *t) noexcept

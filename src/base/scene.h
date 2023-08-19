@@ -95,7 +95,7 @@ public:
     
     [[nodiscard]] Film *add_film(luisa::string_view name, const uint2 &resolution) noexcept;
     [[nodiscard]] Filter *add_filter(luisa::string_view name, const float &radius) noexcept;
-    [[nodiscard]] Transform *add_transform(luisa::string_view name, const luisa::vector<float> &m) noexcept;
+    [[nodiscard]] Transform *update_transform(luisa::string_view name, const RawTransform &trans) noexcept;
     [[nodiscard]] Texture *add_constant_texture(luisa::string_view name, const luisa::vector<float> &v) noexcept;
     [[nodiscard]] Texture *add_image_texture(
         luisa::string_view name, luisa::string_view image, const float &image_scale) noexcept;

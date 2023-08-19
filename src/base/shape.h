@@ -16,6 +16,7 @@ class Light;
 class Surface;
 class Transform;
 class Medium;
+class RawTransform;
 
 using compute::AccelOption;
 using compute::Triangle;
@@ -25,20 +26,31 @@ struct MeshView {
     luisa::span<const Triangle> triangles;
 };
 
-struct RawMeshInfo {
+struct RawShapeInfo {
     luisa::string name;
+    RawTransform trans;
+    luisa::string surface;
+    luisa::string light;
+    luisa::string medium;
+}
+
+struct RawSphereInfo {
+    RawShapeInfo shape_info;
+}
+
+struct RawMeshInfo {
+    void print_info() {
+        LUISA_INFO(
+            "Updating shape {} => vertices: {}, triangles: {}, uvs: {}, normals: {} surface: {}",
+            name, vertices.size(), triangles.size(), uvs.size(), normals.size(), surface
+        );
+    }
+
     luisa::vector<float> vertices;
     luisa::vector<uint> triangles;
     luisa::vector<float> uvs;
     luisa::vector<float> normals;
-    luisa::vector<float> transform;
-
-    luisa::string surface;
-    // luis *light;
-    luisa::string medium;
-    // const SceneNodeDesc *surface;
-    // const SceneNodeDesc *light;
-    // const SceneNodeDesc *medium;
+    RawShapeInfo shape_info;
 };
 
 class Shape : public SceneNode {
@@ -61,7 +73,8 @@ private:
 
 public:
     Shape(Scene *scene, const SceneNodeDesc *desc) noexcept;
-    Shape(Scene *scene, const RawMeshInfo& mesh_info) noexcept;
+    Shape(Scene *scene, const RawShapeInfo &shape_info) noexcept;
+    virtual void update_shape(Scene *scene, const RawShapeInfo &shape_info) noexcept;
     [[nodiscard]] const Surface *surface() const noexcept;
     [[nodiscard]] const Light *light() const noexcept;
     [[nodiscard]] const Medium *medium() const noexcept;
@@ -79,7 +92,6 @@ public:
     [[nodiscard]] virtual luisa::span<const Shape *const> children() const noexcept;// empty if the shape is a mesh
     [[nodiscard]] virtual bool deformable() const noexcept;                         // true if the shape will not deform
     [[nodiscard]] virtual AccelOption build_option() const noexcept;                // accel struct build quality, only considered for meshes
-    virtual void update_shape(Scene *scene, const RawMeshInfo& mesh_info) noexcept;
 };
 
 template<typename BaseShape>

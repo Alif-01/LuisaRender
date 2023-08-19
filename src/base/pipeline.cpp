@@ -137,6 +137,9 @@ void Pipeline::scene_update(
         update_bindless_if_dirty();
 
         if (!_transforms.empty()) {             // camera has no transforms
+            for (auto i = 0u; i < _transforms.size(); ++i) {
+                _transform_matrices[i] = _transforms[i]->matrix(time);
+            }
             command_buffer << _transform_matrix_buffer
                               .view(0u, _transforms.size())
                               .copy_from(_transform_matrices.data());

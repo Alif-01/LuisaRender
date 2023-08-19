@@ -23,11 +23,22 @@ using compute::Var;
 
 class Sampler;
 class Transform;
+class RawTransform;
 
 struct RawCameraInfo {
+    void print_info() {
+        LUISA_INFO(
+            "Adding camera {}: from: ({}, {}, {}), to: ({}, {}, {}), up: ({}, {}, {}),"
+            "fov: {}, spp: {}, res: ({} x {})",
+            name, position[0], position[1], position[2],
+            look_at[0], look_at[1], look_at[2],
+            up[0], up[1], up[2],
+            fov, spp, resolution[0], resolution[1]
+        );
+    }
+
     luisa::string name;
-    float3 position;
-    float3 look_at;
+    float3 position, look_at, up;
     float fov;
     uint spp;
     float radius;
@@ -71,9 +82,7 @@ public:
                                       Expr<float> time) const noexcept = 0;
 
     public:
-        Instance(Pipeline &pipeline,
-                 CommandBuffer &command_buffer,
-                 const Camera *camera) noexcept;
+        Instance(Pipeline &pipeline, CommandBuffer &command_buffer, const Camera *camera) noexcept;
         Instance(const Instance &) noexcept = delete;
         Instance(Instance &&another) noexcept = default;
         Instance &operator=(const Instance &) noexcept = delete;
@@ -108,6 +117,7 @@ private:
     const Film *_film;
     const Filter *_filter;
     const Transform *_transform;
+    const Transform *_base_transform;
     float2 _shutter_span;
     uint _shutter_samples;
     uint _spp;
@@ -123,6 +133,7 @@ private:
 public:
     Camera(Scene *scene, const SceneNodeDesc *desc) noexcept;
     Camera(Scene *scene, const RawCameraInfo &camera_info) noexcept;
+    virtual void update_camera(Scene *scene, luisa::string_view name, const RawTransform &trans) noexcept;
     [[nodiscard]] auto film() const noexcept { return _film; }
     [[nodiscard]] auto filter() const noexcept { return _filter; }
     [[nodiscard]] auto transform() const noexcept { return _transform; }

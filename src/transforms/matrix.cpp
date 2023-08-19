@@ -42,9 +42,13 @@ public:
         _build_matrix(m);
     }
 
-    MatrixTransform(Scene *scene, const luisa::vector<float> &m) noexcept
+    MatrixTransform(Scene *scene, const RawTransform &trans) noexcept
         : Transform{scene}, _matrix{make_float4x4(1.0f)} {
-        _build_matrix(m);
+        _build_matrix(trans.transform);
+    }
+
+    MatrixTransform(Scene *scene, const float4x4 &matrix) noexcept
+        : Transform{scene}, _matrix{matrix} {
     }
 
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
@@ -56,6 +60,9 @@ public:
                all(_matrix[2] == make_float4(0.0f, 0.0f, 1.0f, 0.0f)) &&
                all(_matrix[3] == make_float4(0.0f, 0.0f, 0.0f, 1.0f));
     }
+    void update_transform(Scene *scene, const RawTransform &trans) noexcept override {
+        _build_matrix(trans.transform);
+    }
 };
 
 }// namespace luisa::render
@@ -63,6 +70,6 @@ public:
 LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::MatrixTransform)
 
 LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
-    luisa::render::Scene *scene, const luisa::vector<float> &m) LUISA_NOEXCEPT {
-    return luisa::new_with_allocator<luisa::render::MatrixTransform>(scene, m);
+    luisa::render::Scene *scene, const luisa::render::RawTransform &trans) LUISA_NOEXCEPT {
+    return luisa::new_with_allocator<luisa::render::MatrixTransform>(scene, trans);
 }

@@ -13,12 +13,12 @@
 
 namespace luisa::render {
 
+/* Different transform semantics: transform = base_pose * transform */
 Camera::Camera(Scene *scene, const SceneNodeDesc *desc) noexcept
     : SceneNode{scene, desc, SceneNodeTag::CAMERA},
       _film{scene->load_film(desc->property_node("film"))},
       _filter{scene->load_filter(desc->property_node_or_default(
           "filter", SceneNodeDesc::shared_default_filter("Box")))},
-      _transform{scene->load_transform(desc->property_node_or_default("transform"))},
       _shutter_span{desc->property_float2_or_default(
           "shutter_span", lazy_construct([desc] {
               return make_float2(desc->property_float_or_default(
@@ -31,18 +31,18 @@ Camera::Camera(Scene *scene, const SceneNodeDesc *desc) noexcept
     static constexpr auto default_position = make_float3(0.f, 0.f, 0.f);
     static constexpr auto default_front = make_float3(0.f, 0.f, -1.f);
     static constexpr auto default_up = make_float3(0.f, 1.f, 0.f);
-    if (_transform == nullptr) {
-        auto position = desc->property_float3_or_default("position", default_position);
-        auto front = desc->property_float3_or_default(
-            "front", lazy_construct([desc, position] {
-                auto look_at = desc->property_float3_or_default("look_at", position + default_front);
-                return normalize(look_at - position);
-            }));
-        auto up = desc->property_float3_or_default("up", default_up);
-        if (!all(position == default_position && front == default_front && up == default_up)) {
-            _build_transform(scene, desc->identifier(), desc->source_location(), position, front, up);
-        }
-    }
+    
+    auto append_transform = scene->load_transform(desc->property_node_or_default("transform"));
+    auto append_matrix = append_transform == nullptr ? make_float4x4(1.f) : append_transform->matrix(0.f);
+    auto position = desc->property_float3_or_default("position", default_position);
+    auto front = desc->property_float3_or_default(
+        "front", lazy_construct([desc, position] {
+            auto look_at = desc->property_float3_or_default("look_at", position + default_front);
+            return normalize(look_at - position);
+        }));
+    auto up = desc->property_float3_or_default("up", default_up);
+    _build_transform(scene, desc->identifier(), desc->source_location(), position, front, up, append_tranform);
+    // if (!all(position == default_position && front == default_front && up == default_up)) {}
 
     if (_shutter_span.y < _shutter_span.x) [[unlikely]] {
         LUISA_ERROR(
@@ -146,31 +146,41 @@ Camera::Camera(Scene *scene, const RawCameraInfo &camera_info) noexcept
     : SceneNode{scene, SceneNodeTag::CAMERA},
       _film{scene->add_film("film_color", camera_info.resolution)},
       _filter{scene->add_filter("filter_gaussian", camera_info.radius)},
-      _transform{nullptr},
       _shutter_span{make_float2(0.0f)},
       _shutter_samples{0u},                     // 0 means default
       _spp{camera_info.spp} {
     // build transform
     auto position = std::move(camera_info.position);
     auto front = std::move(normalize(camera_info.look_at - camera_info.position));
-    auto up = make_float3(0.f, 1.f, 0.f);
+    auto up =  std::move(normalize(camera_info.up));
+    auto append_matrix = make_float4x4(1.f);
     _build_transform(scene, camera_info.name, SceneNodeDesc::SourceLocation(),
-                     position, front, up);
+                     position, front, up, append_matrix);
     
     // render file
     _file = std::filesystem::current_path() / luisa::format("render_{}.exr", camera_info.name);
 }
 
+void Camera::update_camera(Scene *scene, luisa::string_view name, const RawTransform &trans) noexcept {
+    if (trans.empty) return;
+    auto append_transform = scene->update_transform(luisa::format("{}_append_transform", name), trans);
+    auto append_matrix = append_transform->matrix(0.f);
+    auto matrix = append_matrix * _base_transform->matrix(0.f);
+    _transform = scene->update_transform(luisa::format("{}_transform", name), RawTransform(matrix));
+}
+
 void Camera::_build_transform(
     Scene *scene, luisa::string_view name, SceneNodeDesc::SourceLocation l,
-    const float3 &position, const float3 &front, const float3 &up
+    const float3 &position, const float3 &front, const float3 &up, const float4x4 &append_matrix
 ) noexcept {
-    SceneNodeDesc d{luisa::format("{}$transform", name), SceneNodeTag::TRANSFORM};
+    SceneNodeDesc d{luisa::format("{}_base_transform", name), SceneNodeTag::TRANSFORM};
     d.define(SceneNodeTag::TRANSFORM, "View", l);
     d.add_property("position", SceneNodeDesc::number_list{position.x, position.y, position.z});
     d.add_property("front", SceneNodeDesc::number_list{front.x, front.y, front.z});
     d.add_property("up", SceneNodeDesc::number_list{up.x, up.y, up.z});
-    _transform = scene->load_transform(&d);
+    _base_transform = scene->load_transform(&d);
+    auto matrix = append_matrix * _base_transform->matrix(0.f);
+    _transform = scene->update_transform(luisa::format("{}_transform", name), RawTransform(matrix));
 }
 
 auto Camera::shutter_weight(float time) const noexcept -> float {
@@ -238,7 +248,7 @@ Camera::Instance::Instance(Pipeline &pipeline, CommandBuffer &command_buffer, co
 Camera::Sample Camera::Instance::generate_ray(Expr<uint2> pixel_coord, Expr<float> time,
                                               Expr<float2> u_filter, Expr<float2> u_lens) const noexcept {
     auto [filter_offset, filter_weight] = filter()->sample(u_filter);
-    auto pixel = make_float2(pixel_coord) + .5f + filter_offset;
+    auto pixel = make_float2(pixel_coord) + .5f + filter_offset;        // Sampling from (x + 0.5 + bx, y + 0.5 + by)
     auto [ray, weight] = _generate_ray_in_camera_space(pixel, u_lens, time);
     weight *= filter_weight;
     auto c2w = camera_to_world();
