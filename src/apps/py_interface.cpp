@@ -179,10 +179,8 @@ void init(std::string_view context_path, int cuda_device, int scene_index) noexc
 
 void update_body(
     std::string_view name, const PyFloatArr &vertices, const PyIntArr &triangles,
-    const PyFloatArr &uvs, const PyFloatArr &normals, PyTransform trans,
-    std::string_view surface, float time = 0
+    const PyFloatArr &uvs, const PyFloatArr &normals, PyTransform transform, std::string_view surface
 ) noexcept {
-    // luisa::unordered_map<luisa::string, RawMeshInfo> raw_meshes;
     auto mesh_info = RawMeshInfo {
         pyarray_to_vector<float>(vertices),
         pyarray_to_vector<uint>(triangles),
@@ -191,16 +189,15 @@ void update_body(
         RawShapeInfo {
             luisa::string(name),
             RawTransform {
-                trans.empty,
-                trans.transform,
-                trans.translate,
-                trans.rotate,
-                trans.scale
+                transform.empty,
+                transform.transform,
+                transform.translate,
+                transform.rotate,
+                transform.scale
             },
             luisa::string(surface), {}, {}
         }
     };
-    //  get_mesh_info(name, vertices, triangles, uvs, normals, transform, surface);
     mesh_info.print_info();
     auto shape = scene->update_shape(mesh_info);
 }
@@ -246,15 +243,15 @@ void add_camera(
     auto camera = scene->add_camera(camera_info, camera_storage, *device);
 }
 
-void update_camera(std::string_view name, PyTransform trans) noexcept {
-    auto real_trans = RawTransform {
-        trans.empty,
-        trans.transform,
-        trans.translate,
-        trans.rotate,
-        trans.scale
+void update_camera(std::string_view name, PyTransform transform) noexcept {
+    auto real_transform = RawTransform {
+        transform.empty,
+        transform.transform,
+        transform.translate,
+        transform.rotate,
+        transform.scale
     };
-    auto camera = scene->update_camera(name, real_trans);
+    auto camera = scene->update_camera(name, real_transform);
 }
 
 RawSurfaceInfo get_surface_info (
@@ -373,6 +370,20 @@ void destroy() {}
 
 PYBIND11_MODULE(LuisaRenderPy, m) {
     m.doc() = "Python binding of LuisaRender";
+
+    py::enum_<RawSurfaceInfo::RawMaterial>(m, "Material")
+        .value("METAL", RawSurfaceInfo::RawMaterial::RAW_METAL)
+        .value("SUBSTRATE", RawSurfaceInfo::RawMaterial::RAW_SUBSTRATE)
+        .value("MATTE", RawSurfaceInfo::RawMaterial::RAW_MATTE)
+        .value("GLASS", RawSurfaceInfo::RawMaterial::RAW_GLASS)
+        .value("NULL", RawSurfaceInfo::RawMaterial::RAW_NULL);
+    py::class_<PyTransform>(m, "Transform")
+        .def(py::init<PyFloatArr, PyFloatArr, PyFloatArr>(),
+            py::arg("translate"), py::arg("rotate"), py::arg("scale")
+        )
+        .def(py::init<PyFloatArr>(), py::arg("transform"))
+        .def(py::init<>());
+
     m.def("init", [](
         std::string context_path, int cuda_device = 0, int scene_index = 0
     ) { init(context_path, cuda_device, scene_index); },
@@ -384,11 +395,11 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
     );
     m.def("update_body", [](
         std::string name, PyFloatArr vertices = PyFloatArr(), PyIntArr triangles = PyIntArr(),
-        PyFloatArr uvs = PyFloatArr(), PyFloatArr normals = PyFloatArr(), PyTransform trans = PyTransform(),
-        std::string surface = "", float time = 0.f
-    ) { update_body(name, vertices, triangles, uvs, normals, std::move(trans), surface, time); },
+        PyFloatArr uvs = PyFloatArr(), PyFloatArr normals = PyFloatArr(), PyTransform transform = PyTransform(),
+        std::string surface = ""
+    ) { update_body(name, vertices, triangles, uvs, normals, std::move(transform), surface); },
         py::arg("name"), py::arg("vertices"), py::arg("triangles"), py::arg("uvs"), py::arg("normals"),
-        py::arg("trans"), py::arg("surface"), py::arg("time")
+        py::arg("transform"), py::arg("surface")
     );
     m.def("add_camera", [](
         std::string name, PyFloatArr position, PyFloatArr look_at, PyFloatArr up,
@@ -398,7 +409,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
         py::arg("name"), py::arg("position"), py::arg("look_at"), py::arg("up"),
         py::arg("fov"), py::arg("spp"), py::arg("radius"), py::arg("resolution")
     );
-    m.def("update_camera", &update_camera, py::arg("name"), py::arg("trans") = PyTransform());
+    m.def("update_camera", &update_camera, py::arg("name"), py::arg("transform") = PyTransform());
     m.def("add_surface", [](
         std::string name, RawSurfaceInfo::RawMaterial material,
         PyFloatArr color = PyFloatArr(), std::string image = "", float image_scale = 1.f,
@@ -413,16 +424,4 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
     ) { return std::move(render_frame_exr(name, path, time, denoise, save_picture, render_png)); },
         py::arg("name"), py::arg("path"), py::arg("time"), py::arg("denoise"), py::arg("save_picture"), py::arg("render_png")
     );
-    py::enum_<RawSurfaceInfo::RawMaterial>(m, "Material")
-        .value("METAL", RawSurfaceInfo::RawMaterial::RAW_METAL)
-        .value("SUBSTRATE", RawSurfaceInfo::RawMaterial::RAW_SUBSTRATE)
-        .value("MATTE", RawSurfaceInfo::RawMaterial::RAW_MATTE)
-        .value("GLASS", RawSurfaceInfo::RawMaterial::RAW_GLASS)
-        .value("NULL", RawSurfaceInfo::RawMaterial::RAW_NULL);
-    py::class_<PyTransform>(m, "Transform")
-        .def(py::init<PyFloatArr, PyFloatArr, PyFloatArr>(),
-            py::arg("translate"), py::arg("rotate"), py::arg("scale")
-        )
-        .def(py::init<PyFloatArr>(), py::arg("transform"))
-        .def(py::init<>());
 }
