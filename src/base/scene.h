@@ -38,7 +38,9 @@ class Spectrum;
 class Medium;
 class PhaseFunction;
 
+struct RawTransform;
 struct RawMeshInfo;
+struct RawSphereInfo;
 struct CameraStorage;
 struct RawCameraInfo;
 struct RawSurfaceInfo;
@@ -68,14 +70,13 @@ public:
     
     template <typename NodeCreater>
     [[nodiscard]] auto get_handle_creater(
-        luisa::string_view name, SceneNodeTag tag,
-        luisa::string_view impl_type, luisa::string_view creater_name) noexcept;
+        SceneNodeTag tag, luisa::string_view impl_type, luisa::string_view creater_name) noexcept;
     template <typename... Args, typename Callable>
     [[nodiscard]] std::pair<SceneNode*, bool> load_from_nodes(
         luisa::string_view name, Callable &&handle_creater, Args&&... args
     ) noexcept;
     [[nodiscard]] SceneNode *load_node(SceneNodeTag tag, const SceneNodeDesc *desc) noexcept;
-    [[nodiscard]] SceneNode *load_node_from_name(luisa::string name) noexcept;
+    [[nodiscard]] SceneNode *load_node_from_name(luisa::string_view name) noexcept;
     [[nodiscard]] Camera *load_camera(const SceneNodeDesc *desc) noexcept;
     [[nodiscard]] Film *load_film(const SceneNodeDesc *desc) noexcept;
     [[nodiscard]] Filter *load_filter(const SceneNodeDesc *desc) noexcept;
@@ -100,8 +101,10 @@ public:
     [[nodiscard]] Texture *add_image_texture(
         luisa::string_view name, luisa::string_view image, const float &image_scale) noexcept;
     [[nodiscard]] Shape *update_shape(const RawMeshInfo &mesh_info) noexcept;
+    [[nodiscard]] luisa::vector<Shape *> update_particles(const luisa::vector<RawSphereInfo> &sphere_infos) noexcept;
     [[nodiscard]] Camera *add_camera(
         const RawCameraInfo &camera_info, luisa::unordered_map<luisa::string, CameraStorage> &camera_storage, Device &device) noexcept;
+    [[nodiscard]] Camera *update_camera(luisa::string_view name, const RawTransform &trans) noexcept;
     [[nodiscard]] Surface *add_surface(const RawSurfaceInfo &surface_info) noexcept;
     void append_shape(Shape *shape) noexcept;
 

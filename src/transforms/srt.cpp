@@ -3,6 +3,7 @@
 //
 
 #include <base/transform.h>
+#include <base/shape.h>
 
 namespace luisa::render {
 

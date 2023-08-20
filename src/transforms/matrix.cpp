@@ -3,6 +3,7 @@
 //
 
 #include <base/transform.h>
+#include <base/shape.h>
 
 namespace luisa::render {
 
@@ -43,13 +44,11 @@ public:
     }
 
     MatrixTransform(Scene *scene, const RawTransform &trans) noexcept
-        : Transform{scene}, _matrix{make_float4x4(1.0f)} {
-        _build_matrix(trans.transform);
-    }
+        : Transform{scene}, _matrix{trans.transform} {}
 
-    MatrixTransform(Scene *scene, const float4x4 &matrix) noexcept
-        : Transform{scene}, _matrix{matrix} {
-    }
+    // MatrixTransform(Scene *scene, const float4x4 &matrix) noexcept
+    //     : Transform{scene}, _matrix{matrix} {
+    // }
 
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] float4x4 matrix(float) const noexcept override { return _matrix; }
@@ -61,7 +60,7 @@ public:
                all(_matrix[3] == make_float4(0.0f, 0.0f, 0.0f, 1.0f));
     }
     void update_transform(Scene *scene, const RawTransform &trans) noexcept override {
-        _build_matrix(trans.transform);
+        _matrix = make_float4x4(trans.transform);
     }
 };
 

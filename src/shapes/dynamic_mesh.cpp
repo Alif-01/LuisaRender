@@ -81,7 +81,7 @@ public:
     [[nodiscard]] bool deformable() const noexcept override { return false; }
     [[nodiscard]] uint vertex_properties() const noexcept override { return _properties; }
     void update_shape(Scene *scene, const RawMeshInfo& mesh_info) noexcept override {
-        update_shape(scene, mesh_info.shape_info);
+        Shape::update_shape(scene, mesh_info.shape_info);
         if (!mesh_info.vertices.empty() && !mesh_info.triangles.empty())
             _build_mesh(mesh_info.triangles, mesh_info.vertices,
                         mesh_info.normals, mesh_info.uvs);

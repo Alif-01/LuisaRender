@@ -3,6 +3,7 @@
 //
 
 #include <base/transform.h>
+#include <base/shape.h>
 
 namespace luisa::render {
 
@@ -13,7 +14,7 @@ Transform::Transform(Scene *scene) noexcept
     : SceneNode{scene, SceneNodeTag::TRANSFORM} {}
 
 void Transform::update_transform(Scene *scene, const RawTransform &trans) noexcept {
-    LUISA_ERROR("Not implemented error!");
+    LUISA_NOT_IMPLEMENTED();
 }
 
 TransformTree::Node::Node(

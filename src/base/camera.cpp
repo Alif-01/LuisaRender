@@ -41,7 +41,7 @@ Camera::Camera(Scene *scene, const SceneNodeDesc *desc) noexcept
             return normalize(look_at - position);
         }));
     auto up = desc->property_float3_or_default("up", default_up);
-    _build_transform(scene, desc->identifier(), desc->source_location(), position, front, up, append_tranform);
+    _build_transform(scene, desc->identifier(), desc->source_location(), position, front, up, append_matrix);
     // if (!all(position == default_position && front == default_front && up == default_up)) {}
 
     if (_shutter_span.y < _shutter_span.x) [[unlikely]] {

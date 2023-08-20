@@ -6,6 +6,7 @@
 #include <base/texture.h>
 #include <base/surface.h>
 #include <base/light.h>
+#include <base/medium.h>
 #include <base/transform.h>
 #include <base/scene.h>
 #include <base/shape.h>
@@ -28,8 +29,12 @@ Shape::Shape(Scene *scene, const RawShapeInfo &shape_info) noexcept
       },
       _medium{nullptr} {}
 
+void Shape::update_shape(Scene *scene, const RawMeshInfo &mesh_info) noexcept {
+    LUISA_NOT_IMPLEMENTED();
+}
+
 void Shape::update_shape(Scene *scene, const RawShapeInfo &shape_info) noexcept {
-    if (!shape_info.trans.empty()) _transform = scene->update_transform(
+    if (!shape_info.trans.empty) _transform = scene->update_transform(
         luisa::format("{}_transform", shape_info.name), shape_info.trans);
     if (!shape_info.surface.empty()) _surface = dynamic_cast<Surface *>(
         scene->load_node_from_name(shape_info.surface));

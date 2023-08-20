@@ -175,9 +175,8 @@ SceneNode *Scene::load_node(SceneNodeTag tag, const SceneNodeDesc *desc) noexcep
     return node;
 }
 
-SceneNode *Scene::load_node_from_name(luisa::string name) noexcept {
+SceneNode *Scene::load_node_from_name(luisa::string_view name) noexcept {
     if (name.empty()) {
-        // LUISA_WARNING_WITH_LOCATION("Scene node {} not found");
         return nullptr;
     }
     
@@ -291,7 +290,7 @@ Transform *Scene::update_transform(luisa::string_view name, const RawTransform &
     Transform *transform = dynamic_cast<Transform *>(node);
 
     if (!first_def) {
-        tranform->update_transform(this, trans);
+        transform->update_transform(this, trans);
     }
     return transform;
 }
@@ -320,7 +319,7 @@ Texture *Scene::add_image_texture(
     );
 }
 
-Camera *Scene::update_camera(
+Camera *Scene::add_camera(
     const RawCameraInfo &camera_info, luisa::unordered_map<luisa::string, CameraStorage> &camera_storage, Device &device
 ) noexcept {
     using NodeCreater = SceneNode *(Scene *, const RawCameraInfo &);
@@ -343,6 +342,13 @@ Camera *Scene::update_camera(
     return camera;
 }
 
+Camera *Scene::update_camera(luisa::string_view name, const RawTransform &trans) noexcept {
+    auto node = load_node_from_name(name);
+    Camera *camera = dynamic_cast<Camera *>(node);
+    camera->update_camera(this, name, trans);
+    return camera;
+}
+
 Surface *Scene::add_surface(const RawSurfaceInfo &surface_info) noexcept {
     using NodeCreater = SceneNode *(Scene *, const RawSurfaceInfo &);
     auto handle_creater = get_handle_creater<NodeCreater>(
@@ -362,7 +368,7 @@ luisa::vector<Shape *> Scene::update_particles(const luisa::vector<RawSphereInfo
     luisa::vector<Shape *> shapes;
     for (auto i = 0u; i < sphere_infos.size(); ++i) {
         auto sphere_info = sphere_infos[i];
-        auto name = luisa::format("{}_{}", sphere_info.name, i);
+        auto name = luisa::format("{}_{}", sphere_info.shape_info.name, i);
         auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::SHAPE, "sphere", "create_raw");
         auto [node, first_def] = load_from_nodes(name, handle_creater, this, sphere_info);
         Shape *shape = dynamic_cast<Shape *>(node);
@@ -380,7 +386,8 @@ luisa::vector<Shape *> Scene::update_particles(const luisa::vector<RawSphereInfo
 Shape *Scene::update_shape(const RawMeshInfo &mesh_info) noexcept {
     using NodeCreater = SceneNode *(Scene *, const RawMeshInfo &);
     auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::SHAPE, "dynamicmesh", "create_raw");
-    auto [node, first_def] = load_from_nodes(mesh_info.name, handle_creater, this, mesh_info);
+    auto name = mesh_info.shape_info.name;
+    auto [node, first_def] = load_from_nodes(name, handle_creater, this, mesh_info);
     Shape *shape = dynamic_cast<Shape *>(node);
 
     if (first_def) {
