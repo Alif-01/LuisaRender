@@ -122,14 +122,12 @@ public:
         _w |= _w >> 16u;
         _pixel_tile_size = 1u << (log4(nPMJ02bnSamples) - log4(next_pow4(spp)));
         auto pixel_sample_count = _pixel_tile_size * _pixel_tile_size * spp;
-        if (_pixel_samples.size() < pixel_sample_count) {
-            _pixel_samples = pipeline().device().create_buffer<float2>(
-                next_pow2(pixel_sample_count));
-        }
-        if (_state_buffer.size() < state_count) {
-            _state_buffer = pipeline().device().create_buffer<uint4>(
-                next_pow2(state_count));
-        }
+        // if (_pixel_samples.size() < pixel_sample_count) {
+        _pixel_samples = pipeline().device().create_buffer<float2>(next_pow2(pixel_sample_count));
+        // }
+        // if (_state_buffer.size() < state_count) {
+        _state_buffer = pipeline().device().create_buffer<uint4>(next_pow2(state_count));
+        // }
         luisa::vector<float2> pixel_samples(pixel_sample_count, make_float2(0.f));
         luisa::vector<uint> stored_counts(_pixel_tile_size * _pixel_tile_size, 0u);
         auto pmj02bn_sample = [](auto set_id, auto sample_id) noexcept {

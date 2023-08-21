@@ -218,7 +218,7 @@ void update_particles(
         auto p2 = vert[i * 3u + 2u];
         sphere_infos.emplace_back(
             RawShapeInfo {
-                luisa::string(name),
+                luisa::format("{}_{}", name, i),
                 RawTransform(make_float3(p0, p1, p2), make_float4(0.0f), make_float3(radius)),
                 luisa::string(surface), {}, {}
             }

@@ -5,7 +5,7 @@ function(luisa_render_add_application name)
     message("${name} created!")
 endfunction()
 
-# luisa_render_add_application(luisa-render-cli SOURCES cli.cpp)
+luisa_render_add_application(luisa-render-pipe-render SOURCES pipe_render.cpp)
 
 find_package(pybind11 REQUIRED)
 
