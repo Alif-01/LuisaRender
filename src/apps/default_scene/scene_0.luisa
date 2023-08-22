@@ -1,7 +1,7 @@
 render {
   spectrum : Hero {}
   integrator : WavePath {
-    sampler : Independent {}
+    sampler : pmj02bn {}
     depth { 32 }
     rr_depth { 5 }
     rr_threshold { 0.95 }

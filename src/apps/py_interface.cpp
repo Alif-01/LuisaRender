@@ -213,11 +213,10 @@ void update_particles(
     std::string_view name, const PyFloatArr &vertices, float radius, std::string_view surface
 ) noexcept {
     auto spheres_info = RawShapeInfo(
-        luisa::string(name),
-        RawTransform(make_float3(0.0f), make_float4(0.0f), make_float3(radius)),
+        luisa::string(name), RawTransform(),
         luisa::string(surface), "", ""
     );
-    spheres_info.build_spheres_info(pyarray_to_vector<float>(vertices), 0u);
+    spheres_info.build_spheres_info(pyarray_to_vector<float>(vertices), radius, 0u);
     spheres_info.print_info();
 
     // for (auto i = 0u; i < vertex_count; ++i) {
@@ -326,6 +325,7 @@ PyFloatArr render_frame_exr(
     auto buffer = reinterpret_cast<float *>((*picture).data());
     stream->synchronize();
 
+    /* denoise image */
     if (denoise) {
         LUISA_INFO("Start denoising...");
         if (save_picture) {

@@ -277,13 +277,10 @@ Filter *Scene::add_filter(luisa::string_view name, const float &radius) noexcept
 
 Transform *Scene::update_transform(luisa::string_view name, const RawTransform &trans) noexcept {
     using NodeCreater = SceneNode *(Scene *, const RawTransform &);
+    if (trans.empty) return nullptr;
 
-    luisa::string impl_type;
-    if (trans.is_matrix()) {
-        impl_type = "matrix";
-    } else if (trans.is_srt()) {
-        impl_type = "srt";
-    } else return nullptr;
+    luisa::string impl_type = trans.is_matrix() ? "matrix" :
+                              trans.is_srt() ? "srt": "";
     
     auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::TRANSFORM, impl_type, "create_raw");
     auto [node, first_def] = load_from_nodes(luisa::format("{}_{}", name, impl_type), handle_creater, this, trans);

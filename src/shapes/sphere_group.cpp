@@ -16,7 +16,7 @@ private:
     luisa::vector<Triangle> _triangles;
 
 private:
-    void _build_mesh(const luisa::vector<float> &centers, uint subdiv) noexcept {
+    void _build_mesh(const luisa::vector<float> &centers, float radius, uint subdiv) noexcept {
         auto sphere_mesh = SphereGeometry::create(subdiv).get().mesh();
         uint32_t vertex_count = sphere_mesh.vertices.size();
         uint32_t triangle_count = sphere_mesh.triangles.size();
@@ -34,7 +34,7 @@ private:
                 centers[i * 3u + 0u], centers[i * 3u + 1u], centers[i * 3u + 2u]
             );
             for (auto v: sphere_mesh.vertices) {
-                auto vertex = Vertex::encode(v.position() + center, v.normal(), v.uv());
+                auto vertex = Vertex::encode(v.position() * radius + center, v.normal(), v.uv());
                 _vertices.emplace_back(std::move(vertex));
             }
             for (auto t: sphere_mesh.triangles) {
@@ -60,7 +60,7 @@ public:
         if (shape_info.spheres_info == nullptr) [[unlikely]]
             LUISA_ERROR_WITH_LOCATION("Invalid spheres info!");
         auto spheres_info = shape_info.spheres_info.get();
-        _build_mesh(spheres_info->centers, spheres_info->subdivision);
+        _build_mesh(spheres_info->centers, spheres_info->radius, spheres_info->subdivision);
     }
 
     void update_shape(Scene *scene, const RawShapeInfo &shape_info) noexcept override {
@@ -70,7 +70,7 @@ public:
         auto spheres_info = shape_info.spheres_info.get();
 
         if (!spheres_info->centers.empty())
-            _build_mesh(spheres_info->centers, spheres_info->subdivision);
+            _build_mesh(spheres_info->centers, spheres_info->radius, spheres_info->subdivision);
     }
 
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }

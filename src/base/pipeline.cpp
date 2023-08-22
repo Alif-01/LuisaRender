@@ -91,8 +91,9 @@ luisa::unique_ptr<Pipeline> Pipeline::create(
     update_bindless_if_dirty();
     pipeline->_integrator = scene.integrator()->build(*pipeline, command_buffer);
     if (!pipeline->_transforms.empty()) {
-        command_buffer << pipeline->_transform_matrix_buffer.view(0u, pipeline->_transforms.size())
-                              .copy_from(pipeline->_transform_matrices.data());
+        command_buffer << pipeline->_transform_matrix_buffer
+                          .view(0u, pipeline->_transforms.size())
+                          .copy_from(pipeline->_transform_matrices.data());
     }
     update_bindless_if_dirty();
     command_buffer << compute::commit();
@@ -132,20 +133,20 @@ void Pipeline::scene_update(
     if (scene.shapes_updated()) {
         _geometry = luisa::make_unique<Geometry>(*this);
         _geometry->build(command_buffer, scene.shapes(), time, template_mapping);
+        update_bindless_if_dirty();
         scene.clear_shapes_update();
-        update_bindless_if_dirty();
-
-        if (!_transforms.empty()) {             // camera has no transforms
-            for (auto i = 0u; i < _transforms.size(); ++i) {
-                _transform_matrices[i] = _transforms[i]->matrix(time);
-            }
-            command_buffer << _transform_matrix_buffer
-                              .view(0u, _transforms.size())
-                              .copy_from(_transform_matrices.data());
-        }
-        update_bindless_if_dirty();
-        command_buffer << compute::commit();
     }
+    
+    if (!_transforms.empty()) {
+        for (auto i = 0u; i < _transforms.size(); ++i) {
+            _transform_matrices[i] = _transforms[i]->matrix(time);
+        }
+        command_buffer << _transform_matrix_buffer
+                          .view(0u, _transforms.size())
+                          .copy_from(_transform_matrices.data());
+        update_bindless_if_dirty();
+    }
+    command_buffer << compute::commit();
 }
 
 bool Pipeline::update(CommandBuffer &command_buffer, float time) noexcept {

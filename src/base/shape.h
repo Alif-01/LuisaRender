@@ -27,6 +27,7 @@ struct MeshView {
 
 /* Keep the constructing methods (SRT or matrix) on same semantics */
 struct RawTransform {
+    RawTransform() noexcept = default;
     RawTransform(bool empty, float4x4 transform, float3 translate, float4 rotate, float3 scale) noexcept:
         empty{empty}, transform{transform}, translate{translate}, rotate{rotate}, scale{scale} {}
     RawTransform(float4x4 transform) noexcept: transform{transform}, empty{false} {}
@@ -64,6 +65,7 @@ struct RawShapeInfo {
         }
 
         FloatArr centers;
+        float radius;
         uint subdivision;
     };
 
@@ -90,8 +92,8 @@ struct RawShapeInfo {
                         mesh_info != nullptr ? mesh_info->get_info() : "";
         LUISA_INFO("Updating shape {}: {}, surface={}", name, info_str, surface);
     }
-    void build_spheres_info(FloatArr &&centers, uint &&subdivision) noexcept {
-        spheres_info = luisa::make_unique<RawSpheresInfo>(std::move(centers), subdivision);
+    void build_spheres_info(FloatArr &&centers, float &&radius, uint &&subdivision) noexcept {
+        spheres_info = luisa::make_unique<RawSpheresInfo>(std::move(centers), radius, subdivision);
     }
     void build_mesh_info(FloatArr &&vertices, UintArr &&triangles, FloatArr &&uvs, FloatArr &&normals) noexcept {
         mesh_info = luisa::make_unique<RawMeshInfo>(
