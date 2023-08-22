@@ -86,7 +86,7 @@ Vector<T, N> pyarray_to_pack(const py::array_t<T> &array) noexcept {
 
 struct PyTransform {
     PyTransform() noexcept = default;
-    PyTransform(PyFloatArr transform) noexcept: empty{false} {
+    PyTransform(const PyFloatArr &transform) noexcept: empty{false} {
         auto vec = pyarray_to_vector<float>(transform);
         for (auto row = 0u; row < 4u; ++row) {
             for (auto col = 0u; col < 4u; ++col) {
@@ -94,7 +94,7 @@ struct PyTransform {
             }
         }
     }
-    PyTransform(PyFloatArr translate, PyFloatArr rotate, PyFloatArr scale) noexcept:
+    PyTransform(const PyFloatArr &translate, const PyFloatArr &rotate, const PyFloatArr &scale) noexcept:
         translate{pyarray_to_pack<float, 3>(translate)},
         rotate{pyarray_to_pack<float, 4>(rotate)},
         scale{pyarray_to_pack<float, 3>(scale)}, empty{false} {}
@@ -105,6 +105,8 @@ struct PyTransform {
     float4 rotate{make_float4(0.f)};
     float3 scale{make_float3(1.f)};
 };
+
+enum LogLevel: uint { VERBOSE, INFO, WARNING };
 
 template <typename T, uint N>
 luisa::string format_pack(const Vector<T, N> &v) noexcept {
@@ -133,12 +135,17 @@ luisa::string format_pack(const Vector<T, N> &v) noexcept {
 //     });
 // }
 
-void init(std::string_view context_path, int cuda_device, int scene_index) noexcept {
+void init(std::string_view context_path, uint cuda_device, uint scene_index, LogLevel log_level) noexcept {
     // auto context_path = "/home/winnie/LuisaRender/build/bin";
     /* add device */
     context_storage = context_path;
     context = luisa::make_unique<Context>(context_storage);
-    log_level_info();
+    switch (log_level) {
+        case VERBOSE: log_level_verbose(); break; 
+        case INFO: log_level_info(); break;
+        case WARNING: log_level_warning(); break;
+    }
+    
     luisa::string backend = "CUDA";
     compute::DeviceConfig config;
     config.device_index = cuda_device;
@@ -181,23 +188,23 @@ void update_body(
     std::string_view name, const PyFloatArr &vertices, const PyIntArr &triangles,
     const PyFloatArr &uvs, const PyFloatArr &normals, PyTransform transform, std::string_view surface
 ) noexcept {
-    auto mesh_info = RawMeshInfo {
+    auto mesh_info = RawShapeInfo(
+        luisa::string(name),
+        RawTransform {
+            transform.empty,
+            transform.transform,
+            transform.translate,
+            transform.rotate,
+            transform.scale
+        },
+        luisa::string(surface), "", ""
+    );
+    mesh_info.build_mesh_info(
         pyarray_to_vector<float>(vertices),
         pyarray_to_vector<uint>(triangles),
         pyarray_to_vector<float>(uvs),
-        pyarray_to_vector<float>(normals),
-        RawShapeInfo {
-            luisa::string(name),
-            RawTransform {
-                transform.empty,
-                transform.transform,
-                transform.translate,
-                transform.rotate,
-                transform.scale
-            },
-            luisa::string(surface), {}, {}
-        }
-    };
+        pyarray_to_vector<float>(normals)
+    );
     mesh_info.print_info();
     auto shape = scene->update_shape(mesh_info);
 }
@@ -205,14 +212,13 @@ void update_body(
 void update_particles(
     std::string_view name, const PyFloatArr &vertices, float radius, std::string_view surface
 ) noexcept {
-    auto spheres_info = RawSpheresInfo {
-        pyarray_to_vector<float>(vertices), 0u,
-        RawShapeInfo {
-            luisa::string(name),
-            RawTransform(make_float(0.0f), make_float4(0.0f), make_float3(radius)),
-            luisa::string(surface), {}, {}
-        }
-    };
+    auto spheres_info = RawShapeInfo(
+        luisa::string(name),
+        RawTransform(make_float(0.0f), make_float4(0.0f), make_float3(radius)),
+        luisa::string(surface), "", ""
+    );
+    spheres_info.build_spheres_info(pyarray_to_vector<float>(vertices), 0u);
+    spheres_info.print_info();
 
     // for (auto i = 0u; i < vertex_count; ++i) {
     //     auto p0 = vert[i * 3u + 0u];
@@ -226,7 +232,7 @@ void update_particles(
     //         }
     //     );
     // }
-    auto shape = scene->update_particles(spheres_info);
+    auto shape = scene->update_shape(spheres_info);
 }
 
 void add_camera(
@@ -379,6 +385,10 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
         .value("MATTE", RawSurfaceInfo::RawMaterial::RAW_MATTE)
         .value("GLASS", RawSurfaceInfo::RawMaterial::RAW_GLASS)
         .value("NULL", RawSurfaceInfo::RawMaterial::RAW_NULL);
+    py::enum_<LogLevel>(m, "LogLevel")
+        .value("VERBOSE", LogLevel::VERBOSE)
+        .value("INFO", LogLevel::INFO)
+        .value("WARNING", LogLevel::WARNING);
     py::class_<PyTransform>(m, "Transform")
         .def(py::init<PyFloatArr, PyFloatArr, PyFloatArr>(),
             py::arg("translate"), py::arg("rotate"), py::arg("scale")
@@ -386,10 +396,11 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
         .def(py::init<PyFloatArr>(), py::arg("transform"))
         .def(py::init<>());
 
-    m.def("init", [](
-        std::string context_path, int cuda_device = 0, int scene_index = 0
-    ) { init(context_path, cuda_device, scene_index); },
-        py::arg("context_path"), py::arg("cuda_device"), py::arg("scene_index")
+    m.def("init", &init,
+        py::arg("context_path"),
+        py::arg("cuda_device") = 0,
+        py::arg("scene_index") = 0,
+        py::arg("log_level") = LogLevel::WARNING
     );
     m.def("destroy", &destroy);
     m.def("update_particles", &update_particles,

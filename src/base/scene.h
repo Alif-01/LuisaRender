@@ -39,8 +39,7 @@ class Medium;
 class PhaseFunction;
 
 struct RawTransform;
-struct RawMeshInfo;
-struct RawSpheresInfo;
+struct RawShapeInfo;
 struct CameraStorage;
 struct RawCameraInfo;
 struct RawSurfaceInfo;
@@ -100,10 +99,10 @@ public:
     [[nodiscard]] Texture *add_constant_texture(luisa::string_view name, const luisa::vector<float> &v) noexcept;
     [[nodiscard]] Texture *add_image_texture(
         luisa::string_view name, luisa::string_view image, const float &image_scale) noexcept;
-    [[nodiscard]] Shape *update_shape(const RawMeshInfo &mesh_info) noexcept;
-    [[nodiscard]] luisa::vector<Shape *> update_particles(const luisa::vector<RawSpheresInfo> &sphere_infos) noexcept;
-    [[nodiscard]] Camera *add_camera(
-        const RawCameraInfo &camera_info, luisa::unordered_map<luisa::string, CameraStorage> &camera_storage, Device &device) noexcept;
+    [[nodiscard]] Shape *update_shape(const RawShapeInfo &shape_info) noexcept;
+    // [[nodiscard]] Shape *update_particles(const RawSpheresInfo &sphere_infos) noexcept;
+    [[nodiscard]] Camera *add_camera(const RawCameraInfo &camera_info,
+        luisa::unordered_map<luisa::string, CameraStorage> &camera_storage, Device &device) noexcept;
     [[nodiscard]] Camera *update_camera(luisa::string_view name, const RawTransform &trans) noexcept;
     [[nodiscard]] Surface *add_surface(const RawSurfaceInfo &surface_info) noexcept;
     void append_shape(Shape *shape) noexcept;

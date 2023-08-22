@@ -256,11 +256,11 @@ PhaseFunction *Scene::load_phase_function(const SceneNodeDesc *desc) noexcept {
 Film *Scene::add_film(luisa::string_view name, const uint2 &resolution) noexcept {
     using NodeCreater = SceneNode *(Scene *, const uint2 &);
     auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::FILM, "color", "create_raw");
-    NodeHandle node = handle_creater(this, resolution);
+    NodeHandle color_film = handle_creater(this, resolution);
 
     std::scoped_lock lock{_mutex};
     return dynamic_cast<Film *>(
-        _config->internal_nodes.emplace_back(std::move(node)).get()
+        _config->internal_nodes.emplace_back(std::move(color_film)).get()
     );
 }
 
@@ -277,8 +277,8 @@ Filter *Scene::add_filter(luisa::string_view name, const float &radius) noexcept
 
 Transform *Scene::update_transform(luisa::string_view name, const RawTransform &trans) noexcept {
     using NodeCreater = SceneNode *(Scene *, const RawTransform &);
-    luisa::string impl_type;
 
+    luisa::string impl_type;
     if (trans.is_matrix()) {
         impl_type = "matrix";
     } else if (trans.is_srt()) {
@@ -363,20 +363,17 @@ Surface *Scene::add_surface(const RawSurfaceInfo &surface_info) noexcept {
     return surface;
 }
 
-luisa::vector<Shape *> Scene::update_particles(const RawSpheresInfo &spheres_info) noexcept {
-    using NodeCreater = SceneNode *(Scene *, const RawSpheresInfo &);
-    // luisa::vector<Shape *> shapes;
-    auto handle_creater = get_handle_creater<NodeCreater>(
-        SceneNodeTag::SHAPE, "spheregroup", "create_raw");
-    auto name = spheres_info.shape_info.name;
-    auto [spheres, first_def] = load_from_nodes(name, handle_creater, this, spheres_info);
-    Shape *shape = dynamic_cast<Shape *>(spheres);
+// Shape *Scene::update_particles(const RawShapeInfo &shape_info) noexcept {
+//     using NodeCreater = SceneNode *(Scene *, const RawShapeInfo &);
+//     auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::SHAPE, , "create_raw");
+//     auto [node, first_def] = load_from_nodes(shape_info.name, handle_creater, this, shape_info);
+//     Shape *shape = dynamic_cast<Shape *>(node);
 
-    if (first_def) {
-        _config->shapes.emplace_back(shape);
-    } else {
-        spheres->update_shape(this, spheres_info);
-    }
+//     if (first_def) {
+//         _config->shapes.emplace_back(shape);
+//     } else {
+//         node->update_shape(this, shape_info);
+//     }
 
     // shapes.emplace_back(shape);
     // for (auto i = 0u; i < sphere_infos.size(); ++i) {
@@ -392,23 +389,30 @@ luisa::vector<Shape *> Scene::update_particles(const RawSpheresInfo &spheres_inf
     //     }
     //     shapes.emplace_back(shape);
     // }
-    _config->shapes_updated = true;
-    return shape;
-}
+//     _config->shapes_updated = true;
+//     return shape;
+// }
 
-Shape *Scene::update_shape(const RawMeshInfo &mesh_info) noexcept {
-    using NodeCreater = SceneNode *(Scene *, const RawMeshInfo &);
-    auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::SHAPE, "dynamicmesh", "create_raw");
-    auto name = mesh_info.shape_info.name;
-    auto [mesh, first_def] = load_from_nodes(name, handle_creater, this, mesh_info);
+Shape *Scene::update_shape(const RawShapeInfo &shape_info) noexcept {
+    using NodeCreater = SceneNode *(Scene *, const RawShapeInfo &);
 
-    Shape *shape = dynamic_cast<Shape *>(mesh);
+    luisa::string impl_type;
+    if (shape_info.mesh_info != nullptr) {
+        impl_type = "dynamicmesh";
+    } else if (shape_info.spheres_info != nullptr) {
+        impl_type = "spheregroup";
+    } else return nullptr;
+
+    auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::SHAPE, impl_type, "create_raw");
+    auto [node, first_def] = load_from_nodes(shape_info.name, handle_creater, this, mesh_info);
+    Shape *shape = dynamic_cast<Shape *>(node);
+
     if (first_def) {
         // LUISA_INFO("DEBUG_SHAPE: Insert shape");
         _config->shapes.emplace_back(shape);
     } else {
         // LUISA_INFO("DEBUG_SHAPE: Update shape");
-        node->update_shape(this, mesh_info);
+        node->update_shape(this, shape_info);
     }
     _config->shapes_updated = true;
     return shape;

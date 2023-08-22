@@ -65,27 +65,40 @@ public:
 
         _build_mesh(triangles, positions, normals, uvs);
     }
-    DynamicMesh(Scene *scene, const RawMeshInfo &mesh_info) noexcept
-        : Shape{scene, mesh_info.shape_info} {
 
-        auto triangles = mesh_info.triangles;
-        auto positions = mesh_info.vertices;
-        auto normals = mesh_info.normals;
-        auto uvs = mesh_info.uvs;
+    DynamicMesh(Scene *scene, const RawShapeInfo &shape_info) noexcept
+        : Shape{scene, shape_info} {
+
+        if (shape_info.mesh_info == nullptr) [[unlikely]]
+            LUISA_ERROR_WITH_LOCATION("Invalid mesh info!");
+        auto mesh_info = shape_info.mesh_info.get();
+
+        auto triangles = mesh_info->triangles;
+        auto positions = mesh_info->vertices;
+        auto normals = mesh_info->normals;
+        auto uvs = mesh_info->uvs;
 
         _build_mesh(triangles, positions, normals, uvs);
     }
+
+    void update_shape(Scene *scene, const RawShapeInfo& shape_info) noexcept override {
+        Shape::update_shape(scene, shape_info);
+
+        if (shape_info.mesh_info == nullptr) [[unlikely]]
+            LUISA_ERROR_WITH_LOCATION("Invalid mesh info!");
+        auto mesh_info = shape_info.mesh_info.get();
+
+        if (!mesh_info.vertices.empty() && !mesh_info.triangles.empty())
+            _build_mesh(mesh_info->triangles, mesh_info->vertices,
+                        mesh_info->normals, mesh_info->uvs);
+    }
+
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] bool is_mesh() const noexcept override { return true; }
     [[nodiscard]] MeshView mesh() const noexcept override { return {_vertices, _triangles}; }
     [[nodiscard]] bool deformable() const noexcept override { return false; }
     [[nodiscard]] uint vertex_properties() const noexcept override { return _properties; }
-    void update_shape(Scene *scene, const RawMeshInfo& mesh_info) noexcept override {
-        Shape::update_shape(scene, mesh_info.shape_info);
-        if (!mesh_info.vertices.empty() && !mesh_info.triangles.empty())
-            _build_mesh(mesh_info.triangles, mesh_info.vertices,
-                        mesh_info.normals, mesh_info.uvs);
-    }
+
 };
 
 using DynamicMeshWrapper =
@@ -99,6 +112,6 @@ LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::DynamicMeshWrapper)
 
 LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
     luisa::render::Scene *scene,
-    const luisa::render::RawMeshInfo &mesh_info) LUISA_NOEXCEPT {
-    return luisa::new_with_allocator<luisa::render::DynamicMeshWrapper>(scene, mesh_info);
+    const luisa::render::RawShapeInfo &shape_info) LUISA_NOEXCEPT {
+    return luisa::new_with_allocator<luisa::render::DynamicMeshWrapper>(scene, shape_info);
 }

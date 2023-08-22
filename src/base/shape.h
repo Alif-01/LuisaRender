@@ -53,33 +53,61 @@ struct RawTransform {
 };
 
 struct RawShapeInfo {
-    luisa::string name;
-    RawTransform trans;
-    luisa::string surface;
-    luisa::string light;
-    luisa::string medium;
-};
+    using FloatArr = luisa::vector<float>;
+    using IntArr = luisa::vector<int>;
+    using UintArr = luisa::vector<uint>;
+    using StringArr = luisa::string;
 
-struct RawSpheresInfo {
-    luisa::vector<float> centers;
-    uint subdivision;
-    RawShapeInfo shape_info;
-};
+    struct RawSpheresInfo {
+        StringArr get_info() noexcept {
+            return luisa::format("centers={}, subdiv={}", centers.size(), subdivision);
+        }
 
-struct RawMeshInfo {
-    void print_info() {
-        LUISA_INFO(
-            "Updating shape {} => vertices: {}, triangles: {}, uvs: {}, normals: {} surface: {}",
-            shape_info.name, vertices.size(), triangles.size(), uvs.size(), normals.size(), shape_info.surface
+        FloatArr centers;
+        uint subdivision;
+    };
+
+    struct RawMeshInfo {
+        StringArr get_info() noexcept {
+            return luisa::format(
+                "vertices={}, triangles={}, uvs={}, normals={}",
+                vertices.size(), triangles.size(), uvs.size(), normals.size()
+            );
+        }
+        
+        FloatArr vertices;
+        UintArr triangles;
+        FloatArr uvs;
+        FloatArr normals;
+    };
+
+    RawShapeInfo(StringArr &&name, RawTransform &&trans,
+                 StringArr &&surface, StringArr &&light, StringArr &&light) noexcept:
+        name{name}, trans{std::move(trans)}, surface{surface}, light{light}, medium{medium} {}
+
+    void print_info() noexcept {
+        auto info_str = spheres_info != nullptr ? spheres_info->get_info() :
+                        mesh_info != nullptr ? mesh_info->get_info() : "";
+        LUISA_INFO("Updating shape {}: {}, surface={}", name, info_str, surface);
+    }
+    void build_spheres_info(FloatArr &&centers, uint &&subdivision) noexcept {
+        spheres_info = luisa::make_unique<RawSpheresInfo>(std::move(centers), subdivision);
+    }
+    void build_mesh_info(FloatArr &&vertices, UintArr &&triangles, FloatArr &&uvs, FloatArr &&normals) noexcept {
+        mesh_info = luisa::make_unique<RawMeshInfo>(
+            std::move(vertices), std::move(triangles), std::move(uvs), std::move(normals)
         );
     }
-    
-    luisa::vector<float> vertices;
-    luisa::vector<uint> triangles;
-    luisa::vector<float> uvs;
-    luisa::vector<float> normals;
-    RawShapeInfo shape_info;
+
+    StringArr name;
+    RawTransform trans;
+    luisa::unique_ptr<RawSpheresInfo> spheres_info;
+    luisa::unique_ptr<RawMeshInfo> mesh_info;
+    StringArr surface;
+    StringArr light;
+    StringArr medium;
 };
+
 
 class Shape : public SceneNode {
 
@@ -134,12 +162,8 @@ public:
           _shadow_terminator{std::clamp(
               desc->property_float_or_default("shadow_terminator", scene->shadow_terminator_factor()),
           0.f, 1.f)} {}
-    ShadowTerminatorShapeWrapper(Scene *scene, const RawMeshInfo &mesh_info) noexcept
-        : BaseShape{scene, mesh_info},
-           _shadow_terminator{std::clamp(scene->shadow_terminator_factor(), 0.f, 1.f)} {}
-    
-    ShadowTerminatorShapeWrapper(Scene *scene, const RawSpheresInfo &spheres_info) noexcept
-        : BaseShape{scene, spheres_info},
+    ShadowTerminatorShapeWrapper(Scene *scene, const RawShapeInfo &shape_info) noexcept
+        : BaseShape{scene, shape_info},
            _shadow_terminator{std::clamp(scene->shadow_terminator_factor(), 0.f, 1.f)} {}
     
     [[nodiscard]] float shadow_terminator_factor() const noexcept override {
@@ -159,12 +183,10 @@ public:
           _intersection_offset{std::clamp(
               desc->property_float_or_default(
                   "intersection_offset", scene->intersection_offset_factor()), 0.f, 1.f)} {}
-    IntersectionOffsetShapeWrapper(Scene *scene, const RawMeshInfo &mesh_info) noexcept
-        : BaseShape{scene, mesh_info},
+    IntersectionOffsetShapeWrapper(Scene *scene, const RawShapeInfo &shape_info) noexcept
+        : BaseShape{scene, shape_info},
           _intersection_offset{std::clamp(scene->intersection_offset_factor(), 0.f, 1.f)} {}
-    IntersectionOffsetShapeWrapper(Scene *scene, const RawSpheresInfo &spheres_info) noexcept
-        : BaseShape{scene, spheres_info},
-          _intersection_offset{std::clamp(scene->intersection_offset_factor(), 0.f, 1.f)} {}
+
     [[nodiscard]] float intersection_offset_factor() const noexcept override {
         return _intersection_offset;
     }
@@ -179,10 +201,9 @@ private:
 public:
     VisibilityShapeWrapper(Scene *scene, const SceneNodeDesc *desc) noexcept
         : BaseShape{scene, desc}, _visible{desc->property_bool_or_default("visible", true)} {}
-    VisibilityShapeWrapper(Scene *scene, const RawMeshInfo &mesh_info) noexcept
-        : BaseShape{scene, mesh_info}, _visible{true} {}
-    VisibilityShapeWrapper(Scene *scene, const RawSpheresInfo &spheres_info) noexcept
-        : BaseShape{scene, spheres_info}, _visible{true} {}
+    VisibilityShapeWrapper(Scene *scene, const RawShapeInfo &shape_info) noexcept
+        : BaseShape{scene, shape_info}, _visible{true} {}
+        
     [[nodiscard]] bool visible() const noexcept override { return _visible; }
 };
 
