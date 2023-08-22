@@ -205,26 +205,28 @@ void update_body(
 void update_particles(
     std::string_view name, const PyFloatArr &vertices, float radius, std::string_view surface
 ) noexcept {
-    auto vert = pyarray_to_vector<float>(vertices);
-    if (vert.size() % 3u != 0u) {
-        LUISA_ERROR_WITH_LOCATION("Invalid vertex count.");
-    }
-    auto vertex_count = vert.size() / 3u;
-    
-    luisa::vector<RawSphereInfo> sphere_infos;
-    for (auto i = 0u; i < vertex_count; ++i) {
-        auto p0 = vert[i * 3u + 0u];
-        auto p1 = vert[i * 3u + 1u];
-        auto p2 = vert[i * 3u + 2u];
-        sphere_infos.emplace_back(
-            RawShapeInfo {
-                luisa::format("{}_{}", name, i),
-                RawTransform(make_float3(p0, p1, p2), make_float4(0.0f), make_float3(radius)),
-                luisa::string(surface), {}, {}
-            }
-        );
-    }
-    auto shapes = scene->update_particles(sphere_infos);
+    auto spheres_info = RawSpheresInfo {
+        pyarray_to_vector<float>(vertices), 0u,
+        RawShapeInfo {
+            luisa::string(name),
+            RawTransform(make_float(0.0f), make_float4(0.0f), make_float3(radius)),
+            luisa::string(surface), {}, {}
+        }
+    };
+
+    // for (auto i = 0u; i < vertex_count; ++i) {
+    //     auto p0 = vert[i * 3u + 0u];
+    //     auto p1 = vert[i * 3u + 1u];
+    //     auto p2 = vert[i * 3u + 2u];
+    //     sphere_infos.emplace_back(
+    //         RawShapeInfo {
+    //             luisa::format("{}_{}", name, i),
+    //             RawTransform(make_float3(p0, p1, p2), make_float4(0.0f), make_float3(radius)),
+    //             luisa::string(surface), {}, {}
+    //         }
+    //     );
+    // }
+    auto shape = scene->update_particles(spheres_info);
 }
 
 void add_camera(

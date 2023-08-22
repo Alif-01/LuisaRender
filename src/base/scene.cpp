@@ -363,39 +363,52 @@ Surface *Scene::add_surface(const RawSurfaceInfo &surface_info) noexcept {
     return surface;
 }
 
-luisa::vector<Shape *> Scene::update_particles(const luisa::vector<RawSphereInfo> &sphere_infos) noexcept {
-    using NodeCreater = SceneNode *(Scene *, const RawSphereInfo &);
-    luisa::vector<Shape *> shapes;
-    for (auto i = 0u; i < sphere_infos.size(); ++i) {
-        auto sphere_info = sphere_infos[i];
-        auto name = luisa::format("{}_{}", sphere_info.shape_info.name, i);
-        auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::SHAPE, "sphere", "create_raw");
-        auto [node, first_def] = load_from_nodes(name, handle_creater, this, sphere_info);
-        Shape *shape = dynamic_cast<Shape *>(node);
-        if (first_def) {
-            _config->shapes.emplace_back(shape);
-        } else {
-            shape->update_shape(this, sphere_info.shape_info);
-        }
-        shapes.emplace_back(shape);
+luisa::vector<Shape *> Scene::update_particles(const RawSpheresInfo &spheres_info) noexcept {
+    using NodeCreater = SceneNode *(Scene *, const RawSpheresInfo &);
+    // luisa::vector<Shape *> shapes;
+    auto handle_creater = get_handle_creater<NodeCreater>(
+        SceneNodeTag::SHAPE, "spheregroup", "create_raw");
+    auto name = spheres_info.shape_info.name;
+    auto [spheres, first_def] = load_from_nodes(name, handle_creater, this, spheres_info);
+    Shape *shape = dynamic_cast<Shape *>(spheres);
+
+    if (first_def) {
+        _config->shapes.emplace_back(shape);
+    } else {
+        spheres->update_shape(this, spheres_info);
     }
+
+    // shapes.emplace_back(shape);
+    // for (auto i = 0u; i < sphere_infos.size(); ++i) {
+    //     auto sphere_info = sphere_infos[i];
+    //     auto name = luisa::format("{}_{}", sphere_info.shape_info.name, i);
+    //     auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::SHAPE, "sphere", "create_raw");
+    //     auto [node, first_def] = load_from_nodes(name, handle_creater, this, sphere_info);
+    //     Shape *shape = dynamic_cast<Shape *>(node);
+    //     if (first_def) {
+    //         _config->shapes.emplace_back(shape);
+    //     } else {
+    //         shape->update_shape(this, sphere_info.shape_info);
+    //     }
+    //     shapes.emplace_back(shape);
+    // }
     _config->shapes_updated = true;
-    return std::move(shapes);
+    return shape;
 }
 
 Shape *Scene::update_shape(const RawMeshInfo &mesh_info) noexcept {
     using NodeCreater = SceneNode *(Scene *, const RawMeshInfo &);
     auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::SHAPE, "dynamicmesh", "create_raw");
     auto name = mesh_info.shape_info.name;
-    auto [node, first_def] = load_from_nodes(name, handle_creater, this, mesh_info);
-    Shape *shape = dynamic_cast<Shape *>(node);
+    auto [mesh, first_def] = load_from_nodes(name, handle_creater, this, mesh_info);
 
+    Shape *shape = dynamic_cast<Shape *>(mesh);
     if (first_def) {
         // LUISA_INFO("DEBUG_SHAPE: Insert shape");
         _config->shapes.emplace_back(shape);
     } else {
         // LUISA_INFO("DEBUG_SHAPE: Update shape");
-        shape->update_shape(this, mesh_info);
+        node->update_shape(this, mesh_info);
     }
     _config->shapes_updated = true;
     return shape;

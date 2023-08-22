@@ -47,8 +47,8 @@ SampledWavelengths Spectrum::Instance::sample(Expr<float> u) const noexcept {
     LUISA_ERROR_WITH_LOCATION("Spectrum::sample() is not implemented.");
 }
 //default impl: assuming |wavelength difference|<3nm is same wavelength and accumulate answer
-Float3 Spectrum::Instance::wavelength_mul(const SampledWavelengths& target_swl, const SampledSpectrum& target_sp,
-    const SampledWavelengths& swl, const SampledSpectrum& sp) const noexcept {
+Float3 Spectrum::Instance::wavelength_mul(const SampledWavelengths &target_swl, const SampledSpectrum &target_sp,
+    const SampledWavelengths &swl, const SampledSpectrum &sp) const noexcept {
     SampledSpectrum ret_sp{target_swl.dimension()};
     SampledWavelengths ret_swl{target_swl.dimension()};
     float error_bound = 3.0f;

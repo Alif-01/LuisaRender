@@ -60,7 +60,9 @@ struct RawShapeInfo {
     luisa::string medium;
 };
 
-struct RawSphereInfo {
+struct RawSpheresInfo {
+    luisa::vector<float> centers;
+    uint subdivision;
     RawShapeInfo shape_info;
 };
 
@@ -100,7 +102,6 @@ private:
 public:
     Shape(Scene *scene, const SceneNodeDesc *desc) noexcept;
     Shape(Scene *scene, const RawShapeInfo &shape_info) noexcept;
-    virtual void update_shape(Scene *scene, const RawMeshInfo &mesh_info) noexcept;
     virtual void update_shape(Scene *scene, const RawShapeInfo &shape_info) noexcept;
     [[nodiscard]] const Surface *surface() const noexcept;
     [[nodiscard]] const Light *light() const noexcept;
@@ -137,8 +138,8 @@ public:
         : BaseShape{scene, mesh_info},
            _shadow_terminator{std::clamp(scene->shadow_terminator_factor(), 0.f, 1.f)} {}
     
-    ShadowTerminatorShapeWrapper(Scene *scene, const RawSphereInfo &sphere_info) noexcept
-        : BaseShape{scene, sphere_info},
+    ShadowTerminatorShapeWrapper(Scene *scene, const RawSpheresInfo &spheres_info) noexcept
+        : BaseShape{scene, spheres_info},
            _shadow_terminator{std::clamp(scene->shadow_terminator_factor(), 0.f, 1.f)} {}
     
     [[nodiscard]] float shadow_terminator_factor() const noexcept override {
@@ -161,8 +162,8 @@ public:
     IntersectionOffsetShapeWrapper(Scene *scene, const RawMeshInfo &mesh_info) noexcept
         : BaseShape{scene, mesh_info},
           _intersection_offset{std::clamp(scene->intersection_offset_factor(), 0.f, 1.f)} {}
-    IntersectionOffsetShapeWrapper(Scene *scene, const RawSphereInfo &sphere_info) noexcept
-        : BaseShape{scene, sphere_info},
+    IntersectionOffsetShapeWrapper(Scene *scene, const RawSpheresInfo &spheres_info) noexcept
+        : BaseShape{scene, spheres_info},
           _intersection_offset{std::clamp(scene->intersection_offset_factor(), 0.f, 1.f)} {}
     [[nodiscard]] float intersection_offset_factor() const noexcept override {
         return _intersection_offset;
@@ -180,8 +181,8 @@ public:
         : BaseShape{scene, desc}, _visible{desc->property_bool_or_default("visible", true)} {}
     VisibilityShapeWrapper(Scene *scene, const RawMeshInfo &mesh_info) noexcept
         : BaseShape{scene, mesh_info}, _visible{true} {}
-    VisibilityShapeWrapper(Scene *scene, const RawSphereInfo &sphere_info) noexcept
-        : BaseShape{scene, sphere_info}, _visible{true} {}
+    VisibilityShapeWrapper(Scene *scene, const RawSpheresInfo &spheres_info) noexcept
+        : BaseShape{scene, spheres_info}, _visible{true} {}
     [[nodiscard]] bool visible() const noexcept override { return _visible; }
 };
 

@@ -28,11 +28,7 @@ Shape::Shape(Scene *scene, const RawShapeInfo &shape_info) noexcept
         luisa::format("{}_transform", shape_info.name), shape_info.trans)
       },
       _medium{nullptr} {}
-
-void Shape::update_shape(Scene *scene, const RawMeshInfo &mesh_info) noexcept {
-    LUISA_NOT_IMPLEMENTED();
-}
-
+      
 void Shape::update_shape(Scene *scene, const RawShapeInfo &shape_info) noexcept {
     if (!shape_info.trans.empty) _transform = scene->update_transform(
         luisa::format("{}_transform", shape_info.name), shape_info.trans);
