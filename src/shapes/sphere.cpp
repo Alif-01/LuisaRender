@@ -4,10 +4,8 @@
 
 #include <future>
 
-#include <util/thread_pool.h>
 #include <base/shape.h>
 #include <shapes/sphere_base.h>
-#include <util/loop_subdiv.h>
 
 namespace luisa::render {
 

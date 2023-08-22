@@ -3,6 +3,8 @@
 //
 #include <future>
 #include <base/shape.h>
+#include <util/loop_subdiv.h>
+#include <util/thread_pool.h>
 
 namespace luisa::render {
 

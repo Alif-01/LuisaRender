@@ -82,7 +82,7 @@ struct RawShapeInfo {
     };
 
     RawShapeInfo(StringArr &&name, RawTransform &&trans,
-                 StringArr &&surface, StringArr &&light, StringArr &&light) noexcept:
+                 StringArr &&surface, StringArr &&light, StringArr &&medium) noexcept:
         name{name}, trans{std::move(trans)}, surface{surface}, light{light}, medium{medium} {}
 
     void print_info() noexcept {

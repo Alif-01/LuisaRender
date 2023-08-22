@@ -404,7 +404,7 @@ Shape *Scene::update_shape(const RawShapeInfo &shape_info) noexcept {
     } else return nullptr;
 
     auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::SHAPE, impl_type, "create_raw");
-    auto [node, first_def] = load_from_nodes(shape_info.name, handle_creater, this, mesh_info);
+    auto [node, first_def] = load_from_nodes(shape_info.name, handle_creater, this, shape_info);
     Shape *shape = dynamic_cast<Shape *>(node);
 
     if (first_def) {
@@ -412,7 +412,7 @@ Shape *Scene::update_shape(const RawShapeInfo &shape_info) noexcept {
         _config->shapes.emplace_back(shape);
     } else {
         // LUISA_INFO("DEBUG_SHAPE: Update shape");
-        node->update_shape(this, shape_info);
+        shape->update_shape(this, shape_info);
     }
     _config->shapes_updated = true;
     return shape;

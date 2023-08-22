@@ -4,8 +4,6 @@
 
 #include <future>
 
-#include <util/thread_pool.h>
-#include <util/loop_subdiv.h>
 #include <base/shape.h>
 #include <shapes/sphere_base.h>
 
@@ -18,25 +16,25 @@ private:
     luisa::vector<Triangle> _triangles;
 
 private:
-    void _build_mesh(const luisa::vector<uint> &centers, uint subdiv) noexcept {
+    void _build_mesh(const luisa::vector<float> &centers, uint subdiv) noexcept {
         auto sphere_mesh = SphereGeometry::create(subdiv).get().mesh();
-        auto vertex_count = sphere_mesh.vertices.size();
-        auto triangle_count = sphere_mesh.triangles.size();
+        uint32_t vertex_count = sphere_mesh.vertices.size();
+        uint32_t triangle_count = sphere_mesh.triangles.size();
         if (centers.size() % 3u != 0u) {
             LUISA_ERROR_WITH_LOCATION("Invalid center count.");
         }
-        auto center_count = centers.size() / 3u;
+        uint32_t center_count = centers.size() / 3u;
         
         _vertices.clear();
         _triangles.clear();
         _vertices.reserve(center_count * vertex_count);
         _triangles.reserve(center_count * triangle_count);
-        for (auto i = 0u; i < center_count; ++i) {
+        for (uint32_t i = 0u; i < center_count; ++i) {
             auto center = make_float3(
                 centers[i * 3u + 0u], centers[i * 3u + 1u], centers[i * 3u + 2u]
             );
             for (auto v: sphere_mesh.vertices) {
-                auto vertex = Vertex::encode(p.position() + center, p.normal(), p.uv);
+                auto vertex = Vertex::encode(v.position() + center, v.normal(), v.uv());
                 _vertices.emplace_back(std::move(vertex));
             }
             for (auto t: sphere_mesh.triangles) {
@@ -51,29 +49,28 @@ private:
     }
 
 public:
-    // SphereGroup(Scene *scene, const SceneNodeDesc *desc) noexcept
-    //     : Shape{scene, desc},
-    //       _geometry{SphereGeometry::create(
-    //           std::min(desc->property_uint_or_default("subdivision", 0u),
-    //                    sphere_max_subdivision_level))} {}
+    SphereGroup(Scene *scene, const SceneNodeDesc *desc) noexcept
+        : Shape{scene, desc} {
+        LUISA_NOT_IMPLEMENTED();
+    }
     
     SphereGroup(Scene *scene, const RawShapeInfo &shape_info) noexcept
         : Shape{scene, shape_info} {
 
         if (shape_info.spheres_info == nullptr) [[unlikely]]
             LUISA_ERROR_WITH_LOCATION("Invalid spheres info!");
-        auto sphere_info = shape_info.spheres_info.get();
-        _build_mesh(spheres_info->centers, spheres_info->subdiv);
+        auto spheres_info = shape_info.spheres_info.get();
+        _build_mesh(spheres_info->centers, spheres_info->subdivision);
     }
 
     void update_shape(Scene *scene, const RawShapeInfo &shape_info) noexcept override {
         Shape::update_shape(scene, shape_info);
         if (shape_info.spheres_info == nullptr) [[unlikely]]
             LUISA_ERROR_WITH_LOCATION("Invalid spheres info!");
-        auto sphere_info = shape_info.spheres_info.get();
+        auto spheres_info = shape_info.spheres_info.get();
 
         if (!spheres_info->centers.empty())
-            _build_mesh(spheres_info->centers, spheres_info->subdiv);
+            _build_mesh(spheres_info->centers, spheres_info->subdivision);
     }
 
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }

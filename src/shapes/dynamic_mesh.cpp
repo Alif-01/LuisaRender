@@ -88,7 +88,7 @@ public:
             LUISA_ERROR_WITH_LOCATION("Invalid mesh info!");
         auto mesh_info = shape_info.mesh_info.get();
 
-        if (!mesh_info.vertices.empty() && !mesh_info.triangles.empty())
+        if (!mesh_info->vertices.empty() && !mesh_info->triangles.empty())
             _build_mesh(mesh_info->triangles, mesh_info->vertices,
                         mesh_info->normals, mesh_info->uvs);
     }

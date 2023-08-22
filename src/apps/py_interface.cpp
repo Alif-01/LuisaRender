@@ -214,7 +214,7 @@ void update_particles(
 ) noexcept {
     auto spheres_info = RawShapeInfo(
         luisa::string(name),
-        RawTransform(make_float(0.0f), make_float4(0.0f), make_float3(radius)),
+        RawTransform(make_float3(0.0f), make_float4(0.0f), make_float3(radius)),
         luisa::string(surface), "", ""
     );
     spheres_info.build_spheres_info(pyarray_to_vector<float>(vertices), 0u);
