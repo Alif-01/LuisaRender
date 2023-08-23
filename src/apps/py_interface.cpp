@@ -45,8 +45,6 @@ luisa::unique_ptr<Context> context;
 luisa::unique_ptr<DenoiserExt::DenoiserMode> mode;
 DenoiserExt *denoiser_ext = nullptr;
 
-// luisa::unordered_map<luisa::string, Shape*> shape_setting;
-// luisa::unordered_map<luisa::string, > cameras;
 luisa::unique_ptr<Pipeline> pipeline;
 luisa::unique_ptr<Scene> scene;
 luisa::unordered_map<luisa::string, CameraStorage> camera_storage;
@@ -175,7 +173,6 @@ void init(std::string_view context_path, uint cuda_device, uint scene_index, Log
     LUISA_INFO("Pipeline created!");
 }
 
-
 // RawMeshInfo get_mesh_info(
 //     std::string_view name, const PyFloatArr &vertices, const PyIntArr &triangles,
 //     const PyFloatArr &uvs, const PyFloatArr &normals, const PyFloatArr &transform,
@@ -184,9 +181,31 @@ void init(std::string_view context_path, uint cuda_device, uint scene_index, Log
 //     return std::move();
 // }
 
-void update_body(
-    std::string_view name, const PyFloatArr &vertices, const PyIntArr &triangles,
-    const PyFloatArr &uvs, const PyFloatArr &normals, PyTransform transform, std::string_view surface
+void add_rigid(
+    std::string_view name, std::string_view obj_path,
+    const PyFloatArr &vertices, const PyIntArr &triangles, const PyFloatArr &normals, const PyFloatArr &uvs,
+    std::string_view surface
+) noexcept {
+    auto mesh_info = RawShapeInfo(
+        luisa::string(name), RawTransform()
+        luisa::string(surface), "", ""
+    );
+    if (!obj_path.empty()) {
+        mesh_info.build_file_info(luisa::string(obj_path));
+    } else {
+        mesh_info.build_mesh_info(
+            pyarray_to_vector<float>(vertices),
+            pyarray_to_vector<uint>(triangles),
+            pyarray_to_vector<float>(uvs),
+            pyarray_to_vector<float>(normals)
+        );
+    }
+    mesh_info.print_info();
+    auto shape = scene->update_shape(mesh_info, "mesh", true);
+}
+
+void update_rigid(
+    std::string_view name, const PyTransform &transform
 ) noexcept {
     auto mesh_info = RawShapeInfo(
         luisa::string(name),
@@ -196,7 +215,18 @@ void update_body(
             transform.translate,
             transform.rotate,
             transform.scale
-        },
+        }, "", "", ""
+    );
+    auto shape = scene->update_shape(mesh_info, "mesh", false);
+}
+
+void update_deformable(
+    std::string_view name,
+    const PyFloatArr &vertices, const PyIntArr &triangles, const PyFloatArr &normals, const PyFloatArr &uvs,
+    std::string_view surface
+) noexcept {
+    auto mesh_info = RawShapeInfo(
+        luisa::string(name), RawTransform(),
         luisa::string(surface), "", ""
     );
     mesh_info.build_mesh_info(
@@ -206,7 +236,7 @@ void update_body(
         pyarray_to_vector<float>(normals)
     );
     mesh_info.print_info();
-    auto shape = scene->update_shape(mesh_info);
+    auto shape = scene->update_shape(mesh_info, "deformablemesh", false);
 }
 
 void update_particles(
@@ -216,7 +246,7 @@ void update_particles(
         luisa::string(name), RawTransform(),
         luisa::string(surface), "", ""
     );
-    spheres_info.build_spheres_info(pyarray_to_vector<float>(vertices), radius, 0u);
+    spheres_info.build_spheres_info(pyarray_to_vector<float>(vertices), std::move(radius), 0u);
     spheres_info.print_info();
 
     // for (auto i = 0u; i < vertex_count; ++i) {
@@ -231,7 +261,7 @@ void update_particles(
     //         }
     //     );
     // }
-    auto shape = scene->update_shape(spheres_info);
+    auto shape = scene->update_shape(spheres_info, "spheregroup", false);
 }
 
 void add_camera(
@@ -308,8 +338,8 @@ luisa::unique_ptr<luisa::vector<uint8_t>> convert_to_int_pixel(
 }
 
 PyFloatArr render_frame_exr(
-    std::string_view name, std::string_view path, float time, bool denoise,
-    bool save_picture, bool render_png
+    std::string_view name, std::string_view path,
+    bool denoise, bool save_picture, bool render_png
 ) noexcept {
     LUISA_INFO("Start rendering camera {}, saving {}", name, save_picture);
     pipeline->scene_update(*stream, *scene, time, mapping);
@@ -403,38 +433,56 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
         py::arg("log_level") = LogLevel::WARNING
     );
     m.def("destroy", &destroy);
-    m.def("update_particles", &update_particles,
-        py::arg("name"), py::arg("vertices"), py::arg("radius"), py::arg("surface") = ""
+    m.def("add_rigid", &add_rigid,
+        py::arg("name"),
+        py::arg("obj_path") = "",
+        py::arg("vertices") = PyFloatArr(),
+        py::arg("triangles") = PyIntArr(),
+        py::arg("normals") = PyFloatArr(),
+        py::arg("uvs") = PyFloatArr(),
+        py::arg("surface") = ""
     );
-    m.def("update_body", [](
-        std::string name, PyFloatArr vertices = PyFloatArr(), PyIntArr triangles = PyIntArr(),
-        PyFloatArr uvs = PyFloatArr(), PyFloatArr normals = PyFloatArr(), PyTransform transform = PyTransform(),
-        std::string surface = ""
-    ) { update_body(name, vertices, triangles, uvs, normals, std::move(transform), surface); },
-        py::arg("name"), py::arg("vertices"), py::arg("triangles"), py::arg("uvs"), py::arg("normals"),
-        py::arg("transform"), py::arg("surface")
+    m.def("update_rigid", &update_rigid,
+        py::arg("name"),
+        py::arg("transform")
+    );
+    m.def("update_particles", &update_particles,
+        py::arg("name"),
+        py::arg("vertices"),
+        py::arg("radius"),
+        py::arg("surface") = ""
+    );
+    m.def("update_deformable", &update_deformable,
+        py::arg("name"),
+        py::arg("vertices"),
+        py::arg("triangles"),
+        py::arg("normals") = PyFloatArr(),
+        py::arg("uvs") = PyFloatArr(),
+        py::arg("surface") = ""
     );
     m.def("add_camera", [](
         std::string name, PyFloatArr position, PyFloatArr look_at, PyFloatArr up,
-        float fov, int spp = 10000, float radius = 1.0f,
-        PyIntArr resolution = get_default_array(luisa::vector<int>{ 512, 512 })
+        float fov, int spp, float radius,
+        PyIntArr resolution
     ) { add_camera(name, position, look_at, up, fov, spp, radius, resolution); },
         py::arg("name"), py::arg("position"), py::arg("look_at"), py::arg("up"),
         py::arg("fov"), py::arg("spp"), py::arg("radius"), py::arg("resolution")
     );
-    m.def("update_camera", &update_camera, py::arg("name"), py::arg("transform") = PyTransform());
+    m.def("update_camera", &update_camera,
+        py::arg("name"), py::arg("transform") = PyTransform());
     m.def("add_surface", [](
         std::string name, RawSurfaceInfo::RawMaterial material,
-        PyFloatArr color = PyFloatArr(), std::string image = "", float image_scale = 1.f,
-        float roughness = 0.f, float alpha = 1.f
+        PyFloatArr color = PyFloatArr(), std::string image = "",
+        float image_scale = 1.f, float roughness = 0.f, float alpha = 1.f
     ) { add_surface(name, material, color, image, image_scale, roughness, alpha); },
         py::arg("name"), py::arg("material"), py::arg("color"), py::arg("image"), py::arg("image_scale"),
         py::arg("roughness"), py::arg("alpha")
     );
-    m.def("render_frame_exr", [](
-        std::string name, std::string path, float time = 0.f,
-        bool denoise = true, bool save_picture = false, bool render_png = true
-    ) { return std::move(render_frame_exr(name, path, time, denoise, save_picture, render_png)); },
-        py::arg("name"), py::arg("path"), py::arg("time"), py::arg("denoise"), py::arg("save_picture"), py::arg("render_png")
+    m.def("render_frame_exr", &render_frame_exr,
+        py::arg("name"),
+        py::arg("path"),
+        py::arg("denoise") = true,
+        py::arg("save_picture") = false,
+        py::arg("render_png") = true
     );
 }

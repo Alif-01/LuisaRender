@@ -2,161 +2,60 @@
 // Created by Mike on 2022/1/7.
 //
 
-#include <assimp/Importer.hpp>
-#include <assimp/postprocess.h>
-#include <assimp/mesh.h>
-#include <assimp/scene.h>
-#include <assimp/Subdivision.h>
-
-#include <luisa/core/clock.h>
-#include <util/thread_pool.h>
 #include <base/shape.h>
+#include <shapes/mesh_base.h>
 
 namespace luisa::render {
-
-class MeshLoader {
-
-private:
-    luisa::vector<Vertex> _vertices;
-    luisa::vector<Triangle> _triangles;
-    uint _properties{};
-
-public:
-    [[nodiscard]] auto mesh() const noexcept { return MeshView{_vertices, _triangles}; }
-    [[nodiscard]] auto properties() const noexcept { return _properties; }
-
-    // Load the mesh from a file.
-    [[nodiscard]] static auto load(std::filesystem::path path, uint subdiv_level,
-                                   bool flip_uv, bool drop_normal, bool drop_uv) noexcept {
-
-        static luisa::lru_cache<uint64_t, std::shared_future<MeshLoader>> loaded_meshes{256u};
-        static std::mutex mutex;
-
-        auto abs_path = std::filesystem::canonical(path).string();
-        auto key = luisa::hash_value(abs_path, luisa::hash_value(subdiv_level));
-
-
-        std::scoped_lock lock{mutex};
-        if (auto m = loaded_meshes.at(key)) { return *m; }
-
-        auto future = global_thread_pool().async([path = std::move(path), subdiv_level, flip_uv, drop_normal, drop_uv] {
-            Clock clock;
-            auto path_string = path.string();
-            Assimp::Importer importer;
-            importer.SetPropertyInteger(
-                AI_CONFIG_PP_SBP_REMOVE, aiPrimitiveType_LINE | aiPrimitiveType_POINT);
-            importer.SetPropertyFloat(AI_CONFIG_PP_GSN_MAX_SMOOTHING_ANGLE, 45.f);
-            auto import_flags = aiProcess_RemoveComponent | aiProcess_SortByPType |
-                                aiProcess_ValidateDataStructure | aiProcess_ImproveCacheLocality |
-                                aiProcess_PreTransformVertices | aiProcess_FindInvalidData |
-                                aiProcess_JoinIdenticalVertices;
-            auto remove_flags = aiComponent_ANIMATIONS | aiComponent_BONEWEIGHTS |
-                                aiComponent_CAMERAS | aiComponent_LIGHTS |
-                                aiComponent_MATERIALS | aiComponent_TEXTURES |
-                                aiComponent_COLORS | aiComponent_TANGENTS_AND_BITANGENTS;
-            if (drop_uv) {
-                remove_flags |= aiComponent_TEXCOORDS;
-            } else {
-                if (!flip_uv) { import_flags |= aiProcess_FlipUVs; }
-                import_flags |= aiProcess_GenUVCoords | aiProcess_TransformUVCoords;
-            }
-            if (drop_normal) {
-                import_flags |= aiProcess_DropNormals;
-                remove_flags |= aiComponent_NORMALS;
-            } else {
-                import_flags |= aiProcess_GenSmoothNormals;
-            }
-            if (subdiv_level == 0u) { import_flags |= aiProcess_Triangulate; }
-            importer.SetPropertyInteger(AI_CONFIG_PP_RVC_FLAGS, static_cast<int>(remove_flags));
-            auto model = importer.ReadFile(path_string.c_str(), import_flags);
-            if (model == nullptr || (model->mFlags & AI_SCENE_FLAGS_INCOMPLETE) ||
-                model->mRootNode == nullptr || model->mRootNode->mNumMeshes == 0) [[unlikely]] {
-                LUISA_ERROR_WITH_LOCATION(
-                    "Failed to load mesh '{}': {}.",
-                    path_string, importer.GetErrorString());
-            }
-            if (auto err = importer.GetErrorString();
-                err != nullptr && err[0] != '\0') [[unlikely]] {
-                LUISA_WARNING_WITH_LOCATION(
-                    "Mesh '{}' has warnings: {}.",
-                    path_string, err);
-            }
-            LUISA_ASSERT(model->mNumMeshes == 1u, "Only single mesh is supported.");
-            auto mesh = model->mMeshes[0];
-            if (subdiv_level > 0u) {
-                auto subdiv = Assimp::Subdivider::Create(Assimp::Subdivider::CATMULL_CLARKE);
-                aiMesh *subdiv_mesh = nullptr;
-                subdiv->Subdivide(mesh, subdiv_mesh, subdiv_level, true);
-                model->mMeshes[0] = nullptr;
-                mesh = subdiv_mesh;
-                delete subdiv;
-            }
-            if (mesh->mTextureCoords[0] == nullptr ||
-                mesh->mNumUVComponents[0] != 2) [[unlikely]] {
-                LUISA_WARNING_WITH_LOCATION(
-                    "Invalid texture coordinates in mesh '{}': "
-                    "address = {}, components = {}.",
-                    path_string,
-                    static_cast<void *>(mesh->mTextureCoords[0]),
-                    mesh->mNumUVComponents[0]);
-            }
-            auto vertex_count = mesh->mNumVertices;
-            auto ai_positions = mesh->mVertices;
-            auto ai_normals = mesh->mNormals;
-            auto ai_uvs = mesh->mTextureCoords[0];
-            MeshLoader loader;
-            loader._vertices.resize(vertex_count);
-            if (ai_normals) { loader._properties |= Shape::property_flag_has_vertex_normal; }
-            if (ai_uvs) { loader._properties |= Shape::property_flag_has_vertex_uv; }
-            for (auto i = 0; i < vertex_count; i++) {
-                auto p = make_float3(ai_positions[i].x, ai_positions[i].y, ai_positions[i].z);
-                auto n = ai_normals ?
-                             normalize(make_float3(ai_normals[i].x, ai_normals[i].y, ai_normals[i].z)) :
-                             make_float3(0.f, 0.f, 1.f);
-                auto uv = ai_uvs ? make_float2(ai_uvs[i].x, ai_uvs[i].y) : make_float2(0.f, 0.f);
-                loader._vertices[i] = Vertex::encode(p, n, uv);
-            }
-            if (subdiv_level == 0u) {
-                auto ai_triangles = mesh->mFaces;
-                loader._triangles.resize(mesh->mNumFaces);
-                for (auto i = 0; i < mesh->mNumFaces; i++) {
-                    auto &&face = ai_triangles[i];
-                    assert(face.mNumIndices == 3u);
-                    loader._triangles[i] = {face.mIndices[0], face.mIndices[1], face.mIndices[2]};
-                }
-            } else {
-                auto ai_quads = mesh->mFaces;
-                loader._triangles.resize(mesh->mNumFaces * 2u);
-                for (auto i = 0u; i < mesh->mNumFaces; i++) {
-                    auto &&face = ai_quads[i];
-                    assert(face.mNumIndices == 4u);
-                    loader._triangles[i * 2u + 0u] = {face.mIndices[0], face.mIndices[1], face.mIndices[2]};
-                    loader._triangles[i * 2u + 1u] = {face.mIndices[2], face.mIndices[3], face.mIndices[0]};
-                }
-            }
-            LUISA_INFO("Loaded triangle mesh '{}' in {} ms.", path_string, clock.toc());
-            return loader;
-        });
-        loaded_meshes.emplace(key, future);
-        return future;
-    }
-};
 
 class Mesh : public Shape {
 
 private:
     std::shared_future<MeshLoader> _loader;
+    // luisa::vector<Vertex> _vertices;
+    // luisa::vector<Triangle> _triangles;
+    // uint _properties{};
 
 public:
     Mesh(Scene *scene, const SceneNodeDesc *desc) noexcept
         : Shape{scene, desc},
-          _loader{MeshLoader::load(desc->property_path("file"),
-                                   desc->property_uint_or_default("subdivision", 0u),
-                                   desc->property_bool_or_default("flip_uv", false),
-                                   desc->property_bool_or_default("drop_normal", false),
-                                   desc->property_bool_or_default("drop_uv", false))} {
+        _loader{MeshLoader::load(desc->property_path("file"),
+                                 desc->property_uint_or_default("subdivision", 0u),
+                                 desc->property_bool_or_default("flip_uv", false),
+                                 desc->property_bool_or_default("drop_normal", false),
+                                 desc->property_bool_or_default("drop_uv", false))} {
         _loader.wait();
     }
+
+    Mesh(Scene *scene, const RawShapeInfo &shape_info) noexcept
+        : Shape{scene, shape_info} {
+
+        if (shape_info.file_info != nullptr) {
+            auto file_info = shape_info.file_info.get();
+            _loader = MeshLoader::load(file_info->file, 0u, false, false, false);
+            _loader.wait();
+        } else if (shape_info.mesh_info != nullptr) {
+            auto mesh_info = shape_info.mesh_info.get();
+
+            _loader = MeshLoader::load(
+                mesh_info->vertices, 
+                mesh_info->triangles,
+                mesh_info->normals,
+                mesh_info->uvs
+            );
+            _loader.wait();
+        } else {
+            LUISA_ERROR_WITH_LOCATION("Invalid file info!");
+        }
+    }
+
+    void update_shape(Scene *scene, const RawShapeInfo& shape_info) noexcept override {
+        Shape::update_shape(scene, shape_info);
+
+        if (shape_info.mesh_info != nullptr) {
+            LUISA_WARNING_WITH_LOCATION("Try to update mesh of rigid body. Igonred.");
+        }
+    }
+    
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] bool is_mesh() const noexcept override { return true; }
     [[nodiscard]] MeshView mesh() const noexcept override { return _loader.get().mesh(); }
@@ -171,3 +70,9 @@ using MeshWrapper =
 }// namespace luisa::render
 
 LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::MeshWrapper)
+
+LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
+    luisa::render::Scene *scene,
+    const luisa::render::RawShapeInfo &shape_info) LUISA_NOEXCEPT {
+    return luisa::new_with_allocator<luisa::render::MeshWrapper>(scene, shape_info);
+}

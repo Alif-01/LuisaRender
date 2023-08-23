@@ -25,15 +25,15 @@ void Geometry::build(CommandBuffer &command_buffer,
         _world_max[i] = -std::numeric_limits<float>::max();
         _world_min[i] = std::numeric_limits<float>::max();
     }
-    for (auto shape : shapes) { _process_shape(command_buffer, shape, template_mapping, init_time, nullptr); }
+    for (auto shape : shapes) { _process_shape(command_buffer, shape, init_time, template_mapping, nullptr); }
     _instance_buffer = _pipeline.device().create_buffer<uint4>(_instances.size());
     command_buffer << _instance_buffer.copy_from(_instances.data())
                    << _accel.build();
 }
 
 void Geometry::_process_shape(
-    CommandBuffer &command_buffer, const Shape *shape,
-    const Geometry::TemplateMapping &template_mapping, float init_time,
+    CommandBuffer &command_buffer, const Shape *shape, float init_time,
+    const Geometry::TemplateMapping &template_mapping,
     const Surface *overridden_surface,
     const Light *overridden_light,
     const Medium *overridden_medium,
@@ -164,8 +164,7 @@ void Geometry::_process_shape(
     } else {
         _transform_tree.push(shape->transform());
         for (auto child : shape->children()) {
-            _process_shape(command_buffer, child, template_mapping, init_time,
-                           surface, light, medium, visible);
+            _process_shape(command_buffer, child, init_time, template_mapping, surface, light, medium, visible);
         }
         _transform_tree.pop(shape->transform());
     }

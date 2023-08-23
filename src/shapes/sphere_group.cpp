@@ -65,12 +65,11 @@ public:
 
     void update_shape(Scene *scene, const RawShapeInfo &shape_info) noexcept override {
         Shape::update_shape(scene, shape_info);
+        
         if (shape_info.spheres_info == nullptr) [[unlikely]]
             LUISA_ERROR_WITH_LOCATION("Invalid spheres info!");
         auto spheres_info = shape_info.spheres_info.get();
-
-        if (!spheres_info->centers.empty())
-            _build_mesh(spheres_info->centers, spheres_info->radius, spheres_info->subdivision);
+        _build_mesh(spheres_info->centers, spheres_info->radius, spheres_info->subdivision);
     }
 
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }

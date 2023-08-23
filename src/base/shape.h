@@ -83,13 +83,22 @@ struct RawShapeInfo {
         FloatArr normals;
     };
 
+    struct RawFileInfo {
+        StringArr get_info() noexcept {
+            return luisa::format("file={}", file);
+        }
+        
+        StringArr file;
+    };
+
     RawShapeInfo(StringArr &&name, RawTransform &&trans,
                  StringArr &&surface, StringArr &&light, StringArr &&medium) noexcept:
         name{name}, trans{std::move(trans)}, surface{surface}, light{light}, medium{medium} {}
 
     void print_info() noexcept {
         auto info_str = spheres_info != nullptr ? spheres_info->get_info() :
-                        mesh_info != nullptr ? mesh_info->get_info() : "";
+                        mesh_info != nullptr ? mesh_info->get_info() : 
+                        file_info != nullptr ? file_info->get_info() : "";
         LUISA_INFO("Updating shape {}: {}, surface={}", name, info_str, surface);
     }
     void build_spheres_info(FloatArr &&centers, float &&radius, uint &&subdivision) noexcept {
@@ -100,11 +109,15 @@ struct RawShapeInfo {
             std::move(vertices), std::move(triangles), std::move(uvs), std::move(normals)
         );
     }
+    void build_file_info(StringArr &&file) noexcept {
+        file_info = luisa::make_unique<RawFileInfo>(std::move(file));
+    }
 
     StringArr name;
     RawTransform trans;
     luisa::unique_ptr<RawSpheresInfo> spheres_info;
     luisa::unique_ptr<RawMeshInfo> mesh_info;
+    luisa::unique_ptr<RawFileInfo> file_info;
     StringArr surface;
     StringArr light;
     StringArr medium;

@@ -390,25 +390,19 @@ Surface *Scene::add_surface(const RawSurfaceInfo &surface_info) noexcept {
 //     return shape;
 // }
 
-Shape *Scene::update_shape(const RawShapeInfo &shape_info) noexcept {
+Shape *Scene::update_shape(
+    const RawShapeInfo &shape_info, luisa::string impl_type, bool require_first
+) noexcept {
     using NodeCreater = SceneNode *(Scene *, const RawShapeInfo &);
-
-    luisa::string impl_type;
-    if (shape_info.mesh_info != nullptr) {
-        impl_type = "dynamicmesh";
-    } else if (shape_info.spheres_info != nullptr) {
-        impl_type = "spheregroup";
-    } else return nullptr;
-
     auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::SHAPE, impl_type, "create_raw");
     auto [node, first_def] = load_from_nodes(shape_info.name, handle_creater, this, shape_info);
     Shape *shape = dynamic_cast<Shape *>(node);
 
     if (first_def) {
-        // LUISA_INFO("DEBUG_SHAPE: Insert shape");
         _config->shapes.emplace_back(shape);
     } else {
-        // LUISA_INFO("DEBUG_SHAPE: Update shape");
+        if (require_first)
+            LUISA_ERROR_WITH_LOCATION("Shape has been defined!");
         shape->update_shape(this, shape_info);
     }
     _config->shapes_updated = true;

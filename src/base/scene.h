@@ -99,7 +99,7 @@ public:
     [[nodiscard]] Texture *add_constant_texture(luisa::string_view name, const luisa::vector<float> &v) noexcept;
     [[nodiscard]] Texture *add_image_texture(
         luisa::string_view name, luisa::string_view image, const float &image_scale) noexcept;
-    [[nodiscard]] Shape *update_shape(const RawShapeInfo &shape_info) noexcept;
+    [[nodiscard]] Shape *update_shape(const RawShapeInfo &shape_info, luisa::string impl_type, bool require_first) noexcept;
     // [[nodiscard]] Shape *update_particles(const RawSpheresInfo &sphere_infos) noexcept;
     [[nodiscard]] Camera *add_camera(const RawCameraInfo &camera_info,
         luisa::unordered_map<luisa::string, CameraStorage> &camera_storage, Device &device) noexcept;
