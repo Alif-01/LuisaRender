@@ -74,8 +74,8 @@ private:
 
 private:
     void _process_shape(
-        CommandBuffer &command_buffer, const Shape *shape,
-        const TemplateMapping &template_mapping, float init_time,
+        CommandBuffer &command_buffer, const Shape *shape, float init_time,
+        const TemplateMapping &template_mapping,
         const Surface *overridden_surface = nullptr,
         const Light *overridden_light = nullptr,
         const Medium *overridden_medium = nullptr,

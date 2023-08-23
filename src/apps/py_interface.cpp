@@ -187,7 +187,7 @@ void add_rigid(
     std::string_view surface
 ) noexcept {
     auto mesh_info = RawShapeInfo(
-        luisa::string(name), RawTransform()
+        luisa::string(name), RawTransform(),
         luisa::string(surface), "", ""
     );
     if (!obj_path.empty()) {
@@ -342,7 +342,7 @@ PyFloatArr render_frame_exr(
     bool denoise, bool save_picture, bool render_png
 ) noexcept {
     LUISA_INFO("Start rendering camera {}, saving {}", name, save_picture);
-    pipeline->scene_update(*stream, *scene, time, mapping);
+    pipeline->scene_update(*stream, *scene, 0, mapping);
 
     auto camera_name = luisa::string(name);
     if (auto it = camera_storage.find(camera_name); it == camera_storage.end()) {

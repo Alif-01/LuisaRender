@@ -28,7 +28,7 @@ private:
             }
             for (auto row = 0u; row < 4u; row++) {
                 for (auto col = 0u; col < 4u; col++) {
-                    _matrix[col][row] = nm[row * 4u + col];
+                    _matrix[col][row] = nm[row * 4u + col];     // read matrix.T
                 }
             }
         } else if (!m.empty()) [[unlikely]] {

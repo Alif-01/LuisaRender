@@ -179,7 +179,7 @@ public:
             }
 
             MeshLoader loader;
-            loader.build_mesh(mesh);
+            loader.build_mesh(mesh, subdiv_level);
             LUISA_INFO("Loaded triangle mesh '{}' in {} ms.", path_string, clock.toc());
             return loader;
         });

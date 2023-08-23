@@ -10,10 +10,7 @@ namespace luisa::render {
 class DeformableMesh : public Shape {
 
 private:
-    std::shared_future<MeshLoader> _loader;
-    // luisa::vector<Vertex> _vertices;
-    // luisa::vector<Triangle> _triangles;
-    // uint _properties{};
+    MeshLoader _loader;
 
 public:
     DeformableMesh(Scene *scene, const SceneNodeDesc *desc) noexcept
@@ -24,7 +21,7 @@ public:
         auto normals = desc->property_float_list_or_default("normals");
         auto uvs = desc->property_float_list_or_default("uvs");
 
-        _build_mesh(triangles, positions, normals, uvs);
+        _loader.build_mesh(positions, triangles, normals, uvs);
     }
 
     DeformableMesh(Scene *scene, const RawShapeInfo &shape_info) noexcept
@@ -34,21 +31,20 @@ public:
             LUISA_ERROR_WITH_LOCATION("Invalid mesh info!");
         auto mesh_info = shape_info.mesh_info.get();
 
-        _loader = MeshLoader::load(
+        _loader.build_mesh(
             mesh_info->vertices, 
             mesh_info->triangles,
             mesh_info->normals,
             mesh_info->uvs
         );
-        _loader.wait();
     }
 
-    void update_shape(Scene *scene, const RawShapeInfo& shape_info) noexcept override {
+    void update_shape(Scene *scene, const RawShapeInfo &shape_info) noexcept override {
         Shape::update_shape(scene, shape_info);
 
         if (shape_info.mesh_info != nullptr) {
             auto mesh_info = shape_info.mesh_info.get();
-            _loader.get().build_mesh(
+            _loader.build_mesh(
                 mesh_info->vertices,
                 mesh_info->triangles,
                 mesh_info->normals,
@@ -62,8 +58,8 @@ public:
     [[nodiscard]] bool deformable() const noexcept override { return true; }
     // [[nodiscard]] MeshView mesh() const noexcept override { return {_vertices, _triangles}; }
     // [[nodiscard]] uint vertex_properties() const noexcept override { return _properties; }
-    [[nodiscard]] MeshView mesh() const noexcept override { return _loader.get().mesh(); }
-    [[nodiscard]] uint vertex_properties() const noexcept override { return _loader.get().properties(); }
+    [[nodiscard]] MeshView mesh() const noexcept override { return _loader.mesh(); }
+    [[nodiscard]] uint vertex_properties() const noexcept override { return _loader.properties(); }
 
 };
 
