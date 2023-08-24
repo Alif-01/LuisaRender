@@ -72,15 +72,15 @@ struct RawShapeInfo {
     struct RawMeshInfo {
         StringArr get_info() noexcept {
             return luisa::format(
-                "vertices={}, triangles={}, uvs={}, normals={}",
-                vertices.size(), triangles.size(), uvs.size(), normals.size()
+                "vertices={}, triangles={}, normals={}, uvs={}",
+                vertices.size(), triangles.size(), normals.size(), uvs.size()
             );
         }
         
         FloatArr vertices;
         UintArr triangles;
-        FloatArr uvs;
         FloatArr normals;
+        FloatArr uvs;
     };
 
     struct RawFileInfo {
@@ -104,9 +104,9 @@ struct RawShapeInfo {
     void build_spheres_info(FloatArr &&centers, float &&radius, uint &&subdivision) noexcept {
         spheres_info = luisa::make_unique<RawSpheresInfo>(std::move(centers), radius, subdivision);
     }
-    void build_mesh_info(FloatArr &&vertices, UintArr &&triangles, FloatArr &&uvs, FloatArr &&normals) noexcept {
+    void build_mesh_info(FloatArr &&vertices, UintArr &&triangles, FloatArr &&normals, FloatArr &&uvs) noexcept {
         mesh_info = luisa::make_unique<RawMeshInfo>(
-            std::move(vertices), std::move(triangles), std::move(uvs), std::move(normals)
+            std::move(vertices), std::move(triangles), std::move(normals), std::move(uvs)
         );
     }
     void build_file_info(StringArr &&file) noexcept {
