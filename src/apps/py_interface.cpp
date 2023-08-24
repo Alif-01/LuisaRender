@@ -197,7 +197,7 @@ void add_rigid(
             pyarray_to_vector<float>(vertices),
             pyarray_to_vector<uint>(triangles),
             pyarray_to_vector<float>(normals),
-            pyarray_to_vector<float>(uvs),
+            pyarray_to_vector<float>(uvs)
         );
     }
     mesh_info.print_info();
@@ -233,7 +233,7 @@ void update_deformable(
         pyarray_to_vector<float>(vertices),
         pyarray_to_vector<uint>(triangles),
         pyarray_to_vector<float>(normals),
-        pyarray_to_vector<float>(uvs),
+        pyarray_to_vector<float>(uvs)
     );
     mesh_info.print_info();
     auto shape = scene->update_shape(mesh_info, "deformablemesh", false);
