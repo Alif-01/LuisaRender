@@ -11,13 +11,13 @@
 
 namespace luisa::render {
 
-struct RawTransform;
+struct RawTransformInfo;
 
 class Transform : public SceneNode {
 public:
     Transform(Scene *scene, const SceneNodeDesc *desc) noexcept;
     Transform(Scene *scene) noexcept;
-    virtual void update_transform(Scene *scene, const RawTransform &trans) noexcept;
+    virtual void update_transform(Scene *scene, const RawTransformInfo &transform_info) noexcept;
     [[nodiscard]] virtual bool is_static() const noexcept = 0;
     [[nodiscard]] virtual bool is_identity() const noexcept = 0;
     [[nodiscard]] virtual float4x4 matrix(float time) const noexcept = 0;

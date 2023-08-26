@@ -28,7 +28,7 @@ private:
     float2 _uv_offset;
     TextureSampler _sampler{};
     Encoding _encoding{};
-    float _scale{1.f};
+    float4 _scale{make_float4{1.f}};
     float _gamma{1.f};
     uint _mipmaps{0u};
 
@@ -73,13 +73,11 @@ public:
         _sampler = {filter_mode, address_mode};
         _uv_scale = desc->property_float2_or_default(
             "uv_scale", lazy_construct([desc] {
-                return make_float2(desc->property_float_or_default(
-                    "uv_scale", 1.0f));
+                return make_float2(desc->property_float_or_default("uv_scale", 1.0f));
             }));
         _uv_offset = desc->property_float2_or_default(
             "uv_offset", lazy_construct([desc] {
-                return make_float2(desc->property_float_or_default(
-                    "uv_offset", 0.0f));
+                return make_float2(desc->property_float_or_default("uv_offset", 0.0f));
             }));
         auto path = desc->property_path("file");
         auto encoding = desc->property_string_or_default(
@@ -104,19 +102,25 @@ public:
             }
             _encoding = Encoding::LINEAR;
         }
-        _scale = desc->property_float_or_default("scale", 1.f);
+        _scale = desc->property_float4_or_default(
+            "scale", lazy_construct([desc] {
+                return make_float4(desc->property_float_or_default("scale", 1.0f));
+            })
+        );
+        desc->property_float_or_default("scale", 1.f);
         _mipmaps = desc->property_uint_or_default(
             "mipmaps", filter_mode == TextureSampler::Filter::ANISOTROPIC ? 0u : 1u);
         if (filter_mode == TextureSampler::Filter::POINT) { _mipmaps = 1u; }
         _load_image(path);
     }
     
-    ImageTexture(Scene *scene, luisa::string_view image, const float &image_scale) noexcept
+    ImageTexture(Scene *scene, const RawTextureInfo &texture_info) noexcept
         : Texture{scene},
           _sampler{TextureSampler::Filter::LINEAR_POINT, TextureSampler::Address::REPEAT},
-          _uv_scale{make_float2(1.0f)}, _uv_offset{make_float2(0.0f)}, _scale{image_scale}, _mipmaps{1u} {
+          _uv_scale{make_float2(1.0f)}, _uv_offset{make_float2(0.0f)},
+          _scale{texture_info.color}, _mipmaps{1u} {
         
-        std::filesystem::path path = image;
+        std::filesystem::path path = texture_info.image;
         luisa::string encoding = [&path] {
             auto ext = path.extension().string();
             for (auto &c : ext) { c = static_cast<char>(tolower(c)); }
@@ -183,7 +187,7 @@ public:
     [[nodiscard]] Float4 evaluate(
         const Interaction &it, const SampledWavelengths &swl, Expr<float> time) const noexcept override {
         auto uv = _compute_uv(it);
-        auto v = pipeline().tex2d(_texture_id).sample(uv);// TODO: LOD
+        auto v = pipeline().tex2d(_texture_id).sample(uv);  // TODO: LOD
         return _decode(v);
     }
 };
@@ -221,6 +225,6 @@ void ImageTexture::_generate_mipmaps_sRGB(Pipeline &pipeline, CommandBuffer &com
 LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::ImageTexture)
 
 LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
-    luisa::render::Scene *scene, luisa::string_view image, const float &image_scale) LUISA_NOEXCEPT {
-    return luisa::new_with_allocator<luisa::render::ImageTexture>(scene, image, image_scale);
+    luisa::render::Scene *scene, const luisa::render::RawTextureInfo &texture_info) LUISA_NOEXCEPT {
+    return luisa::new_with_allocator<luisa::render::ImageTexture>(scene, texture_info);
 }

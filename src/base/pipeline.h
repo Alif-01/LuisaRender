@@ -87,16 +87,18 @@ private:
     luisa::unique_ptr<Environment::Instance> _environment;
     uint _environment_medium_tag{Medium::INVALID_TAG};
     luisa::unique_ptr<Geometry> _geometry;
+
     // registered transforms
     luisa::unordered_map<const Transform *, uint> _transform_to_id;
     luisa::vector<const Transform *> _transforms;
     luisa::vector<float4x4> _transform_matrices;
     Buffer<float4x4> _transform_matrix_buffer;
     luisa::unordered_map<luisa::string, uint> _named_ids;
+    bool _transforms_updated{false};
+
     // other things
     luisa::unique_ptr<Printer> _printer;
     float _initial_time{};
-    bool _any_dynamic_transforms{false};
 
 public:
     // for internal use only; use Pipeline::create() instead
@@ -215,9 +217,7 @@ public:
 
 public:
     [[nodiscard]] auto &device() const noexcept { return _device; }
-    [[nodiscard]] static luisa::unique_ptr<Pipeline> create(
-        Device &device, Stream &stream, Scene &scene,
-        const Geometry::TemplateMapping &template_mapping) noexcept;
+    [[nodiscard]] static luisa::unique_ptr<Pipeline> create(Device &device, Stream &stream, Scene &scene) noexcept;
         
     [[nodiscard]] auto &bindless_array() noexcept { return _bindless_array; }
     [[nodiscard]] auto &bindless_array() const noexcept { return _bindless_array; }
@@ -236,7 +236,7 @@ public:
     [[nodiscard]] const Texture::Instance *build_texture(CommandBuffer &command_buffer, const Texture *texture) noexcept;
     [[nodiscard]] const Filter::Instance *build_filter(CommandBuffer &command_buffer, const Filter *filter) noexcept;
     [[nodiscard]] const PhaseFunction::Instance *build_phasefunction(CommandBuffer &command_buffer, const PhaseFunction *phasefunction) noexcept;
-    void scene_update(Stream &stream, Scene &scene, float time, const Geometry::TemplateMapping &template_mapping) noexcept;
+    void scene_update(Stream &stream, Scene &scene, float time) noexcept;
     [[nodiscard]] bool update(CommandBuffer &command_buffer, float time) noexcept;
     void render(Stream &stream) noexcept;
     [[nodiscard]] luisa::unique_ptr<luisa::vector<float4>> render_to_buffer(Stream &stream, uint camera_index) noexcept;

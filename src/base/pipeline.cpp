@@ -42,13 +42,19 @@ uint Pipeline::register_medium(CommandBuffer &command_buffer, const Medium *medi
 }
 
 luisa::unique_ptr<Pipeline> Pipeline::create(
-    Device &device, Stream &stream, Scene &scene,
-    const Geometry::TemplateMapping &template_mapping) noexcept {
+    Device &device, Stream &stream, Scene &scene) noexcept {
     global_thread_pool().synchronize();
     auto pipeline = luisa::make_unique<Pipeline>(device);
     pipeline->_transform_matrices.resize(transform_matrix_buffer_size);
     pipeline->_transform_matrix_buffer = device.create_buffer<float4x4>(transform_matrix_buffer_size);
     stream << pipeline->printer().reset();
+    CommandBuffer command_buffer{&stream};
+    auto update_bindless_if_dirty = [&pipeline, &command_buffer] {
+        if (pipeline->_bindless_array.dirty()) {
+            command_buffer << pipeline->_bindless_array.update();
+        }
+    };
+
     auto initial_time = std::numeric_limits<float>::max();
     for (auto c : scene.cameras()) {
         if (c->shutter_span().x < initial_time) {
@@ -56,29 +62,24 @@ luisa::unique_ptr<Pipeline> Pipeline::create(
         }
     }
     pipeline->_initial_time = initial_time;
-    pipeline->_cameras.reserve(scene.cameras().size());
 
-    CommandBuffer command_buffer{&stream};
-    auto update_bindless_if_dirty = [&pipeline, &command_buffer] {
-        if (pipeline->_bindless_array.dirty()) {
-            command_buffer << pipeline->_bindless_array.update();
-        }
-    };
     pipeline->_spectrum = scene.spectrum()->build(*pipeline, command_buffer);
     update_bindless_if_dirty();
-    for (auto camera : scene.cameras()) {
-        pipeline->_cameras.emplace_back(camera->build(*pipeline, command_buffer));
+
+    if (scene.cameras_updated()) {
+        pipeline->_cameras.reserve(scene.cameras().size());
+        for (auto camera : scene.cameras()) {
+            pipeline->_cameras.emplace_back(camera->build(*pipeline, command_buffer));
+        }
+        update_bindless_if_dirty();
     }
-    scene.clear_cameras_update();
-    update_bindless_if_dirty();
 
     pipeline->_geometry = luisa::make_unique<Geometry>(*pipeline);
     if (scene.shapes_updated()) {
-        pipeline->_geometry->build(command_buffer, scene.shapes(), pipeline->_initial_time, template_mapping);
-        scene.clear_shapes_update();
+        pipeline->_geometry->build(command_buffer, scene.shapes(), pipeline->_initial_time);
+        update_bindless_if_dirty();
     }
 
-    update_bindless_if_dirty();
     if (auto env = scene.environment(); env != nullptr && !env->is_black()) {
         pipeline->_environment = env->build(*pipeline, command_buffer);
     }
@@ -90,13 +91,21 @@ luisa::unique_ptr<Pipeline> Pipeline::create(
     }
     update_bindless_if_dirty();
     pipeline->_integrator = scene.integrator()->build(*pipeline, command_buffer);
-    if (!pipeline->_transforms.empty()) {
+
+    if (scene.transforms_updated() || _transforms_updated) {
+        for (auto i = 0u; i < _transforms.size(); ++i) {
+            _transform_matrices[i] = _transforms[i]->matrix(time);
+        }
         command_buffer << pipeline->_transform_matrix_buffer
                           .view(0u, pipeline->_transforms.size())
                           .copy_from(pipeline->_transform_matrices.data());
+        update_bindless_if_dirty();
+        _transforms_updated = false;
     }
-    update_bindless_if_dirty();
+
     command_buffer << compute::commit();
+    scene.clear_update();
+    
     LUISA_INFO("Created pipeline with {} camera(s), {} shape instance(s), "
                "{} surface instance(s), and {} light instance(s).",
                pipeline->_cameras.size(),
@@ -107,8 +116,7 @@ luisa::unique_ptr<Pipeline> Pipeline::create(
 }
 
 void Pipeline::scene_update(
-    Stream &stream, Scene &scene, float time,
-    const Geometry::TemplateMapping &template_mapping) noexcept {
+    Stream &stream, Scene &scene, float time) noexcept {
     global_thread_pool().synchronize();
     CommandBuffer command_buffer{&stream};
 
@@ -117,27 +125,29 @@ void Pipeline::scene_update(
             command_buffer << _bindless_array.update();
         }
     };
+    update_bindless_if_dirty();
 
     if (scene.cameras_updated()) {
         _cameras.clear();
         _cameras.reserve(scene.cameras().size());
 
-        update_bindless_if_dirty();
         for (auto camera : scene.cameras()) {
             _cameras.emplace_back(camera->build(*this, command_buffer));
         }
         update_bindless_if_dirty();
-        scene.clear_cameras_update();
     }
 
     if (scene.shapes_updated()) {
         _geometry = luisa::make_unique<Geometry>(*this);
-        _geometry->build(command_buffer, scene.shapes(), time, template_mapping);
+        _geometry->build(command_buffer, scene.shapes(), time);
         update_bindless_if_dirty();
-        scene.clear_shapes_update();
     }
     
-    if (!_transforms.empty()) {
+    if (scene.environment_updated() && !scene.environment()->is_black()) {
+        _environment = scene.environment()->build(*this, command_buffer);
+    }
+
+    if (scene.transforms_updated() || _transforms_updated) {
         for (auto i = 0u; i < _transforms.size(); ++i) {
             _transform_matrices[i] = _transforms[i]->matrix(time);
         }
@@ -145,22 +155,25 @@ void Pipeline::scene_update(
                           .view(0u, _transforms.size())
                           .copy_from(_transform_matrices.data());
         update_bindless_if_dirty();
+        _transforms_updated = false;
     }
     command_buffer << compute::commit();
+    scene.clear_update();
 }
 
 bool Pipeline::update(CommandBuffer &command_buffer, float time) noexcept {
     // TODO: support deformable meshes
     auto updated = _geometry->update(command_buffer, time);
-    if (_any_dynamic_transforms) {
-        updated = true;
-        for (auto i = 0u; i < _transforms.size(); ++i) {
-            _transform_matrices[i] = _transforms[i]->matrix(time);
-        }
-        command_buffer << _transform_matrix_buffer.view(0u, _transforms.size())
-                              .copy_from(_transform_matrices.data());
-    }
     return updated;
+    // if (_any_dynamic_transforms) {
+    //     updated = true;
+    //     for (auto i = 0u; i < _transforms.size(); ++i) {
+    //         _transform_matrices[i] = _transforms[i]->matrix(time);
+    //     }
+    //     command_buffer << _transform_matrix_buffer
+    //                       .view(0u, _transforms.size())
+    //                       .copy_from(_transform_matrices.data());
+    // }
 }
 
 void Pipeline::render(Stream &stream) noexcept {
@@ -206,8 +219,8 @@ void Pipeline::register_transform(const Transform *transform) noexcept {
                      "Transform matrix buffer overflows.");
         _transform_to_id.emplace(transform, transform_id);
         _transforms.emplace_back(transform);
-        _any_dynamic_transforms |= !transform->is_static();
-        _transform_matrices[transform_id] = transform->matrix(_initial_time);
+        _transforms_updated = true;
+        // _transform_matrices[transform_id] = transform->matrix(_initial_time);
     }
 }
 

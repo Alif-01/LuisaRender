@@ -82,10 +82,7 @@ public:
 
     GlassSurface(Scene *scene, const RawSurfaceInfo &surface_info) noexcept
         : Surface{scene},
-          _kr{surface_info.is_color ? 
-              scene->add_constant_texture("texture_constant", {
-                surface_info.color[0], surface_info.color[1], surface_info.color[2]}) :
-              scene->add_image_texture("texture_image", surface_info.image, surface_info.image_scale)},
+          _kr{scene->add_texture("surface_kr", surface_info.texture_info)},
           _kt{nullptr},
           _roughness{scene->add_constant_texture("texture_constant", {surface_info.roughness})},
           _remap_roughness{true}, _eta{nullptr} {}
@@ -185,7 +182,7 @@ private:
         auto distribution = TrowbridgeReitzDistribution{ctx.alpha};
         auto fresnel = FresnelDielectric{ctx.eta_i, ctx.eta_t};
         auto refl = MicrofacetReflection{ctx.Kr, &distribution, &fresnel};
-        auto trans = MicrofacetTransmission{ctx.Kt, &distribution, ctx.eta_i, ctx.eta_t};
+        auto transform_info = MicrofacetTransmission{ctx.Kt, &distribution, ctx.eta_i, ctx.eta_t};
 
         auto wo_local = it.shading().world_to_local(wo);
         auto wi_local = it.shading().world_to_local(wi);

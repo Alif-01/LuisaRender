@@ -12,6 +12,10 @@ Environment::Environment(Scene *scene, const SceneNodeDesc *desc) noexcept
     : SceneNode{scene, desc, SceneNodeTag::ENVIRONMENT},
       _transform{scene->load_transform(desc->property_node_or_default("transform"))} {}
 
+Environment::Environment(Scene *scene, const RawEnvironmentInfo &environment_info) noexcept
+    : SceneNode{scene, SceneNodeTag::ENVIRONMENT},
+      _transform{scene->update_transform(environment_info.transform_info)} {}
+
 Environment::Instance::Instance(Pipeline &pipeline, const Environment *env) noexcept
     : _pipeline{pipeline}, _env{env} { pipeline.register_transform(env->transform()); }
 

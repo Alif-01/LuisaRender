@@ -56,7 +56,6 @@ public:
     };
 
     static_assert(sizeof(MeshData) == 16u);
-    using TemplateMapping = luisa::unordered_map<luisa::string, MeshView>;
 
 private:
     Pipeline &_pipeline;
@@ -75,7 +74,6 @@ private:
 private:
     void _process_shape(
         CommandBuffer &command_buffer, const Shape *shape, float init_time,
-        const TemplateMapping &template_mapping,
         const Surface *overridden_surface = nullptr,
         const Light *overridden_light = nullptr,
         const Medium *overridden_medium = nullptr,
@@ -84,10 +82,7 @@ private:
 public:
     explicit Geometry(Pipeline &pipeline) noexcept : _pipeline{pipeline} {};
     ~Geometry() noexcept;
-    void build(CommandBuffer &command_buffer,
-               luisa::span<const Shape *const> shapes,
-               float init_time,
-               const TemplateMapping &template_mapping) noexcept;
+    void build(CommandBuffer &command_buffer, luisa::span<const Shape *const> shapes, float init_time) noexcept;
     bool update(CommandBuffer &command_buffer, float time) noexcept;
     [[nodiscard]] auto instances() const noexcept { return luisa::span{_instances}; }
     [[nodiscard]] auto light_instances() const noexcept { return luisa::span{_instanced_lights}; }

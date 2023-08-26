@@ -20,6 +20,11 @@ using compute::Ray;
 class Shape;
 class Interaction;
 
+struct RawLightInfo {
+    luisa::string name;
+    RawTextureInfo texture_info;
+};
+
 class Light : public SceneNode {
 
 public:
@@ -98,6 +103,7 @@ public:
 
 public:
     Light(Scene *scene, const SceneNodeDesc *desc) noexcept;
+    Light(Scene *scene) noexcept;
     [[nodiscard]] virtual bool is_null() const noexcept { return false; }
     [[nodiscard]] virtual luisa::unique_ptr<Instance> build(
         Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept = 0;

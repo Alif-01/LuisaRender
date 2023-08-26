@@ -161,12 +161,18 @@ Camera::Camera(Scene *scene, const RawCameraInfo &camera_info) noexcept
     _file = std::filesystem::current_path() / luisa::format("render_{}.exr", camera_info.name);
 }
 
-void Camera::update_camera(Scene *scene, luisa::string_view name, const RawTransform &trans) noexcept {
-    if (trans.empty) return;
-    auto append_transform = scene->update_transform(luisa::format("{}_append_transform", name), trans);
+bool Camera::update_camera(Scene *scene, luisa::string_view name, const RawTransformInfo &transform_info) noexcept {
+    if (transform_info.empty) return false;
+    auto append_transform = scene->update_transform(luisa::format("{}_append_transform", name), transform_info);
     auto append_matrix = append_transform->matrix(0.f);
     auto matrix = append_matrix * _base_transform->matrix(0.f);
-    _transform = scene->update_transform(luisa::format("{}_transform", name), RawTransform(matrix));
+    auto new_transform = scene->update_transform(luisa::format("{}_transform", name), RawTransformInfo(matrix));
+    if (_transform == new_transform) {
+        return false;
+    } else {
+        _transform = new_transform;
+        return true;
+    }
 }
 
 void Camera::_build_transform(
@@ -180,7 +186,7 @@ void Camera::_build_transform(
     d.add_property("up", SceneNodeDesc::number_list{up.x, up.y, up.z});
     _base_transform = scene->load_transform(&d);
     auto matrix = append_matrix * _base_transform->matrix(0.f);
-    _transform = scene->update_transform(luisa::format("{}_transform", name), RawTransform(matrix));
+    _transform = scene->update_transform(luisa::format("{}_transform", name), RawTransformInfo(matrix));
 }
 
 auto Camera::shutter_weight(float time) const noexcept -> float {

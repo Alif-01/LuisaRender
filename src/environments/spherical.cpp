@@ -31,6 +31,10 @@ public:
           _emission{scene->load_texture(desc->property_node("emission"))},
           _scale{std::max(desc->property_float_or_default("scale", 1.0f), 0.0f)},
           _compensate_mis{desc->property_bool_or_default("compensate_mis", true)} {}
+    Spherical(Scene *scene, const RawEnvironmentInfo &environment_info) noexcept
+        : Environment{scene, environment_info},
+          _emission{scene->add_texture(environment_info.texture_info)},
+          _scale{1.0f}, _compensate_mis{true} {}
     [[nodiscard]] auto scale() const noexcept { return _scale; }
     [[nodiscard]] auto compensate_mis() const noexcept { return _compensate_mis; }
     [[nodiscard]] auto emission() const noexcept { return _emission; }
@@ -227,3 +231,8 @@ luisa::unique_ptr<Environment::Instance> Spherical::build(
 }// namespace luisa::render
 
 LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::Spherical)
+
+LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
+    luisa::render::Scene *scene, const luisa::render::RawEnvironmentInfo &environment_info) LUISA_NOEXCEPT {
+    return luisa::new_with_allocator<luisa::render::Spherical>(scene, environment_info);
+}

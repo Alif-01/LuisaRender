@@ -13,7 +13,7 @@ Transform::Transform(Scene *scene, const SceneNodeDesc *desc) noexcept
 Transform::Transform(Scene *scene) noexcept
     : SceneNode{scene, SceneNodeTag::TRANSFORM} {}
 
-void Transform::update_transform(Scene *scene, const RawTransform &trans) noexcept {
+void Transform::update_transform(Scene *scene, const RawTransformInfo &transform_info) noexcept {
     LUISA_NOT_IMPLEMENTED();
 }
 

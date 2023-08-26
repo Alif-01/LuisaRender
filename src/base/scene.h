@@ -38,7 +38,7 @@ class Spectrum;
 class Medium;
 class PhaseFunction;
 
-struct RawTransform;
+struct RawTransformInfo;
 struct RawShapeInfo;
 struct CameraStorage;
 struct RawCameraInfo;
@@ -95,17 +95,19 @@ public:
     
     [[nodiscard]] Film *add_film(luisa::string_view name, const uint2 &resolution) noexcept;
     [[nodiscard]] Filter *add_filter(luisa::string_view name, const float &radius) noexcept;
-    [[nodiscard]] Transform *update_transform(luisa::string_view name, const RawTransform &trans) noexcept;
+
+    [[nodiscard]] Environment *add_environment(const RawEnvironmentInfo &environment_info) noexcept;
+    [[nodiscard]] Light *add_light(const RawLightInfo &light_info) noexcept;
+    [[nodiscard]] Texture *add_texture(luisa::string_view name, const RawTextureInfo &texture_info) noexcept;
     [[nodiscard]] Texture *add_constant_texture(luisa::string_view name, const luisa::vector<float> &v) noexcept;
-    [[nodiscard]] Texture *add_image_texture(
-        luisa::string_view name, luisa::string_view image, const float &image_scale) noexcept;
-    [[nodiscard]] Shape *update_shape(const RawShapeInfo &shape_info, luisa::string impl_type, bool require_first) noexcept;
-    // [[nodiscard]] Shape *update_particles(const RawSpheresInfo &sphere_infos) noexcept;
-    [[nodiscard]] Camera *add_camera(const RawCameraInfo &camera_info,
-        luisa::unordered_map<luisa::string, CameraStorage> &camera_storage, Device &device) noexcept;
-    [[nodiscard]] Camera *update_camera(luisa::string_view name, const RawTransform &trans) noexcept;
+    // [[nodiscard]] Texture *add_image_texture(
+    //     luisa::string_view name, luisa::string_view image, const float &image_scale) noexcept;
     [[nodiscard]] Surface *add_surface(const RawSurfaceInfo &surface_info) noexcept;
-    void append_shape(Shape *shape) noexcept;
+
+    [[nodiscard]] Transform *update_transform(luisa::string_view name, const RawTransformInfo &transform_info) noexcept;
+    [[nodiscard]] Camera *add_camera(const RawCameraInfo &camera_info) noexcept;
+    [[nodiscard]] Camera *update_camera(luisa::string_view name, const RawTransformInfo &transform_info) noexcept;
+    [[nodiscard]] Shape *update_shape(const RawShapeInfo &shape_info, luisa::string impl_type, bool require_first) noexcept;
 
 public:
     [[nodiscard]] static luisa::unique_ptr<Scene> create(

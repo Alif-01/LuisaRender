@@ -17,23 +17,21 @@ Geometry::~Geometry() noexcept {
 
 void Geometry::build(CommandBuffer &command_buffer,
                      luisa::span<const Shape *const> shapes,
-                     float init_time,
-                     const Geometry::TemplateMapping &template_mapping) noexcept {
+                     float init_time) noexcept {
     // TODO: AccelOption
     _accel = _pipeline.device().create_accel({});
     for (auto i = 0u; i < 3u; ++i) {
         _world_max[i] = -std::numeric_limits<float>::max();
         _world_min[i] = std::numeric_limits<float>::max();
     }
-    for (auto shape : shapes) { _process_shape(command_buffer, shape, init_time, template_mapping, nullptr); }
+    for (auto shape : shapes) { _process_shape(command_buffer, shape, init_time, nullptr); }
     _instance_buffer = _pipeline.device().create_buffer<uint4>(_instances.size());
     command_buffer << _instance_buffer.copy_from(_instances.data())
                    << _accel.build();
 }
 
 void Geometry::_process_shape(
-    CommandBuffer &command_buffer, const Shape *shape, float init_time,
-    const Geometry::TemplateMapping &template_mapping,
+    CommandBuffer &command_buffer, const Shape *shape, float init_time
     const Surface *overridden_surface,
     const Light *overridden_light,
     const Medium *overridden_medium,
@@ -54,12 +52,13 @@ void Geometry::_process_shape(
             //     return iter->second;
             // }
             auto mesh_geom = [&] {
-                if (shape->is_template_mesh() && !template_mapping.contains(shape->template_id())) [[unlikely]] {
-                    LUISA_ERROR_WITH_LOCATION("Template mesh '{}' missing.", shape->template_id());
-                }
-                auto [vertices, triangles] = shape->is_template_mesh()
-                            ? template_mapping.at(shape->template_id())
-                            : shape->mesh();
+                // if (shape->is_template_mesh() && !template_mapping.contains(shape->template_id())) [[unlikely]] {
+                //     LUISA_ERROR_WITH_LOCATION("Template mesh '{}' missing.", shape->template_id());
+                // }
+                // auto [vertices, triangles] = shape->is_template_mesh()
+                //             ? template_mapping.at(shape->template_id())
+                //             : shape->mesh();
+                auto [vertices, triangles] = shape->mesh();
                 LUISA_ASSERT(!vertices.empty() && !triangles.empty(), "Empty mesh.");
                 auto hash = luisa::hash64(vertices.data(), vertices.size_bytes(), luisa::hash64_default_seed);
                 hash = luisa::hash64(triangles.data(), triangles.size_bytes(), hash);
@@ -100,8 +99,8 @@ void Geometry::_process_shape(
                 LUISA_ASSERT(alias_buffer_id - vertex_buffer_id == Shape::Handle::alias_table_buffer_id_offset, "Invalid.");
                 LUISA_ASSERT(pdf_buffer_id - vertex_buffer_id == Shape::Handle::pdf_buffer_id_offset, "Invalid.");
                 command_buffer << alias_table_buffer_view.copy_from(alias_table.data())
-                               << pdf_buffer_view.copy_from(pdf.data());
-                command_buffer << compute::commit();
+                               << pdf_buffer_view.copy_from(pdf.data())
+                               << compute::commit();
                 auto geom = MeshGeometry{mesh, vertex_buffer_id};
                 _mesh_cache.emplace(hash, geom);
                 return geom;
@@ -164,7 +163,7 @@ void Geometry::_process_shape(
     } else {
         _transform_tree.push(shape->transform());
         for (auto child : shape->children()) {
-            _process_shape(command_buffer, child, init_time, template_mapping, surface, light, medium, visible);
+            _process_shape(command_buffer, child, init_time, surface, light, medium, visible);
         }
         _transform_tree.pop(shape->transform());
     }

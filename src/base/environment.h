@@ -10,7 +10,14 @@
 namespace luisa::render {
 
 class Transform;
+class RawTransformInfo;
+class RawTextureInfo;
 using compute::Float3x3;
+
+struct RawEnvironmentInfo {
+    RawTextureInfo texture_info;
+    RawTransformInfo transform_info;
+};
 
 class Environment : public SceneNode {
 
@@ -53,6 +60,7 @@ private:
 
 public:
     Environment(Scene *scene, const SceneNodeDesc *desc) noexcept;
+    Environment(Scene *scene, const RawEnvironmentInfo &environment_info) noexcept;
     [[nodiscard]] auto transform() const noexcept { return _transform; }
     [[nodiscard]] virtual bool is_black() const noexcept = 0;
     [[nodiscard]] virtual luisa::unique_ptr<Instance> build(

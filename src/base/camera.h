@@ -23,7 +23,7 @@ using compute::Var;
 
 class Sampler;
 class Transform;
-class RawTransform;
+class RawTransformInfo;
 
 struct RawCameraInfo {
     void print_info() {
@@ -46,6 +46,10 @@ struct RawCameraInfo {
 };
 
 struct CameraStorage {
+    CameraStorage(uint index, Device* device, uint pixel_count) noexcept:
+        index{index},
+        hdr_buffer{device->create_buffer<float>(pixel_count)},
+        denoised_buffer{device->create_buffer<float>(pixel_count)} {} 
     uint index;
     Buffer<float> hdr_buffer;
     Buffer<float> denoised_buffer;
@@ -133,7 +137,7 @@ private:
 public:
     Camera(Scene *scene, const SceneNodeDesc *desc) noexcept;
     Camera(Scene *scene, const RawCameraInfo &camera_info) noexcept;
-    virtual void update_camera(Scene *scene, luisa::string_view name, const RawTransform &trans) noexcept;
+    [[nodiscard]] virtual bool update_camera(Scene *scene, luisa::string_view name, const RawTransformInfo &transform_info) noexcept;
     [[nodiscard]] auto film() const noexcept { return _film; }
     [[nodiscard]] auto filter() const noexcept { return _filter; }
     [[nodiscard]] auto transform() const noexcept { return _transform; }

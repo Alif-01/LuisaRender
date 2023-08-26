@@ -24,8 +24,7 @@ private:
         luisa::vector<float> v(ov.begin(), ov.end());
         if (v.empty()) [[unlikely]] {
             LUISA_WARNING(
-                "No value for ConstantTexture. "
-                "Fallback to single-channel zero. [{}]",
+                "No value for ConstantTexture. Fallback to single-channel zero. [{}]",
                 l.string());
             v.emplace_back(0.f);
         } else if (v.size() > 4u) [[unlikely]] {
@@ -50,9 +49,10 @@ public:
         _build_constant(desc->source_location(), scale, v);
     }
     
-    ConstantTexture(Scene *scene, const luisa::vector<float> &v) noexcept
-        : Texture{scene}, _should_inline{true} {
-        _build_constant(SceneNodeDesc::SourceLocation(), 1.f, v);
+    ConstantTexture(Scene *scene, const RawTextureInfo &texture_info) noexcept
+        : Texture{scene}, _should_inline{true}, _v{texture_info.color} {
+        _channels = 4;
+        _black = all(_v == 0.f);
     }
 
     [[nodiscard]] auto v() const noexcept { return _v; }

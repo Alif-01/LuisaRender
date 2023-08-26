@@ -27,10 +27,7 @@ public:
 
     MatteSurface(Scene *scene, const RawSurfaceInfo &surface_info) noexcept
         : Surface{scene},
-          _kd{surface_info.is_color ? 
-              scene->add_constant_texture("texture_constant", {
-                surface_info.color[0], surface_info.color[1], surface_info.color[2]}) :
-              scene->add_image_texture("texture_image", surface_info.image, surface_info.image_scale)},
+          _kd{scene->add_texture("surface_kd", surface_info.texture_info)},
           _sigma{scene->add_constant_texture("texture_constant", {surface_info.roughness})} {}
 
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }

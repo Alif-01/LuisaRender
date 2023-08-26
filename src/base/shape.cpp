@@ -25,13 +25,13 @@ Shape::Shape(Scene *scene, const RawShapeInfo &shape_info) noexcept
       _surface{dynamic_cast<Surface *>(scene->load_node_from_name(shape_info.surface))},
       _light{nullptr},
       _transform{scene->update_transform(
-        luisa::format("{}_transform", shape_info.name), shape_info.trans)
+        luisa::format("{}_transform", shape_info.name), shape_info.transform_info)
       },
       _medium{nullptr} {}
       
 void Shape::update_shape(Scene *scene, const RawShapeInfo &shape_info) noexcept {
-    if (!shape_info.trans.empty) _transform = scene->update_transform(
-        luisa::format("{}_transform", shape_info.name), shape_info.trans);
+    if (!shape_info.transform_info.empty) _transform = scene->update_transform(
+        luisa::format("{}_transform", shape_info.name), shape_info.transform_info);
     // if (!shape_info.surface.empty()) _surface = dynamic_cast<Surface *>(
     //     scene->load_node_from_name(shape_info.surface));
     // if (!shape_info.light.empty()) _light = dynamic_cast<Light *>(

@@ -61,10 +61,7 @@ public:
 
     PlasticSurface(Scene *scene, const RawSurfaceInfo &surface_info) noexcept
         : Surface{scene},
-          _kd{surface_info.is_color ? 
-              scene->add_constant_texture("texture_constant", {
-                surface_info.color[0], surface_info.color[1], surface_info.color[2]}) :
-              scene->add_image_texture("texture_image", surface_info.image, surface_info.image_scale)},
+          _kd{scene->add_texture("surface_kr", surface_info.texture_info)},
           _roughness{scene->add_constant_texture("texture_constant", {surface_info.roughness})},
           _sigma_a{nullptr}, _eta{nullptr}, _thickness{nullptr}, _remap_roughness{true} {}
 

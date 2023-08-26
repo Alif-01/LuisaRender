@@ -138,10 +138,7 @@ public:
     MetalSurface(Scene *scene, const RawSurfaceInfo &surface_info) noexcept
         : Surface{scene},
           _roughness{scene->add_constant_texture("texture_constant", {surface_info.roughness})},
-          _kd{surface_info.is_color ? 
-              scene->add_constant_texture("texture_constant", {
-                surface_info.color[0], surface_info.color[1], surface_info.color[2]}) :
-              scene->add_image_texture("texture_image", surface_info.image, surface_info.image_scale)},
+          _kd{scene->add_texture("surface_kd", surface_info.texture_info)},
           _remap_roughness{true} {
         _ior = _register_eta_k("__internal_ior_Al", ior::Al);
     }

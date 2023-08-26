@@ -25,11 +25,11 @@ public:
                   luisa::scaling(scaling);
     }
 
-    ScaleRotateTranslate(Scene *scene, const RawTransform &trans) noexcept
+    ScaleRotateTranslate(Scene *scene, const RawTransformInfo &transform_info) noexcept
         : Transform{scene} {
-        auto scaling = trans.scale;
-        auto rotation = trans.rotate;
-        auto translation = trans.translate;
+        auto scaling = transform_info.scale;
+        auto rotation = transform_info.rotate;
+        auto translation = transform_info.translate;
         _matrix = luisa::translation(translation) *
                   luisa::rotation(normalize(rotation.xyz()), radians(rotation.w)) *
                   luisa::scaling(scaling);
@@ -44,10 +44,10 @@ public:
                all(_matrix[2] == make_float4(0.0f, 0.0f, 1.0f, 0.0f)) &&
                all(_matrix[3] == make_float4(0.0f, 0.0f, 0.0f, 1.0f));
     }
-    void update_transform(Scene *scene, const RawTransform &trans) noexcept override {
-        auto scaling = trans.scale;
-        auto rotation = trans.rotate;
-        auto translation = trans.translate;
+    void update_transform(Scene *scene, const RawTransformInfo &transform_info) noexcept override {
+        auto scaling = transform_info.scale;
+        auto rotation = transform_info.rotate;
+        auto translation = transform_info.translate;
         _matrix = luisa::translation(translation) *
                   luisa::rotation(normalize(rotation.xyz()), radians(rotation.w)) *
                   luisa::scaling(scaling);
@@ -59,6 +59,6 @@ public:
 LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::ScaleRotateTranslate)
 
 LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
-    luisa::render::Scene *scene, const luisa::render::RawTransform &trans) LUISA_NOEXCEPT {
-    return luisa::new_with_allocator<luisa::render::ScaleRotateTranslate>(scene, trans);
+    luisa::render::Scene *scene, const luisa::render::RawTransformInfo &transform_info) LUISA_NOEXCEPT {
+    return luisa::new_with_allocator<luisa::render::ScaleRotateTranslate>(scene, transform_info);
 }
