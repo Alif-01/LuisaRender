@@ -38,11 +38,13 @@ class Spectrum;
 class Medium;
 class PhaseFunction;
 
-struct RawTransformInfo;
-struct RawShapeInfo;
-struct CameraStorage;
-struct RawCameraInfo;
+struct RawTextureInfo;
+struct RawLightInfo;
+struct RawEnvironmentInfo;
 struct RawSurfaceInfo;
+struct RawTransformInfo;
+struct RawCameraInfo;
+struct RawShapeInfo;
 
 class Scene {
 
@@ -110,21 +112,21 @@ public:
     [[nodiscard]] Shape *update_shape(const RawShapeInfo &shape_info, luisa::string impl_type, bool require_first) noexcept;
 
 public:
-    [[nodiscard]] static luisa::unique_ptr<Scene> create(
-        const Context &ctx, const SceneDesc *desc, Device &device,
-        luisa::unordered_map<luisa::string, CameraStorage> &camera_storage) noexcept;
+    [[nodiscard]] static luisa::unique_ptr<Scene> create(const Context &ctx, const SceneDesc *desc) noexcept;
     [[nodiscard]] const Integrator *integrator() const noexcept;
     [[nodiscard]] const Environment *environment() const noexcept;
     [[nodiscard]] const Medium *environment_medium() const noexcept;
     [[nodiscard]] const Spectrum *spectrum() const noexcept;
     [[nodiscard]] luisa::span<const Shape *const> shapes() const noexcept;
     [[nodiscard]] luisa::span<const Camera *const> cameras() const noexcept;
-    [[nodiscard]] bool shapes_updated() const noexcept;
-    [[nodiscard]] bool cameras_updated() const noexcept;
-    void clear_shapes_update() noexcept;
-    void clear_cameras_update() noexcept;
     [[nodiscard]] float shadow_terminator_factor() const noexcept;
     [[nodiscard]] float intersection_offset_factor() const noexcept;
+
+    [[nodiscard]] bool shapes_updated() const noexcept;
+    [[nodiscard]] bool cameras_updated() const noexcept;
+    [[nodiscard]] bool transforms_updated() const noexcept;
+    [[nodiscard]] bool environment_updated() const noexcept;
+    void clear_update() noexcept;
 };
 
 }// namespace luisa::render

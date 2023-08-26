@@ -8,6 +8,7 @@
 #include <luisa/runtime/bindless_array.h>
 #include <util/spec.h>
 #include <base/scene_node.h>
+#include <base/raw_type.h>
 #include <base/sampler.h>
 #include <base/shape.h>
 #include <base/spectrum.h>
@@ -19,11 +20,6 @@ using compute::Ray;
 
 class Shape;
 class Interaction;
-
-struct RawLightInfo {
-    luisa::string name;
-    RawTextureInfo texture_info;
-};
 
 class Light : public SceneNode {
 

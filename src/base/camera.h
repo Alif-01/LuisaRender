@@ -6,6 +6,7 @@
 
 #include <luisa/dsl/syntax.h>
 #include <base/scene_node.h>
+#include <base/raw_type.h>
 #include <base/sampler.h>
 #include <base/film.h>
 #include <base/filter.h>
@@ -23,37 +24,6 @@ using compute::Var;
 
 class Sampler;
 class Transform;
-class RawTransformInfo;
-
-struct RawCameraInfo {
-    void print_info() {
-        LUISA_INFO(
-            "Adding camera {}: from: ({}, {}, {}), to: ({}, {}, {}), up: ({}, {}, {}),"
-            "fov: {}, spp: {}, res: ({} x {})",
-            name, position[0], position[1], position[2],
-            look_at[0], look_at[1], look_at[2],
-            up[0], up[1], up[2],
-            fov, spp, resolution[0], resolution[1]
-        );
-    }
-
-    luisa::string name;
-    float3 position, look_at, up;
-    float fov;
-    uint spp;
-    float radius;
-    uint2 resolution;
-};
-
-struct CameraStorage {
-    CameraStorage(uint index, Device* device, uint pixel_count) noexcept:
-        index{index},
-        hdr_buffer{device->create_buffer<float>(pixel_count)},
-        denoised_buffer{device->create_buffer<float>(pixel_count)} {} 
-    uint index;
-    Buffer<float> hdr_buffer;
-    Buffer<float> denoised_buffer;
-};
 
 class Camera : public SceneNode {
 

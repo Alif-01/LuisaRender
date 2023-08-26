@@ -92,15 +92,15 @@ luisa::unique_ptr<Pipeline> Pipeline::create(
     update_bindless_if_dirty();
     pipeline->_integrator = scene.integrator()->build(*pipeline, command_buffer);
 
-    if (scene.transforms_updated() || _transforms_updated) {
-        for (auto i = 0u; i < _transforms.size(); ++i) {
-            _transform_matrices[i] = _transforms[i]->matrix(time);
+    if (scene.transforms_updated() || pipeline->_transforms_updated) {
+        for (auto i = 0u; i < pipeline->_transforms.size(); ++i) {
+            pipeline->_transform_matrices[i] = pipeline->_transforms[i]->matrix(initial_time);
         }
         command_buffer << pipeline->_transform_matrix_buffer
                           .view(0u, pipeline->_transforms.size())
                           .copy_from(pipeline->_transform_matrices.data());
         update_bindless_if_dirty();
-        _transforms_updated = false;
+        pipeline->_transforms_updated = false;
     }
 
     command_buffer << compute::commit();

@@ -284,7 +284,7 @@ Environment *Scene::add_environment(const RawEnvironmentInfo &environment_info) 
 
     std::scoped_lock lock{_mutex};
     auto node = _config->internal_nodes.emplace_back(std::move(handle)).get();
-    Envrionment *environment = dynamic_cast<Environment *>(node);
+    Environment *environment = dynamic_cast<Environment *>(node);
     _config->environment = environment;
     _config->environment_updated = true;
 
@@ -292,7 +292,7 @@ Environment *Scene::add_environment(const RawEnvironmentInfo &environment_info) 
 }
 
 Light *Scene::add_light(const RawLightInfo &light_info) noexcept {
-    using NodeCreater = SceneNode *(Scene *, const RawTextureInfo &);
+    using NodeCreater = SceneNode *(Scene *, const RawLightInfo &);
     // luisa::string impl_type = texture_info.is_image() ? "image" : "constant";
 
     auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::LIGHT, "diffuse", "create_raw");
@@ -312,7 +312,7 @@ Texture *Scene::add_texture(luisa::string_view name, const RawTextureInfo &textu
     luisa::string impl_type = texture_info.is_image() ? "image" : "constant";
 
     auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::TEXTURE, impl_type, "create_raw");
-    NodeHandle handle = handle_creater(this, v);
+    NodeHandle handle = handle_creater(this, texture_info);
     
     std::scoped_lock lock{_mutex};
     return dynamic_cast<Texture *>(_config->internal_nodes.emplace_back(std::move(handle)).get());
@@ -320,7 +320,7 @@ Texture *Scene::add_texture(luisa::string_view name, const RawTextureInfo &textu
 
 Texture *Scene::add_constant_texture(luisa::string_view name, const luisa::vector<float> &v) noexcept {
     using NodeCreater = SceneNode *(Scene *, const luisa::vector<float> &);
-    auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::TEXTURE, "constant", "create_raw");
+    auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::TEXTURE, "constant", "create_dir");
     NodeHandle handle = handle_creater(this, v);
     
     std::scoped_lock lock{_mutex};
@@ -442,9 +442,7 @@ Shape *Scene::update_shape(
     return shape;
 }
 
-luisa::unique_ptr<Scene> Scene::create(
-    const Context &ctx, const SceneDesc *desc, Device &device,
-    luisa::unordered_map<luisa::string, CameraStorage> &camera_storage) noexcept {
+luisa::unique_ptr<Scene> Scene::create(const Context &ctx, const SceneDesc *desc) noexcept {
     if (!desc->root()->is_defined()) [[unlikely]] {
         LUISA_ERROR_WITH_LOCATION("Root node is not defined in the scene description.");
     }
@@ -461,21 +459,17 @@ luisa::unique_ptr<Scene> Scene::create(
     auto shapes = desc->root()->property_node_list_or_default("shapes");
     scene->_config->cameras.reserve(cameras.size());
     scene->_config->shapes.reserve(shapes.size());
-    scene->_config->cameras_updated = cameras.size() > 0;
-    scene->_config->shapes_updated = shapes.size() > 0;
     for (auto c : cameras) {
-        auto camera = scene->load_camera(c);
-        auto resolution = camera->film()->resolution();
-        camera_storage[c->identifier()] = CameraStorage {
-            uint(scene->_config->cameras.size()),
-            device.create_buffer<float>(resolution.x * resolution.y * 4),
-            device.create_buffer<float>(resolution.x * resolution.y * 4)
-        };
-        scene->_config->cameras.emplace_back(camera);
+        scene->_config->cameras.emplace_back(scene->load_camera(c));
     }
     for (auto s : shapes) {
         scene->_config->shapes.emplace_back(scene->load_shape(s));
     }
+
+    scene->_config->cameras_updated = scene->_config->cameras.size() > 0;
+    scene->_config->shapes_updated = scene->_config->shapes.size() > 0;
+    scene->_config->environment_updated = scene->_config->environment != nullptr;
+
     global_thread_pool().synchronize();
     return scene;
 }

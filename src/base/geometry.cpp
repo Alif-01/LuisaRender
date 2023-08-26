@@ -31,7 +31,7 @@ void Geometry::build(CommandBuffer &command_buffer,
 }
 
 void Geometry::_process_shape(
-    CommandBuffer &command_buffer, const Shape *shape, float init_time
+    CommandBuffer &command_buffer, const Shape *shape, float init_time,
     const Surface *overridden_surface,
     const Light *overridden_light,
     const Medium *overridden_medium,

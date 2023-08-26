@@ -8,10 +8,9 @@
 #include <luisa/core/stl.h>
 #include <luisa/runtime/buffer.h>
 #include <base/scene_node.h>
+#include <base/raw_type.h>
 
 namespace luisa::render {
-
-struct RawTransformInfo;
 
 class Transform : public SceneNode {
 public:

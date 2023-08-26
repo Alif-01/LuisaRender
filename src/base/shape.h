@@ -8,6 +8,7 @@
 #include <util/half.h>
 #include <util/vertex.h>
 #include <base/scene_node.h>
+#include <base/raw_type.h>
 #include <base/scene.h>
 
 namespace luisa::render {
@@ -24,111 +25,6 @@ struct MeshView {
     luisa::span<const Vertex> vertices;
     luisa::span<const Triangle> triangles;
 };
-
-/* Keep the constructing methods (SRT or matrix) on same semantics */
-struct RawTransformInfo {
-    RawTransformInfo() noexcept = default;
-    RawTransformInfo(bool empty, float4x4 transform, float3 translate, float4 rotate, float3 scale) noexcept:
-        empty{empty}, transform{transform}, translate{translate}, rotate{rotate}, scale{scale} {}
-    RawTransformInfo(float4x4 transform) noexcept: transform{transform}, empty{false} {}
-    RawTransformInfo(float3 translate, float4 rotate, float3 scale) noexcept:
-        translate{translate}, rotate{rotate}, scale{scale}, empty{false} {}
-    
-    luisa::string get_info() const noexcept {
-        return is_srt() ? "tranform=SRT" :
-               is_matrix() ? "transform=matrix" : "No tranform";
-    }
-
-    [[nodiscard]] bool is_matrix() const noexcept {
-        return any(transform[0] != make_float4(1.0f, 0.0f, 0.0f, 0.0f)) ||
-               any(transform[1] != make_float4(0.0f, 1.0f, 0.0f, 0.0f)) ||
-               any(transform[2] != make_float4(0.0f, 0.0f, 1.0f, 0.0f)) ||
-               any(transform[3] != make_float4(0.0f, 0.0f, 0.0f, 1.0f));
-    }
-    [[nodiscard]] bool is_srt() const noexcept {
-        return any(translate != make_float3(0.f)) ||
-               any(rotate != make_float4(0.f)) ||
-               any(scale != make_float3(1.f));
-    }
-    
-    bool empty{true};
-    float4x4 transform{make_float4x4(1.f)};
-    float3 translate{make_float3(0.f)};
-    float4 rotate{make_float4(0.f)};
-    float3 scale{make_float3(1.f)};
-};
-
-struct RawShapeInfo {
-    using FloatArr = luisa::vector<float>;
-    using IntArr = luisa::vector<int>;
-    using UintArr = luisa::vector<uint>;
-    using StringArr = luisa::string;
-
-    struct RawSpheresInfo {
-        StringArr get_info() const noexcept {
-            return luisa::format("centers={}, subdiv={}", centers.size(), subdivision);
-        }
-
-        FloatArr centers;
-        float radius;
-        uint subdivision;
-    };
-
-    struct RawMeshInfo {
-        StringArr get_info() const noexcept {
-            return luisa::format(
-                "vertices={}, triangles={}, normals={}, uvs={}",
-                vertices.size(), triangles.size(), normals.size(), uvs.size()
-            );
-        }
-        
-        FloatArr vertices;
-        UintArr triangles;
-        FloatArr normals;
-        FloatArr uvs;
-    };
-
-    struct RawFileInfo {
-        StringArr get_info() const noexcept {
-            return luisa::format("file={}", file);
-        }
-        
-        StringArr file;
-    };
-
-    RawShapeInfo(StringArr &&name, RawTransformInfo &&transform_info,
-                 StringArr &&surface, StringArr &&light, StringArr &&medium) noexcept:
-        name{name}, transform_info{std::move(transform_info)}, surface{surface}, light{light}, medium{medium} {}
-
-    void print_info() const noexcept {
-        auto info_str = spheres_info != nullptr ? spheres_info->get_info() :
-                        mesh_info != nullptr ? mesh_info->get_info() : 
-                        file_info != nullptr ? file_info->get_info() : "";
-        LUISA_INFO("Updating shape {}: {}, {}, surface={}",
-                   name, info_str, transform_info.get_info(), surface);
-    }
-    void build_spheres_info(FloatArr &&centers, float &&radius, uint &&subdivision) noexcept {
-        spheres_info = luisa::make_unique<RawSpheresInfo>(std::move(centers), radius, subdivision);
-    }
-    void build_mesh_info(FloatArr &&vertices, UintArr &&triangles, FloatArr &&normals, FloatArr &&uvs) noexcept {
-        mesh_info = luisa::make_unique<RawMeshInfo>(
-            std::move(vertices), std::move(triangles), std::move(normals), std::move(uvs)
-        );
-    }
-    void build_file_info(StringArr &&file) noexcept {
-        file_info = luisa::make_unique<RawFileInfo>(std::move(file));
-    }
-
-    StringArr name;
-    RawTransformInfo transform_info;
-    luisa::unique_ptr<RawSpheresInfo> spheres_info;
-    luisa::unique_ptr<RawMeshInfo> mesh_info;
-    luisa::unique_ptr<RawFileInfo> file_info;
-    StringArr surface;
-    StringArr light;
-    StringArr medium;
-};
-
 
 class Shape : public SceneNode {
 

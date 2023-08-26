@@ -7,6 +7,7 @@
 #include <util/spec.h>
 #include <util/scattering.h>
 #include <base/scene_node.h>
+#include <base/raw_type.h>
 #include <base/texture.h>
 #include <base/sampler.h>
 #include <base/spectrum.h>
@@ -30,46 +31,6 @@ class Interaction;
 
 template<typename BaseSurface, typename BaseInstance>
 class OpacitySurfaceWrapper;
-
-struct RawTextureInfo {
-    RawTextureInfo() noexcept = default;
-    RawTextureInfo(bool empty, luisa::string image, float4 color) noexcept:
-        empty{empty}, image{image}, color{color} {}
-    RawTextureInfo(float4 color) noexcept:
-        color{color}, empty{false} {}
-    RawTextureInfo(luisa::string image, float4 image_scale) noexcept:
-        image{image}, color{image_scale}, empty{false} {}
-
-    luisa::string get_info() const noexcept {
-        return is_image() ? luisa::format("texture: image={}", image) :
-               is_color() ? "texture: color" : "No texture";
-    }
-
-    [[nodiscard]] bool is_image() const noexcept {
-        return !image.empty();
-    }
-
-    bool empty{true};
-    luisa::string image{};
-    float4 color{make_float4(1.f)};
-};
-
-struct RawSurfaceInfo {
-    static const luisa::string mat_string[5];
-    enum RawMaterial: uint { 
-        RAW_NULL, RAW_METAL, RAW_SUBSTRATE, RAW_MATTE, RAW_GLASS
-    };
-    
-    void print_info() const noexcept {
-        LUISA_INFO("Adding surface {}: {}, {}",
-                   name, mat_string[material], texture_info.get_info());
-    }
-
-    luisa::string name;
-    RawMaterial material;
-    RawTextureInfo texture_info;
-    float roughness;
-};
 
 class Surface : public SceneNode {
 
@@ -309,7 +270,8 @@ public:
           }(scene, desc)} {}
     OpacitySurfaceWrapper(Scene *scene, const RawSurfaceInfo &surface_info) noexcept
         : BaseSurface{scene, surface_info},
-          _opacity{scene->add_constant_texture("texture_constant", {surface_info.alpha})} {}
+        //   _opacity{scene->add_constant_texture("texture_constant", {surface_info.alpha})} {}
+          _opacity{nullptr} {}
 
 protected:
     [[nodiscard]] luisa::unique_ptr<Surface::Instance> _build(

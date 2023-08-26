@@ -28,7 +28,7 @@ private:
     float2 _uv_offset;
     TextureSampler _sampler{};
     Encoding _encoding{};
-    float4 _scale{make_float4{1.f}};
+    float4 _scale{make_float4(1.f)};
     float _gamma{1.f};
     uint _mipmaps{0u};
 
@@ -107,7 +107,6 @@ public:
                 return make_float4(desc->property_float_or_default("scale", 1.0f));
             })
         );
-        desc->property_float_or_default("scale", 1.f);
         _mipmaps = desc->property_uint_or_default(
             "mipmaps", filter_mode == TextureSampler::Filter::ANISOTROPIC ? 0u : 1u);
         if (filter_mode == TextureSampler::Filter::POINT) { _mipmaps = 1u; }
@@ -135,7 +134,7 @@ public:
     }
 
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
-    [[nodiscard]] bool is_black() const noexcept override { return _scale == 0.f; }
+    [[nodiscard]] bool is_black() const noexcept override { return all(_scale == 0.f); }
     [[nodiscard]] bool is_constant() const noexcept override { return false; }
     [[nodiscard]] auto scale() const noexcept { return _scale; }
     [[nodiscard]] auto gamma() const noexcept { return _gamma; }

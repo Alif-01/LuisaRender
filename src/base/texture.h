@@ -9,6 +9,7 @@
 #include <util/imageio.h>
 #include <util/half.h>
 #include <base/scene_node.h>
+#include <base/raw_type.h>
 #include <base/spectrum.h>
 
 namespace luisa::render {

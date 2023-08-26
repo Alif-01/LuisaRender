@@ -55,6 +55,11 @@ public:
         _black = all(_v == 0.f);
     }
 
+    ConstantTexture(Scene *scene, const luisa::vector<float> &v) noexcept
+        : Texture{scene}, _should_inline{true} {
+        _build_constant(SceneNodeDesc::SourceLocation(), 1.f, v);
+    }
+    
     [[nodiscard]] auto v() const noexcept { return _v; }
     [[nodiscard]] bool is_black() const noexcept override { return _black; }
     [[nodiscard]] bool is_constant() const noexcept override { return true; }
@@ -105,6 +110,11 @@ luisa::unique_ptr<Texture::Instance> ConstantTexture::build(
 LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::ConstantTexture)
 
 LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
+    luisa::render::Scene *scene, const luisa::render::RawTextureInfo &texture_info) LUISA_NOEXCEPT {
+    return luisa::new_with_allocator<luisa::render::ConstantTexture>(scene, texture_info);
+}
+
+LUISA_EXPORT_API luisa::render::SceneNode *create_dir(
     luisa::render::Scene *scene, const luisa::vector<float> &v) LUISA_NOEXCEPT {
     return luisa::new_with_allocator<luisa::render::ConstantTexture>(scene, v);
 }

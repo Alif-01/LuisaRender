@@ -182,7 +182,7 @@ private:
         auto distribution = TrowbridgeReitzDistribution{ctx.alpha};
         auto fresnel = FresnelDielectric{ctx.eta_i, ctx.eta_t};
         auto refl = MicrofacetReflection{ctx.Kr, &distribution, &fresnel};
-        auto transform_info = MicrofacetTransmission{ctx.Kt, &distribution, ctx.eta_i, ctx.eta_t};
+        auto trans = MicrofacetTransmission{ctx.Kt, &distribution, ctx.eta_i, ctx.eta_t};
 
         auto wo_local = it.shading().world_to_local(wo);
         auto wi_local = it.shading().world_to_local(wi);

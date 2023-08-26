@@ -14,7 +14,10 @@ Environment::Environment(Scene *scene, const SceneNodeDesc *desc) noexcept
 
 Environment::Environment(Scene *scene, const RawEnvironmentInfo &environment_info) noexcept
     : SceneNode{scene, SceneNodeTag::ENVIRONMENT},
-      _transform{scene->update_transform(environment_info.transform_info)} {}
+      _transform{scene->update_transform(
+        luisa::format("{}_transform", environment_info.name),
+        environment_info.transform_info)
+      } {}
 
 Environment::Instance::Instance(Pipeline &pipeline, const Environment *env) noexcept
     : _pipeline{pipeline}, _env{env} { pipeline.register_transform(env->transform()); }

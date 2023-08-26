@@ -5,19 +5,13 @@
 #pragma once
 
 #include <base/scene_node.h>
+#include <base/raw_type.h>
 #include <base/light.h>
 
 namespace luisa::render {
 
 class Transform;
-class RawTransformInfo;
-class RawTextureInfo;
 using compute::Float3x3;
-
-struct RawEnvironmentInfo {
-    RawTextureInfo texture_info;
-    RawTransformInfo transform_info;
-};
 
 class Environment : public SceneNode {
 

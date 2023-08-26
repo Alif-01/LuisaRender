@@ -278,8 +278,8 @@ int main(int argc, char *argv[]) {
 
     auto desc = scene_desc.get();
     // auto template_node = desc->node("template_1");
-    luisa::unordered_map<luisa::string, CameraStorage> camera_storage;
-    auto scene = Scene::create(context, desc, device, camera_storage);
+    // luisa::unordered_map<luisa::string, CameraStorage> camera_storage;
+    auto scene = Scene::create(context, desc);
 
     std::vector<MeshView> mesh_pool;
     auto denoiser_ext = device.extension<DenoiserExt>();
@@ -301,9 +301,9 @@ int main(int argc, char *argv[]) {
 
     // std::filesystem::path save_path(luisa::format("/home/winnie/LuisaRender/render/image.exr", i));
     // std::filesystem::path save_path_denoised(luisa::format("/home/winnie/LuisaRender/render/{}_denoised.exr", i));
-    Geometry::TemplateMapping mapping;
+    // Geometry::TemplateMapping mapping;
     // mapping["liquid"] = mesh_pool[i];
-    auto pipeline = Pipeline::create(device, stream, *scene, mapping);
+    auto pipeline = Pipeline::create(device, stream, *scene);
     // auto buffer = pipeline->render_to_buffer(stream, 0);
     auto picture = pipeline->render_to_buffer(stream, 0);
     auto buffer = reinterpret_cast<float *>((*picture).data());
