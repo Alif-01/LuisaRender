@@ -94,6 +94,8 @@ private:
     luisa::vector<float4x4> _transform_matrices;
     Buffer<float4x4> _transform_matrix_buffer;
     luisa::unordered_map<luisa::string, uint> _named_ids;
+
+    bool _lights_updated{false};
     bool _transforms_updated{false};
 
     // other things

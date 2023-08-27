@@ -6,6 +6,6 @@ render {
     rr_depth { 5 }
     rr_threshold { 0.95 }
   }
-  environment : Null
+  environment : Null {}
 }
 

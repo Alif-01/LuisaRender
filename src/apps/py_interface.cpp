@@ -214,6 +214,7 @@ void add_environment(
             transform.scale
         },
     };
+    environment_info.print_info();
     auto environment = scene->add_environment(environment_info);
 }
 
@@ -226,6 +227,7 @@ void add_light(std::string_view name, const PyTexture &texture) noexcept {
             texture.color
         }
     };
+    light_info.print_info();
     auto light = scene->add_light(light_info);
 }
 

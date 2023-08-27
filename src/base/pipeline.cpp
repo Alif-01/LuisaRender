@@ -30,6 +30,7 @@ uint Pipeline::register_light(CommandBuffer &command_buffer, const Light *light)
         iter != _light_tags.end()) { return iter->second; }
     auto tag = _lights.emplace(light->build(*this, command_buffer));
     _light_tags.emplace(light, tag);
+    _lights_updated = true;
     return tag;
 }
 
@@ -86,9 +87,9 @@ luisa::unique_ptr<Pipeline> Pipeline::create(
     if (auto environment_medium = scene.environment_medium(); environment_medium != nullptr) {
         pipeline->_environment_medium_tag = pipeline->register_medium(command_buffer, environment_medium);
     }
-    if (pipeline->_lights.empty() && pipeline->_environment == nullptr) [[unlikely]] {
-        LUISA_WARNING_WITH_LOCATION("No lights or environment found in the scene.");
-    }
+    // if (pipeline->_lights.empty() && pipeline->_environment == nullptr) [[unlikely]] {
+    //     LUISA_WARNING_WITH_LOCATION("No lights or environment found in the scene.");
+    // }
     update_bindless_if_dirty();
     pipeline->_integrator = scene.integrator()->build(*pipeline, command_buffer);
 
@@ -143,8 +144,17 @@ void Pipeline::scene_update(
         update_bindless_if_dirty();
     }
     
+    bool environment_updated = false;
     if (scene.environment_updated() && !scene.environment()->is_black()) {
         _environment = scene.environment()->build(*this, command_buffer);
+        environment_updated = true;
+        update_bindless_if_dirty();
+    }
+    
+    if (environment_updated || _lights_updated) {
+        _integrator = scene.integrator()->build(*this, command_buffer);
+        _lights_updated = false;
+        update_bindless_if_dirty();
     }
 
     if (scene.transforms_updated() || _transforms_updated) {
@@ -154,8 +164,8 @@ void Pipeline::scene_update(
         command_buffer << _transform_matrix_buffer
                           .view(0u, _transforms.size())
                           .copy_from(_transform_matrices.data());
-        update_bindless_if_dirty();
         _transforms_updated = false;
+        update_bindless_if_dirty();
     }
     command_buffer << compute::commit();
     scene.clear_update();

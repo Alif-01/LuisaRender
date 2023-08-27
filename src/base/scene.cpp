@@ -345,6 +345,7 @@ Transform *Scene::update_transform(luisa::string_view name, const RawTransformIn
     using NodeCreater = SceneNode *(Scene *, const RawTransformInfo &);
     luisa::string impl_type = transform_info.is_matrix() ? "matrix" :
                               transform_info.is_srt() ? "srt": "";
+    if (impl_type.empty()) return nullptr;
     
     auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::TRANSFORM, impl_type, "create_raw");
     auto [node, first_def] = load_from_nodes(luisa::format("{}_{}", name, impl_type), handle_creater, this, transform_info);

@@ -5,6 +5,11 @@
 
 namespace luisa::render {
 
+using FloatArr = luisa::vector<float>;
+using IntArr = luisa::vector<int>;
+using UintArr = luisa::vector<uint>;
+using StringArr = luisa::string;
+
 /* Keep the constructing methods (SRT or matrix) on same semantics */
 struct RawTransformInfo {
     RawTransformInfo() noexcept = default;
@@ -40,14 +45,14 @@ struct RawTransformInfo {
 
 struct RawTextureInfo {
     RawTextureInfo() noexcept = default;
-    RawTextureInfo(bool empty, luisa::string image, float4 color) noexcept:
+    RawTextureInfo(bool empty, StringArr image, float4 color) noexcept:
         empty{empty}, image{image}, color{color} {}
     RawTextureInfo(float4 color) noexcept:
         color{color}, empty{false} {}
-    RawTextureInfo(luisa::string image, float4 image_scale) noexcept:
+    RawTextureInfo(StringArr image, float4 image_scale) noexcept:
         image{image}, color{image_scale}, empty{false} {}
 
-    luisa::string get_info() const noexcept {
+    StringArr get_info() const noexcept {
         return empty ? "No Texture" :
                is_image() ? luisa::format("texture: image={}", image) :
                "texture: color";
@@ -58,23 +63,31 @@ struct RawTextureInfo {
     }
 
     bool empty{true};
-    luisa::string image{};
+    StringArr image{};
     float4 color{make_float4(1.f)};
 };
 
 struct RawLightInfo {
-    luisa::string name;
+    void print_info() const noexcept {
+        LUISA_INFO("Adding light {}: {}", name, texture_info.get_info());
+    }
+    StringArr name;
     RawTextureInfo texture_info;
 };
 
 struct RawEnvironmentInfo {
-    luisa::string name;
+    void print_info() const noexcept {
+        LUISA_INFO(
+            "Adding environment {}: {}, {}",
+            name, texture_info.get_info(), transform_info.get_info());
+    }
+    StringArr name;
     RawTextureInfo texture_info;
     RawTransformInfo transform_info;
 };
 
 struct RawCameraInfo {
-    void print_info() {
+    void print_info() const noexcept {
         LUISA_INFO(
             "Adding camera {}: from: ({}, {}, {}), to: ({}, {}, {}), up: ({}, {}, {}),"
             "fov: {}, spp: {}, res: ({} x {})",
@@ -85,7 +98,7 @@ struct RawCameraInfo {
         );
     }
 
-    luisa::string name;
+    StringArr name;
     float3 position, look_at, up;
     float fov;
     uint spp;
@@ -94,11 +107,6 @@ struct RawCameraInfo {
 };
 
 struct RawShapeInfo {
-    using FloatArr = luisa::vector<float>;
-    using IntArr = luisa::vector<int>;
-    using UintArr = luisa::vector<uint>;
-    using StringArr = luisa::string;
-
     struct RawSpheresInfo {
         StringArr get_info() const noexcept {
             return luisa::format("centers={}, subdiv={}", centers.size(), subdivision);
@@ -175,7 +183,7 @@ struct RawSurfaceInfo {
                    name, mat_string[material], texture_info.get_info());
     }
 
-    luisa::string name;
+    StringArr name;
     RawMaterial material;
     RawTextureInfo texture_info;
     float roughness;
