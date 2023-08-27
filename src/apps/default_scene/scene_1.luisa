@@ -6,14 +6,6 @@ render {
     rr_depth { 5 }
     rr_threshold { 0.95 }
   }
-  environment : Spherical {
-    emission : Image {
-      file { "textures/brown_photostudio_07_8k.hdr" }
-    }
-    scale { 0.5 }
-    transform : SRT {
-      rotate { 0, 1, 0, -90 }
-    }
-  }
+  environment : Null
 }
 
