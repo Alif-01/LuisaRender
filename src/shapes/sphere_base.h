@@ -65,6 +65,7 @@ public:
 public:
     [[nodiscard]] auto mesh() const noexcept { return MeshView{_vertices, _triangles}; }
     [[nodiscard]] static auto create(uint subdiv) noexcept {
+        LUISA_ASSERT(subdiv <= sphere_max_subdivision_level, "Subdivision level {} is too high.", subdiv);
         static constexpr auto direction_to_uv = [](float3 w) noexcept {
             auto theta = acos(w.y);
             auto phi = atan2(w.x, w.z);
@@ -82,11 +83,12 @@ public:
             }
             return bv;
         }();
-        LUISA_ASSERT(subdiv <= sphere_max_subdivision_level, "Subdivision level {} is too high.", subdiv);
+
         static std::array<std::shared_future<SphereGeometry>, sphere_max_subdivision_level + 1u> cache;
         static std::mutex mutex;
         std::scoped_lock lock{mutex};
         if (auto g = cache.at(subdiv); g.valid()) { return g; }
+        
         auto future = global_thread_pool().async([subdiv] {
             auto [vertices, triangles, _] = loop_subdivide(base_vertices, sphere_base_triangles, subdiv);
             for (auto &v : vertices) {

@@ -150,23 +150,29 @@ Camera::Camera(Scene *scene, const RawCameraInfo &camera_info) noexcept
       _shutter_samples{0u},                     // 0 means default
       _spp{camera_info.spp} {
     // build transform
-    auto position = std::move(camera_info.position);
-    auto front = std::move(normalize(camera_info.look_at - camera_info.position));
-    auto up =  std::move(normalize(camera_info.up));
-    auto append_matrix = make_float4x4(1.f);
-    _build_transform(scene, camera_info.name, SceneNodeDesc::SourceLocation(),
-                     position, front, up, append_matrix);
+
+    auto base_name = luisa::format("{}_base_transform", camera_info.name);
+    _base_transform = scene->update_transform(base_name, camera_info.base_pose);
+    auto matrix = _base_transform->matrix(0.f);
+    auto name = luisa::format("{}_transform", camera_info.name);
+    RawTransformInfo transform_info;
+    transform_info.build_matrix(matrix);
+    _transform = scene->update_transform(name, transform_info);
     
     // render file
     _file = std::filesystem::current_path() / luisa::format("render_{}.exr", camera_info.name);
 }
 
-bool Camera::update_camera(Scene *scene, luisa::string_view name, const RawTransformInfo &transform_info) noexcept {
-    if (transform_info.empty) return false;
-    auto append_transform = scene->update_transform(luisa::format("{}_append_transform", name), transform_info);
+bool Camera::update_camera(Scene *scene, luisa::string_view name, const RawTransformInfo &append_info) noexcept {
+    if (append_info.get_type() == "None") return false;
+    auto append_name = luisa::format("{}_append_transform", name);
+    auto append_transform = scene->update_transform(append_name, append_info);
     auto append_matrix = append_transform->matrix(0.f);
+    
     auto matrix = append_matrix * _base_transform->matrix(0.f);
-    auto new_transform = scene->update_transform(luisa::format("{}_transform", name), RawTransformInfo(matrix));
+    RawTransformInfo transform_info;
+    transform_info.build_matrix(matrix);
+    auto new_transform = scene->update_transform(luisa::format("{}_transform", name), transform_info);
     if (_transform == new_transform) {
         return false;
     } else {

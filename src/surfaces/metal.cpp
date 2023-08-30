@@ -57,35 +57,7 @@ public:
           _kd{scene->load_texture(desc->property_node_or_default("Kd"))},
           _remap_roughness{desc->property_bool_or_default("remap_roughness", true)} {
         if (auto eta_name = desc->property_string_or_default("eta"); !eta_name.empty()) {
-            for (auto &c : eta_name) { c = static_cast<char>(tolower(c)); }
-            if (eta_name == "ag" || eta_name == "silver") {
-                _ior = _register_eta_k("__internal_ior_Ag", ior::Ag);
-            } else if (eta_name == "al" || eta_name == "aluminium") {
-                _ior = _register_eta_k("__internal_ior_Al", ior::Al);
-            } else if (eta_name == "au" || eta_name == "gold") {
-                _ior = _register_eta_k("__internal_ior_Au", ior::Au);
-            } else if (eta_name == "cu" || eta_name == "copper") {
-                _ior = _register_eta_k("__internal_ior_Cu", ior::Cu);
-            } else if (eta_name == "cuzn" || eta_name == "cu-zn" || eta_name == "brass") {
-                _ior = _register_eta_k("__internal_ior_CuZn", ior::CuZn);
-            } else if (eta_name == "fe" || eta_name == "iron") {
-                _ior = _register_eta_k("__internal_ior_Fe", ior::Fe);
-            } else if (eta_name == "ti" || eta_name == "titanium") {
-                _ior = _register_eta_k("__internal_ior_Ti", ior::Ti);
-            } else if (eta_name == "v" || eta_name == "vanadium") {
-                _ior = _register_eta_k("__internal_ior_V", ior::V);
-            } else if (eta_name == "vn") {
-                _ior = _register_eta_k("__internal_ior_VN", ior::VN);
-            } else if (eta_name == "li" || eta_name == "lithium") {
-                _ior = _register_eta_k("__internal_ior_Li", ior::Li);
-            } else [[unlikely]] {
-                LUISA_WARNING_WITH_LOCATION(
-                    "Unknown metal '{}'. "
-                    "Fallback to Aluminium. [{}]",
-                    eta_name,
-                    desc->source_location().string());
-                _ior = _register_eta_k("__internal_ior_Al", ior::Al);
-            }
+            _get_eta_from_name(eta_name);
         } else {
             auto eta = desc->property_float_list("eta");
             if (eta.size() % 3u != 0u) [[unlikely]] {
@@ -137,10 +109,16 @@ public:
 
     MetalSurface(Scene *scene, const RawSurfaceInfo &surface_info) noexcept
         : Surface{scene},
-          _roughness{scene->add_constant_texture("texture_constant", {surface_info.roughness})},
-          _kd{scene->add_texture("surface_kd", surface_info.texture_info)},
+          _roughness{scene->add_texture("metal_roughness",
+                RawTextureInfo::constant({surface_info.roughness}))},
           _remap_roughness{true} {
-        _ior = _register_eta_k("__internal_ior_Al", ior::Al);
+            
+        if (surface_info.metal_info == nullptr) [[unlikely]]
+            LUISA_ERROR_WITH_LOCATION("Invalid metal info!");
+        auto metal_info = surface_info.metal_info.get();
+
+        _kd = scene->add_texture("metal_kd", metal_info->kd);
+        _get_eta_from_name(metal_info->eta);
     }
 
     [[nodiscard]] auto ior() const noexcept { return _ior; }
@@ -153,6 +131,35 @@ protected:
         Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept override;
 
 private:
+    [[nodiscard]] luisa::string _get_eta_from_name(luisa::string eta_name) noexcept {
+        for (auto &c : eta_name) { c = static_cast<char>(tolower(c)); }
+        if (eta_name == "ag" || eta_name == "silver") {
+            _ior = _register_eta_k("__internal_ior_Ag", ior::Ag);
+        } else if (eta_name == "al" || eta_name == "aluminium") {
+            _ior = _register_eta_k("__internal_ior_Al", ior::Al);
+        } else if (eta_name == "au" || eta_name == "gold") {
+            _ior = _register_eta_k("__internal_ior_Au", ior::Au);
+        } else if (eta_name == "cu" || eta_name == "copper") {
+            _ior = _register_eta_k("__internal_ior_Cu", ior::Cu);
+        } else if (eta_name == "cuzn" || eta_name == "cu-zn" || eta_name == "brass") {
+            _ior = _register_eta_k("__internal_ior_CuZn", ior::CuZn);
+        } else if (eta_name == "fe" || eta_name == "iron") {
+            _ior = _register_eta_k("__internal_ior_Fe", ior::Fe);
+        } else if (eta_name == "ti" || eta_name == "titanium") {
+            _ior = _register_eta_k("__internal_ior_Ti", ior::Ti);
+        } else if (eta_name == "v" || eta_name == "vanadium") {
+            _ior = _register_eta_k("__internal_ior_V", ior::V);
+        } else if (eta_name == "vn") {
+            _ior = _register_eta_k("__internal_ior_VN", ior::VN);
+        } else if (eta_name == "li" || eta_name == "lithium") {
+            _ior = _register_eta_k("__internal_ior_Li", ior::Li);
+        } else [[unlikely]] {
+            LUISA_WARNING_WITH_LOCATION(
+                "Unknown metal '{}'. Fallback to Aluminium", eta_name);
+            _ior = _register_eta_k("__internal_ior_Al", ior::Al);
+        }
+    }
+
     [[nodiscard]] luisa::string _register_eta_k(
         const luisa::string &name, luisa::span<float2> eta_k) noexcept {
         std::scoped_lock lock{_mutex()};

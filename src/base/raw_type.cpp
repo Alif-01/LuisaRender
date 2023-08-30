@@ -3,8 +3,8 @@
 
 namespace luisa::render {
 
-const luisa::string RawSurfaceInfo::mat_string[5] = {
-    "null", "metal", "substrate", "matte", "glass"
-};
+// const luisa::string RawSurfaceInfo::mat_string[5] = {
+//     "null", "metal", "substrate", "matte", "glass"
+// };
 
 } // namespace luisa::render

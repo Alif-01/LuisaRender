@@ -82,10 +82,18 @@ public:
 
     GlassSurface(Scene *scene, const RawSurfaceInfo &surface_info) noexcept
         : Surface{scene},
-          _kr{scene->add_texture("surface_kr", surface_info.texture_info)},
-          _kt{nullptr},
-          _roughness{scene->add_constant_texture("texture_constant", {surface_info.roughness})},
-          _remap_roughness{true}, _eta{nullptr} {}
+          _roughness{scene->add_texture("glass_roughness",
+                RawTextureInfo::constant({surface_info.roughness}))},
+          _remap_roughness{true} {
+
+        if (surface_info.glass_info == nullptr) [[unlikely]]
+            LUISA_ERROR_WITH_LOCATION("Invalid glass info!");
+        auto glass_info = surface_info.glass_info.get();
+
+        _kr = scene->add_texture("glass_kr", glass_info->ks);
+        _kt = scene->add_texture("glass_kt", glass_info->kt);
+        _eta = scene->add_texture("glass_eta", RawTextureInfo::constant({glass_info->eta}));
+    }
 
     [[nodiscard]] auto remap_roughness() const noexcept { return _remap_roughness; }
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }

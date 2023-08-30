@@ -28,7 +28,7 @@ private:
     float2 _uv_offset;
     TextureSampler _sampler{};
     Encoding _encoding{};
-    float4 _scale{make_float4(1.f)};
+    float3 _scale{make_float3(1.f)};
     float _gamma{1.f};
     uint _mipmaps{0u};
 
@@ -116,10 +116,14 @@ public:
     ImageTexture(Scene *scene, const RawTextureInfo &texture_info) noexcept
         : Texture{scene},
           _sampler{TextureSampler::Filter::LINEAR_POINT, TextureSampler::Address::REPEAT},
-          _uv_scale{make_float2(1.0f)}, _uv_offset{make_float2(0.0f)},
-          _scale{texture_info.color}, _mipmaps{1u} {
+          _uv_scale{make_float2(1.0f)}, _uv_offset{make_float2(0.0f)}, _mipmaps{1u} {
         
-        std::filesystem::path path = texture_info.image;
+        if (texture_info.image_info == nullptr) [[unlikely]]
+            LUISA_ERROR_WITH_LOCATION("Invalid image info!");
+        auto image_info = texture_info.image_info.get();
+
+        _scale = image_info->scale;
+        std::filesystem::path path = image_info->image;
         luisa::string encoding = [&path] {
             auto ext = path.extension().string();
             for (auto &c : ext) { c = static_cast<char>(tolower(c)); }
@@ -162,13 +166,13 @@ private:
     [[nodiscard]] Float4 _decode(Expr<float4> rgba) const noexcept {
         auto texture = node<ImageTexture>();
         auto encoding = texture->encoding();
-        auto scale = texture->scale();
+        auto scale = make_float4(texture->scale(), 1.f);
         if (encoding == ImageTexture::Encoding::SRGB) {
             auto linear = ite(
                 rgba <= 0.04045f,
                 rgba * (1.0f / 12.92f),
                 pow((rgba + 0.055f) * (1.0f / 1.055f), 2.4f));
-            return make_float4(scale * linear);
+            return scale * linear;
         }
         if (encoding == ImageTexture::Encoding::GAMMA) {
             auto gamma = texture->gamma();

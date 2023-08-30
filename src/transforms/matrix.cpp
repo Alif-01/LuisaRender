@@ -44,7 +44,12 @@ public:
     }
 
     MatrixTransform(Scene *scene, const RawTransformInfo &transform_info) noexcept
-        : Transform{scene}, _matrix{transform_info.transform} {}
+        : Transform{scene} {
+
+        if (transform_info.matrix_info == nullptr) [[unlikely]]
+            LUISA_ERROR_WITH_LOCATION("Invalid matrix info!");
+        _matrix = transform_info.matrix_info->matrix;
+    }
 
     // MatrixTransform(Scene *scene, const float4x4 &matrix) noexcept
     //     : Transform{scene}, _matrix{matrix} {
@@ -60,7 +65,9 @@ public:
                all(_matrix[3] == make_float4(0.0f, 0.0f, 0.0f, 1.0f));
     }
     void update_transform(Scene *scene, const RawTransformInfo &transform_info) noexcept override {
-        _matrix = make_float4x4(transform_info.transform);
+        if (transform_info.matrix_info == nullptr) [[unlikely]]
+            LUISA_ERROR_WITH_LOCATION("Invalid matrix info!");
+        _matrix = transform_info.matrix_info->matrix;
     }
 };
 

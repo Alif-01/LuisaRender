@@ -52,17 +52,19 @@ public:
     ConstantTexture(Scene *scene, const RawTextureInfo &texture_info) noexcept
         : Texture{scene}, _should_inline{true} {
             
-        if (texture_info.constant_info == nullptr) [[unlikely]]
+        if (texture_info.color_info == nullptr) [[unlikely]]
             LUISA_ERROR_WITH_LOCATION("Invalid color info!");
-        auto constant_info = texture_info.constant_info.get();
+        auto color_info = texture_info.color_info.get();
 
-        _build_constant(SceneNodeDesc::SourceLocation(), 1.f, constant_info->constant);
+        _v = color_info->color;
+        _channels = 4;
+        _black = all(_v == 0.f);
     }
 
-    // ConstantTexture(Scene *scene, const luisa::vector<float> &v) noexcept
-    //     : Texture{scene}, _should_inline{true} {
-    //     _build_constant(SceneNodeDesc::SourceLocation(), 1.f, v);
-    // }
+    ConstantTexture(Scene *scene, const luisa::vector<float> &v) noexcept
+        : Texture{scene}, _should_inline{true} {
+        _build_constant(SceneNodeDesc::SourceLocation(), 1.f, v);
+    }
     
     [[nodiscard]] auto v() const noexcept { return _v; }
     [[nodiscard]] bool is_black() const noexcept override { return _black; }
@@ -118,7 +120,7 @@ LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
     return luisa::new_with_allocator<luisa::render::ConstantTexture>(scene, texture_info);
 }
 
-// LUISA_EXPORT_API luisa::render::SceneNode *create_dir(
-//     luisa::render::Scene *scene, const luisa::vector<float> &v) LUISA_NOEXCEPT {
-//     return luisa::new_with_allocator<luisa::render::ConstantTexture>(scene, v);
-// }
+LUISA_EXPORT_API luisa::render::SceneNode *create_dir(
+    luisa::render::Scene *scene, const luisa::vector<float> &v) LUISA_NOEXCEPT {
+    return luisa::new_with_allocator<luisa::render::ConstantTexture>(scene, v);
+}

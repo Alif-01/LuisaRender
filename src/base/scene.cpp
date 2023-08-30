@@ -293,7 +293,6 @@ Environment *Scene::add_environment(const RawEnvironmentInfo &environment_info) 
 
 Light *Scene::add_light(const RawLightInfo &light_info) noexcept {
     using NodeCreater = SceneNode *(Scene *, const RawLightInfo &);
-    // luisa::string impl_type = texture_info.is_image() ? "image" : "constant";
 
     auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::LIGHT, "diffuse", "create_raw");
     auto [node, first_def] = load_from_nodes(light_info.name, handle_creater, this, light_info);
@@ -306,11 +305,10 @@ Light *Scene::add_light(const RawLightInfo &light_info) noexcept {
 }
 
 Texture *Scene::add_texture(luisa::string_view name, const RawTextureInfo &texture_info) noexcept {
-    if (texture_info.empty) return nullptr;
+    luisa::string impl_type = texture_info.get_type();
+    if (impl_type == "None") return nullptr;
 
     using NodeCreater = SceneNode *(Scene *, const RawTextureInfo &);
-    luisa::string impl_type = texture_info.is_image() ? "image" : "constant";
-
     auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::TEXTURE, impl_type, "create_raw");
     NodeHandle handle = handle_creater(this, texture_info);
     
@@ -318,14 +316,14 @@ Texture *Scene::add_texture(luisa::string_view name, const RawTextureInfo &textu
     return dynamic_cast<Texture *>(_config->internal_nodes.emplace_back(std::move(handle)).get());
 }
 
-Texture *Scene::add_constant_texture(luisa::string_view name, const luisa::vector<float> &v) noexcept {
-    using NodeCreater = SceneNode *(Scene *, const luisa::vector<float> &);
-    auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::TEXTURE, "constant", "create_dir");
-    NodeHandle handle = handle_creater(this, v);
+// Texture *Scene::add_constant_texture(luisa::string_view name, const luisa::vector<float> &v) noexcept {
+//     using NodeCreater = SceneNode *(Scene *, const luisa::vector<float> &);
+//     auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::TEXTURE, "constant", "create_dir");
+//     NodeHandle handle = handle_creater(this, v);
     
-    std::scoped_lock lock{_mutex};
-    return dynamic_cast<Texture *>(_config->internal_nodes.emplace_back(std::move(handle)).get());
-}
+//     std::scoped_lock lock{_mutex};
+//     return dynamic_cast<Texture *>(_config->internal_nodes.emplace_back(std::move(handle)).get());
+// }
 
 // Texture *Scene::add_image_texture(
 //     luisa::string_view name, luisa::string_view image, const float &image_scale
@@ -340,13 +338,10 @@ Texture *Scene::add_constant_texture(luisa::string_view name, const luisa::vecto
 //     );
 // }
 Transform *Scene::update_transform(luisa::string_view name, const RawTransformInfo &transform_info) noexcept {
-    if (transform_info.empty) return nullptr;
+    luisa::string impl_type = transform_info.get_type();
+    if (impl_type == "None") return nullptr;
 
     using NodeCreater = SceneNode *(Scene *, const RawTransformInfo &);
-    luisa::string impl_type = transform_info.is_matrix() ? "matrix" :
-                              transform_info.is_srt() ? "srt": "";
-    if (impl_type.empty()) return nullptr;
-    
     auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::TRANSFORM, impl_type, "create_raw");
     auto [node, first_def] = load_from_nodes(luisa::format("{}_{}", name, impl_type), handle_creater, this, transform_info);
     Transform *transform = dynamic_cast<Transform *>(node);

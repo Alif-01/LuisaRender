@@ -24,6 +24,18 @@ public:
               "scale", lazy_construct([desc] {
                   return make_float2(desc->property_float_or_default("scale", 1.0f));
               }))} {}
+
+    CheckerboardTexture(Scene *scene, const RawTextureInfo &texture_info) noexcept
+        : Texture{scene} {
+
+        if (texture_info.ckecker_info == nullptr) [[unlikely]]
+            LUISA_ERROR_WITH_LOCATION("Invalid checker info!");
+        auto checker_info = texture_info.ckecker_info.get();
+        _on = scene->add_texture(checker_info->on);
+        _off = scene->add_texture(checker_info->off);
+        _scale = make_float2(checker_info->scale);
+    }
+
     [[nodiscard]] bool is_black() const noexcept override {
         auto on_is_black = _on != nullptr && _on->is_black();   // on is default to all white
         auto off_is_black = _off == nullptr || _off->is_black();// off is default to all black
@@ -121,3 +133,8 @@ luisa::unique_ptr<Texture::Instance> CheckerboardTexture::build(
 }// namespace luisa::render
 
 LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::CheckerboardTexture)
+
+LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
+    luisa::render::Scene *scene, const luisa::render::RawTextureInfo &texture_info) LUISA_NOEXCEPT {
+    return luisa::new_with_allocator<luisa::render::CheckerboardTexture>(scene, texture_info);
+}

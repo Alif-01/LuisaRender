@@ -270,8 +270,9 @@ public:
           }(scene, desc)} {}
     OpacitySurfaceWrapper(Scene *scene, const RawSurfaceInfo &surface_info) noexcept
         : BaseSurface{scene, surface_info},
-        //   _opacity{scene->add_constant_texture("texture_constant", {surface_info.alpha})} {}
-          _opacity{nullptr} {}
+          _opacity{scene->add_texture("surface_opacity",
+                RawTextureInfo::constant({surface_info.opacity}))} {}
+        //   _opacity{surface_info.opacity} {}
 
 protected:
     [[nodiscard]] luisa::unique_ptr<Surface::Instance> _build(

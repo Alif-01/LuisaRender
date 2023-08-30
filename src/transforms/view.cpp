@@ -27,6 +27,21 @@ public:
         _u = normalize(cross(up, _w));
         _v = normalize(cross(_w, _u));
     }
+
+    ViewTransform(Scene *scene, const RawTransformInfo &transform_info) noexcept
+        : Transform{scene} {
+        if (transform_info.view_info == nullptr) [[unlikely]]
+            LUISA_ERROR_WITH_LOCATION("Invalid view info!");
+        auto view_info = transform_info.view_info.get();
+
+        _origin = view_info->position;
+        auto front = view_info->front;
+        auto up = view_info->up;
+        _w = normalize(-front);
+        _u = normalize(cross(up, _w));
+        _v = normalize(cross(_w, _u));
+    }
+
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] bool is_static() const noexcept override { return true; }
     [[nodiscard]] bool is_identity() const noexcept override {
@@ -45,3 +60,8 @@ public:
 }// namespace luisa::render
 
 LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::ViewTransform)
+
+LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
+    luisa::render::Scene *scene, const luisa::render::RawTransformInfo &transform_info) LUISA_NOEXCEPT {
+    return luisa::new_with_allocator<luisa::render::ScaleRotateTranslate>(scene, transform_info);
+}

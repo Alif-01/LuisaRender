@@ -27,9 +27,12 @@ public:
 
     ScaleRotateTranslate(Scene *scene, const RawTransformInfo &transform_info) noexcept
         : Transform{scene} {
-        auto scaling = transform_info.scale;
-        auto rotation = transform_info.rotate;
-        auto translation = transform_info.translate;
+        if (transform_info.srt_info == nullptr) [[unlikely]]
+            LUISA_ERROR_WITH_LOCATION("Invalid srt info!");
+        auto srt_info = transform_info.srt_info.get();
+        auto translation = srt_info->translate;
+        auto rotation = srt_info->rotate;
+        auto scaling = srt_info->scale;
         _matrix = luisa::translation(translation) *
                   luisa::rotation(normalize(rotation.xyz()), radians(rotation.w)) *
                   luisa::scaling(scaling);
@@ -45,9 +48,12 @@ public:
                all(_matrix[3] == make_float4(0.0f, 0.0f, 0.0f, 1.0f));
     }
     void update_transform(Scene *scene, const RawTransformInfo &transform_info) noexcept override {
-        auto scaling = transform_info.scale;
-        auto rotation = transform_info.rotate;
-        auto translation = transform_info.translate;
+        if (transform_info.srt_info == nullptr) [[unlikely]]
+            LUISA_ERROR_WITH_LOCATION("Invalid srt info!");
+        auto srt_info = transform_info.srt_info.get();
+        auto translation = srt_info->translate;
+        auto rotation = srt_info->rotate;
+        auto scaling = srt_info->scale;
         _matrix = luisa::translation(translation) *
                   luisa::rotation(normalize(rotation.xyz()), radians(rotation.w)) *
                   luisa::scaling(scaling);

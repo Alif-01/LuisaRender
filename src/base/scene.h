@@ -101,7 +101,7 @@ public:
     [[nodiscard]] Environment *add_environment(const RawEnvironmentInfo &environment_info) noexcept;
     [[nodiscard]] Light *add_light(const RawLightInfo &light_info) noexcept;
     [[nodiscard]] Texture *add_texture(luisa::string_view name, const RawTextureInfo &texture_info) noexcept;
-    [[nodiscard]] Texture *add_constant_texture(luisa::string_view name, const luisa::vector<float> &v) noexcept;
+    // [[nodiscard]] Texture *add_constant_texture(luisa::string_view name, const luisa::vector<float> &v) noexcept;
     // [[nodiscard]] Texture *add_image_texture(
     //     luisa::string_view name, luisa::string_view image, const float &image_scale) noexcept;
     [[nodiscard]] Surface *add_surface(const RawSurfaceInfo &surface_info) noexcept;
