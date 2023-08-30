@@ -28,11 +28,11 @@ public:
     CheckerboardTexture(Scene *scene, const RawTextureInfo &texture_info) noexcept
         : Texture{scene} {
 
-        if (texture_info.ckecker_info == nullptr) [[unlikely]]
+        if (texture_info.checker_info == nullptr) [[unlikely]]
             LUISA_ERROR_WITH_LOCATION("Invalid checker info!");
-        auto checker_info = texture_info.ckecker_info.get();
-        _on = scene->add_texture(checker_info->on);
-        _off = scene->add_texture(checker_info->off);
+        auto checker_info = texture_info.checker_info.get();
+        _on = scene->add_texture("checker_on", checker_info->on);
+        _off = scene->add_texture("checker_off", checker_info->off);
         _scale = make_float2(checker_info->scale);
     }
 

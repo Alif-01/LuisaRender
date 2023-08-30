@@ -98,11 +98,11 @@ private:
     std::filesystem::path _file;
     luisa::vector<ShutterPoint> _shutter_points;
 
-private:
-    void _build_transform(
-        Scene *scene, luisa::string_view name, SceneNodeDesc::SourceLocation l,
-        const float3 &position, const float3 &front, const float3 &up, const float4x4 &matrix
-    ) noexcept;
+// private:
+//     void _build_transform(
+//         Scene *scene, luisa::string_view name, SceneNodeDesc::SourceLocation l,
+//         const float3 &position, const float3 &front, const float3 &up, const float4x4 &matrix
+//     ) noexcept;
 
 public:
     Camera(Scene *scene, const SceneNodeDesc *desc) noexcept;

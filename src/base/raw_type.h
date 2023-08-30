@@ -5,7 +5,7 @@
 
 namespace luisa::render {
 
-namespace {
+namespace omit{
     using FloatArr = luisa::vector<float>;
     using IntArr = luisa::vector<int>;
     using UintArr = luisa::vector<uint>;
@@ -20,43 +20,48 @@ namespace {
         return "(" + a + ")";
     }
 }
+using namespace omit;
+
+struct RawSRTInfo;
+struct RawMatrixInfo;
+struct RawViewInfo;
 
 /* Keep the constructing methods (SRT or matrix) on same semantics */
 struct RawTransformInfo {
-    struct RawSRTInfo {
-        float3 translate;
-        float4 rotate;
-        float3 scale;
-    };
-
-    struct RawMatrixInfo {
-        float4x4 matrix;
-    };
-    
-    struct RawViewInfo {
-        float3 position;
-        float3 front;
-        float3 up;
-    };
-
     RawTransformInfo() noexcept = default;
-    void build_matrix(float4x4 &&matrix) noexcept {
+    [[nodiscard]] static RawTransformInfo matrix(float4x4 matrix) noexcept {
+        RawTransformInfo transform_info;
+        transform_info.build_matrix(std::move(matrix));
+        return std::move(transform_info);
+    }
+    [[nodiscard]] static RawTransformInfo srt(float3 translate, float4 rotate, float3 scale) noexcept {
+        RawTransformInfo transform_info;
+        transform_info.build_srt(std::move(translate), std::move(rotate), std::move(scale));
+        return std::move(transform_info);
+    }
+    [[nodiscard]] static RawTransformInfo view(float3 position, float3 front, float3 up) noexcept {
+        RawTransformInfo transform_info;
+        transform_info.build_view(std::move(position), std::move(front), std::move(up));
+        return std::move(transform_info);
+    }
+
+    void build_matrix(float4x4 matrix) noexcept {
         matrix_info = luisa::make_unique<RawMatrixInfo>(std::move(matrix));
     }
-    void build_srt(float3 &&translate, float4 &&rotate, float3 &&scale) noexcept {
+    void build_srt(float3 translate, float4 rotate, float3 scale) noexcept {
         srt_info = luisa::make_unique<RawSRTInfo>(std::move(translate), std::move(rotate), std::move(scale));
     }
-    void build_view(float3 &&position, float3 &&front, float3 &&up) noexcept {
+    void build_view(float3 position, float3 front, float3 up) noexcept {
         view_info = luisa::make_unique<RawViewInfo>(std::move(position), std::move(front), std::move(up));
     }
     
-    luisa::string get_type() const noexcept {
+    [[nodiscard]] StringArr get_type() const noexcept {
         return matrix_info != nullptr ? "matrix":
                srt_info != nullptr ? "srt" :
                view_info != nullptr ? "view" : "None";
     }
 
-    luisa::string get_info() const noexcept {
+    [[nodiscard]] StringArr get_info() const noexcept {
         return luisa::format("Tranform <{}>", get_type());
     }
     
@@ -65,52 +70,65 @@ struct RawTransformInfo {
     UniquePtr<RawViewInfo> view_info;
 };
 
+struct RawSRTInfo {
+    float3 translate;
+    float4 rotate;
+    float3 scale;
+};
+
+struct RawMatrixInfo {
+    float4x4 matrix;
+};
+
+struct RawViewInfo {
+    float3 position;
+    float3 front;
+    float3 up;
+};
+
+struct RawConstantInfo; 
+struct RawImageInfo;
+struct RawCheckerInfo;
+
 struct RawTextureInfo {
-    struct RawConstantInfo {
-        // float3 color;
-        FloatArr constant;
-    }; 
-
-    struct RawImageInfo {
-        StringArr image;
-        float3 scale;
-    };
-
-    struct RawCheckerInfo {
-        RawTextureInfo on, off;
-        float scale;
-    };
-
     RawTextureInfo() noexcept = default;
-    static RawTextureInfo constant(FloatArr &&constant) noexcept {
+    static RawTextureInfo constant(FloatArr constant) noexcept {
         RawTextureInfo texture_info;
         texture_info.build_constant(std::move(constant));
         return std::move(texture_info);
     }
     
-    void build_constant(FloatArr &&constant) noexcept {
-        constant_info = luisa::make_unique<RawConstantInfo>(std::move(constant));
-    }
-    void build_image(StringArr &&image, float3 &&scale) noexcept {
-        image_info = luisa::make_unique<RawImageInfo>(std::move(image), std::move(scale));
-    }
-    void build_checker(RawTextureInfo &&on, RawTextureInfo &&off, float &&scale) noexcept {
-        checker_info = luisa::make_unique<RawCheckerInfo>(std::move(on), std::move(off), scale);
-    }
+    void build_constant(FloatArr &&constant) noexcept;
+    void build_image(StringArr &&image, float3 &&scale) noexcept;
+    void build_checker(RawTextureInfo on, RawTextureInfo off, float scale) noexcept;
 
-    StringArr get_type() const noexcept {
+    [[nodiscard]] StringArr get_type() const noexcept {
         return constant_info != nullptr ? "constant" :
                image_info != nullptr ? "image" :
                checker_info != nullptr ? "checkerboard": "None";
     }
 
-    StringArr get_info() const noexcept {
+    [[nodiscard]] StringArr get_info() const noexcept {
         return luisa::format("Texture <{}>", get_type());
     }
 
-    UniquePtr<RawConstantInfo> constant_info;
-    UniquePtr<RawImageInfo> image_info;
-    UniquePtr<RawCheckerInfo> checker_info;
+    UniquePtr<RawConstantInfo> constant_info{nullptr};
+    UniquePtr<RawImageInfo> image_info{nullptr};
+    UniquePtr<RawCheckerInfo> checker_info{nullptr};
+};
+
+struct RawConstantInfo {
+    FloatArr constant;
+}; 
+
+struct RawImageInfo {
+    StringArr image;
+    float3 scale;
+};
+
+struct RawCheckerInfo {
+    RawTextureInfo on, off;
+    float scale;
 };
 
 struct RawLightInfo {
@@ -145,55 +163,21 @@ struct RawCameraInfo {
     float radius;
 };
 
+struct RawSpheresInfo;
+struct RawMeshInfo;
+struct RawFileInfo;
+struct RawPlaneInfo;
+
 struct RawShapeInfo {
-    struct RawSpheresInfo {
-        StringArr get_info() const noexcept {
-            return luisa::format("centers={}, subdiv={}", centers.size(), subdivision);
-        }
-
-        FloatArr centers;
-        float radius;
-        uint subdivision;
-    };
-
-    struct RawMeshInfo {
-        StringArr get_info() const noexcept {
-            return luisa::format(
-                "vertices={}, triangles={}, normals={}, uvs={}",
-                vertices.size(), triangles.size(), normals.size(), uvs.size()
-            );
-        }
-        
-        FloatArr vertices;
-        UintArr triangles;
-        FloatArr normals;
-        FloatArr uvs;
-    };
-
-    struct RawFileInfo {
-        StringArr get_info() const noexcept {
-            return luisa::format("file={}", file);
-        }
-        
-        StringArr file;
-    };
-
-    struct RawPlaneInfo {};
-
     RawShapeInfo(StringArr &&name, RawTransformInfo &&transform_info,
                  StringArr &&surface, StringArr &&light, StringArr &&medium) noexcept:
         name{name}, transform_info{std::move(transform_info)}, surface{surface}, light{light}, medium{medium} {}
 
-    StringArr get_info() const noexcept {
+    [[nodiscard]] StringArr get_info() const noexcept {
         return luisa::format("Shape {} <{}, {}, surface={}, light={}>",
             name, get_type_info(), transform_info.get_info(), surface, light);
     }
-
-    StringArr get_type_info() const noexcept {
-        return  spheres_info != nullptr ? spheres_info->get_info() :
-                mesh_info != nullptr ? mesh_info->get_info() : 
-                file_info != nullptr ? file_info->get_info() : "";
-    }
+    [[nodiscard]] StringArr get_type_info() const noexcept;
 
     void build_spheres(FloatArr &&centers, float &&radius, uint &&subdivision) noexcept {
         spheres_info = luisa::make_unique<RawSpheresInfo>(std::move(centers), radius, subdivision);
@@ -221,37 +205,56 @@ struct RawShapeInfo {
     UniquePtr<RawPlaneInfo> plane_info;
 };
 
+struct RawSpheresInfo {
+    [[nodiscard]] StringArr get_info() const noexcept {
+        return luisa::format("centers={}, subdiv={}", centers.size(), subdivision);
+    }
+
+    FloatArr centers;
+    float radius;
+    uint subdivision;
+};
+
+struct RawMeshInfo {
+    [[nodiscard]] StringArr get_info() const noexcept {
+        return luisa::format(
+            "vertices={}, triangles={}, normals={}, uvs={}",
+            vertices.size(), triangles.size(), normals.size(), uvs.size()
+        );
+    }
+    
+    FloatArr vertices;
+    UintArr triangles;
+    FloatArr normals;
+    FloatArr uvs;
+};
+
+struct RawFileInfo {
+    [[nodiscard]] StringArr get_info() const noexcept {
+        return luisa::format("file={}", file);
+    }
+    
+    StringArr file;
+};
+
+struct RawPlaneInfo {};
+
+struct RawMetalInfo;
+struct RawPlasticInfo;
+struct RawGlassInfo;
+
 struct RawSurfaceInfo {
-    struct RawMatelInfo {
-        RawTextureInfo kd;
-        StringArr eta;
-    };
-
-    struct RawPlasticInfo {
-        RawTextureInfo kd, ks;
-        float eta;
-    };
-
-    struct RawGlassInfo {
-        RawTextureInfo ks, kt;
-        float eta;
-    };
 
     // static const luisa::string mat_string[5];
     // enum RawMaterial: uint { 
     //     RAW_NULL, RAW_METAL, RAW_SUBSTRATE, RAW_MATTE, RAW_GLASS
     // };
-    
-    // StringArr get_info() const noexcept {
-    //     return luisa::format("Surface {} <material={}, {}, roughness={}>",
-    //         name, mat_string[material], texture_info.get_info(), roughness);
-    // }
-    StringArr get_info() const noexcept {
+    [[nodiscard]] StringArr get_info() const noexcept {
         return luisa::format("Surface {} <material={}, roughness={}, opacity={}>",
             name, get_type(), roughness, opacity);
     }
 
-    StringArr get_type() const noexcept {
+    [[nodiscard]] StringArr get_type() const noexcept {
         return metal_info != nullptr ? "metal" :
                plastic_info != nullptr ? "substrate" :
                glass_info != nullptr ? "glass": "None";
@@ -261,11 +264,11 @@ struct RawSurfaceInfo {
         metal_info = luisa::make_unique<RawMetalInfo>(std::move(kd), std::move(eta));
     }
 
-    void build_plastic(RawTextureInfo &&kd, RawTextureInfo &&ks, float &&eta) noexcept {
+    void build_plastic(RawTextureInfo kd, RawTextureInfo ks, float eta) noexcept {
         plastic_info = luisa::make_unique<RawPlasticInfo>(std::move(kd), std::move(ks), eta);
     }
 
-    void build_glass(RawTextureInfo &&ks, RawTextureInfo &&kt, float &&eta) noexcept {
+    void build_glass(RawTextureInfo ks, RawTextureInfo kt, float &&eta) noexcept {
         glass_info = luisa::make_unique<RawGlassInfo>(std::move(ks), std::move(kt), eta);
     }
 
@@ -285,9 +288,24 @@ struct RawSurfaceInfo {
 
     float roughness;
     float opacity;
-    UniquePtr<RawMatelInfo> metal_info;
+    UniquePtr<RawMetalInfo> metal_info;
     UniquePtr<RawPlasticInfo> plastic_info;
     UniquePtr<RawGlassInfo> glass_info;
+};
+
+struct RawMetalInfo {
+    RawTextureInfo kd;
+    StringArr eta;
+};
+
+struct RawPlasticInfo {
+    RawTextureInfo kd, ks;
+    float eta;
+};
+
+struct RawGlassInfo {
+    RawTextureInfo ks, kt;
+    float eta;
 };
 
 } // namespace luisa::render

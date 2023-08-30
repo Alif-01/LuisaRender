@@ -41,7 +41,15 @@ Camera::Camera(Scene *scene, const SceneNodeDesc *desc) noexcept
             return normalize(look_at - position);
         }));
     auto up = desc->property_float3_or_default("up", default_up);
-    _build_transform(scene, desc->identifier(), desc->source_location(), position, front, up, append_matrix);
+    
+    auto name = desc->identifier();
+    auto base_name = luisa::format("{}_base_transform", name);
+    auto base_transform_info = RawTransformInfo::view(std::move(position), std::move(front), std::move(up));
+    _base_transform = scene->update_transform(base_name, base_transform_info);
+    auto matrix = append_matrix * _base_transform->matrix(0.f);
+    auto new_name = luisa::format("{}_transform", name);
+    _transform = scene->update_transform(new_name, RawTransformInfo::matrix(std::move(matrix)));
+    // _build_transform(scene, ), desc->source_location(), position, front, up, append_matrix);
     // if (!all(position == default_position && front == default_front && up == default_up)) {}
 
     if (_shutter_span.y < _shutter_span.x) [[unlikely]] {
@@ -154,10 +162,8 @@ Camera::Camera(Scene *scene, const RawCameraInfo &camera_info) noexcept
     auto base_name = luisa::format("{}_base_transform", camera_info.name);
     _base_transform = scene->update_transform(base_name, camera_info.base_pose);
     auto matrix = _base_transform->matrix(0.f);
-    auto name = luisa::format("{}_transform", camera_info.name);
-    RawTransformInfo transform_info;
-    transform_info.build_matrix(matrix);
-    _transform = scene->update_transform(name, transform_info);
+    auto new_name = luisa::format("{}_transform", camera_info.name);
+    _transform = scene->update_transform(new_name, RawTransformInfo::matrix(std::move(matrix)));
     
     // render file
     _file = std::filesystem::current_path() / luisa::format("render_{}.exr", camera_info.name);
@@ -170,9 +176,9 @@ bool Camera::update_camera(Scene *scene, luisa::string_view name, const RawTrans
     auto append_matrix = append_transform->matrix(0.f);
     
     auto matrix = append_matrix * _base_transform->matrix(0.f);
-    RawTransformInfo transform_info;
-    transform_info.build_matrix(matrix);
-    auto new_transform = scene->update_transform(luisa::format("{}_transform", name), transform_info);
+    auto new_name = luisa::format("{}_transform", name);
+    auto new_transform = scene->update_transform(new_name, RawTransformInfo::matrix(std::move(matrix)));
+    // auto new_transform = scene->update_transform(luisa::format("{}_transform", name), transform_info);
     if (_transform == new_transform) {
         return false;
     } else {
@@ -181,19 +187,16 @@ bool Camera::update_camera(Scene *scene, luisa::string_view name, const RawTrans
     }
 }
 
-void Camera::_build_transform(
-    Scene *scene, luisa::string_view name, SceneNodeDesc::SourceLocation l,
-    const float3 &position, const float3 &front, const float3 &up, const float4x4 &append_matrix
-) noexcept {
-    SceneNodeDesc d{luisa::format("{}_base_transform", name), SceneNodeTag::TRANSFORM};
-    d.define(SceneNodeTag::TRANSFORM, "View", l);
-    d.add_property("position", SceneNodeDesc::number_list{position.x, position.y, position.z});
-    d.add_property("front", SceneNodeDesc::number_list{front.x, front.y, front.z});
-    d.add_property("up", SceneNodeDesc::number_list{up.x, up.y, up.z});
-    _base_transform = scene->load_transform(&d);
-    auto matrix = append_matrix * _base_transform->matrix(0.f);
-    _transform = scene->update_transform(luisa::format("{}_transform", name), RawTransformInfo(matrix));
-}
+// void Camera::_build_transform(
+//     Scene *scene, luisa::string_view name, SceneNodeDesc::SourceLocation l,
+//     float3 position, float3 front, float3 up, const float4x4 &append_matrix
+// ) noexcept {
+//     // SceneNodeDesc d{, SceneNodeTag::TRANSFORM};
+//     // d.define(SceneNodeTag::TRANSFORM, "View", l);
+//     // d.add_property("position", SceneNodeDesc::number_list{position.x, position.y, position.z});
+//     // d.add_property("front", SceneNodeDesc::number_list{front.x, front.y, front.z});
+//     // d.add_property("up", SceneNodeDesc::number_list{up.x, up.y, up.z});
+// }
 
 auto Camera::shutter_weight(float time) const noexcept -> float {
     if (time < _shutter_span.x || time > _shutter_span.y) { return 0.0f; }

@@ -376,10 +376,11 @@ Camera *Scene::update_camera(luisa::string_view name, const RawTransformInfo &tr
 }
 
 Surface *Scene::add_surface(const RawSurfaceInfo &surface_info) noexcept {
+    luisa::string impl_type = surface_info.get_type();
+    if (impl_type == "None") return nullptr;
+
     using NodeCreater = SceneNode *(Scene *, const RawSurfaceInfo &);
-    auto handle_creater = get_handle_creater<NodeCreater>(
-        SceneNodeTag::SURFACE, RawSurfaceInfo::mat_string[surface_info.material], "create_raw"
-    );
+    auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::SURFACE, impl_type, "create_raw");
     auto [node, first_def] = load_from_nodes(surface_info.name, handle_creater, this, surface_info);
     Surface *surface = dynamic_cast<Surface *>(node);
 

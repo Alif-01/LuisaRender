@@ -43,7 +43,6 @@ class PlasticSurface : public Surface {
 
 private:
     const Texture *_kd;
-    const Texture *_ks;
     const Texture *_roughness;
     const Texture *_sigma_a;
     const Texture *_eta;
@@ -54,7 +53,6 @@ public:
     PlasticSurface(Scene *scene, const SceneNodeDesc *desc) noexcept
         : Surface{scene, desc},
           _kd{scene->load_texture(desc->property_node_or_default("Kd"))},
-          _ks{scene->load_texture(desc->property_node_or_default("Ks"))},
           _roughness{scene->load_texture(desc->property_node_or_default("roughness"))},
           _sigma_a{scene->load_texture(desc->property_node_or_default("sigma_a"))},
           _eta{scene->load_texture(desc->property_node_or_default("eta"))},
@@ -63,19 +61,10 @@ public:
 
     PlasticSurface(Scene *scene, const RawSurfaceInfo &surface_info) noexcept
         : Surface{scene},
+          _kd{scene->add_texture("plastic_kd", surface_info.texture_info)},
           _roughness{scene->add_texture("plastic_roughness",
                 RawTextureInfo::constant({surface_info.roughness}))},
-          _sigma_a{nullptr}, _thickness{nullptr}, _remap_roughness{true} {
-
-        if (surface_info.plastic_info == nullptr) [[unlikely]]
-            LUISA_ERROR_WITH_LOCATION("Invalid plastic info!");
-        auto plastic_info = surface_info.plastic_info.get();
-        
-        _kd = scene->add_texture("plastic_kd", plastic_info->kd);
-        _ks = scene->add_texture("plastic_ks", plastic_info->ks);
-        _eta = scene->add_texture("plastic_eta", RawTextureInfo::constant({plastic_info->eta}));
-    }
-          
+          _sigma_a{nullptr}, _eta{surface_info.eta}, _thickness{nullptr}, _remap_roughness{true} {}
 
     [[nodiscard]] auto remap_roughness() const noexcept { return _remap_roughness; }
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
@@ -91,7 +80,6 @@ class PlasticInstance : public Surface::Instance {
 public:
 private:
     const Texture::Instance *_kd;
-    const Texture::Instance *_ks;
     const Texture::Instance *_roughness;
     const Texture::Instance *_sigma_a;
     const Texture::Instance *_eta;
@@ -99,11 +87,11 @@ private:
 
 public:
     PlasticInstance(const Pipeline &pipeline, const Surface *surface,
-                    const Texture::Instance *Kd, const Texture::Instance *Ks,
-                    const Texture::Instance *roughness, const Texture::Instance *sigma_a,
-                    const Texture::Instance *eta, const Texture::Instance *thickness) noexcept
+                    const Texture::Instance *Kd, const Texture::Instance *roughness,
+                    const Texture::Instance *sigma_a, const Texture::Instance *eta,
+                    const Texture::Instance *thickness) noexcept
         : Surface::Instance{pipeline, surface},
-          _kd{Kd}, _ks{Ks}, _roughness{roughness}, _sigma_a{sigma_a},
+          _kd{Kd}, _roughness{roughness}, _sigma_a{sigma_a},
           _eta{eta}, _thickness{thickness} {}
 
 public:
@@ -116,19 +104,17 @@ public:
 luisa::unique_ptr<Surface::Instance> PlasticSurface::_build(
     Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept {
     auto Kd = pipeline.build_texture(command_buffer, _kd);
-    auto Ks = pipeline.build_texture(command_buffer, _ks);
     auto roughness = pipeline.build_texture(command_buffer, _roughness);
     auto sigma_a = pipeline.build_texture(command_buffer, _sigma_a);
     auto eta = pipeline.build_texture(command_buffer, _eta);
     auto thickness = pipeline.build_texture(command_buffer, _thickness);
     return luisa::make_unique<PlasticInstance>(
-        pipeline, this, Kd, Ks, roughness, sigma_a, eta, thickness);
+        pipeline, this, Kd, roughness, sigma_a, eta, thickness);
 }
 
 struct PlasticContext {
     Interaction it;
     SampledSpectrum Kd;
-    SampledSpectrum Ks;
     Float Kd_weight;
     SampledSpectrum sigma_a;
     Float eta;
@@ -155,7 +141,7 @@ public:
         : _ctx{ctx},
           _distrib{ctx.roughness},
           _fresnel{1.f, ctx.eta},
-          _coat{ctx.Ks, &_distrib, &_fresnel},
+          _coat{SampledSpectrum{ctx.Kd.dimension(), 1.f}, &_distrib, &_fresnel},
           _substrate{ctx.Kd} {}
 
     [[nodiscard]] Surface::Evaluation evaluate(Expr<float3> wo,
@@ -283,8 +269,6 @@ void PlasticInstance::populate_closure(Surface::Closure *closure, const Interact
     auto eta = (_eta ? _eta->evaluate(it, swl, time).x : 1.5f) / eta_i;
     auto [Kd, Kd_lum] = _kd ? _kd->evaluate_albedo_spectrum(it, swl, time) :
                               Spectrum::Decode::one(swl.dimension());
-    auto [Ks, Ks_lum] = _ks ? _ks->evaluate_albedo_spectrum(it, swl, time) :
-                              Spectrum::Decode::one(swl.dimension());
     auto [sigma_a, sigma_a_lum] = _sigma_a ? _sigma_a->evaluate_albedo_spectrum(it, swl, time) :
                                              Spectrum::Decode::zero(swl.dimension());
     auto thickness = _thickness ? _thickness->evaluate(it, swl, time).x : 1.f;
@@ -298,7 +282,6 @@ void PlasticInstance::populate_closure(Surface::Closure *closure, const Interact
     PlasticContext ctx{
         .it = it,
         .Kd = Kd / (1.f - Kd * diffuse_fresnel),
-        .Ks = Ks,
         .Kd_weight = Kd_lum * average_transmittance,
         .sigma_a = sigma_a,
         .eta = eta,

@@ -102,9 +102,9 @@ public:
             }
             _encoding = Encoding::LINEAR;
         }
-        _scale = desc->property_float4_or_default(
+        _scale = desc->property_float3_or_default(
             "scale", lazy_construct([desc] {
-                return make_float4(desc->property_float_or_default("scale", 1.0f));
+                return make_float3(desc->property_float_or_default("scale", 1.0f));
             })
         );
         _mipmaps = desc->property_uint_or_default(

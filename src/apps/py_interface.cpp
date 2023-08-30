@@ -69,9 +69,9 @@ struct PyTransform {
                 arr[col][row] = vec[row * 4u + col];
             }
         }
-        PyTransform transform;
-        transform.transform_info.build_matrix(arr);
-        return std::move(transform);
+        return std::move(PyTransform {
+            RawTransformInfo::matrix(std::move(arr))
+        });
     }
     
     static PyTransform srt(const PyFloatArr &translate, const PyFloatArr &rotate, const PyFloatArr &scale) noexcept {
@@ -105,7 +105,7 @@ struct PyTexture {
     static PyTexture color(const PyFloatArr &color) noexcept {
         PyTexture texture;
         auto c = pyarray_to_vector<float>(color);
-        LUISA_ASSERT(c.size() == 3);
+        LUISA_ASSERT(c.size() == 3, "Invalid color channel");
         texture.texture_info.build_constant(std::move(c));
         return std::move(texture);
     }
@@ -124,7 +124,9 @@ struct PyTexture {
 
     static PyTexture checker(const PyTexture &on, const PyTexture &off, float scale) noexcept {
         PyTexture texture;
-        texture.texture_info.build_checker(on.texture_info, off.texture_info, scale);
+        texture.texture_info.build_checker(
+            std::move(on.texture_info),
+            std::move(off.texture_info), scale);
         return std::move(texture);
     }
 
@@ -139,7 +141,7 @@ struct PySurface {
         std::string_view name, float roughness, float opacity,
         const PyTexture &kd, std::string_view eta) noexcept {
         PySurface surface(name, roughness, opacity);
-        surface.surface_info.build_metal(kd.texture_info, eta);
+        surface.surface_info.build_metal(std::move(kd.texture_info), eta);
         return std::move(surface);
     }
 
@@ -147,7 +149,9 @@ struct PySurface {
         std::string_view name, float roughness, float opacity,
         const PyTexture &kd, const PyTexture &ks, float eta) noexcept {
         PySurface surface(name, roughness, opacity);
-        surface.surface_info.build_plastic(kd.texture_info, ks.texture_info, eta);
+        surface.surface_info.build_plastic(
+            std::move(kd.texture_info),
+            std::move(ks.texture_info), eta);
         return std::move(surface);
     }
 
@@ -155,7 +159,9 @@ struct PySurface {
         std::string_view name, float roughness, float opacity,
         const PyTexture &ks, const PyTexture &kt, float eta) noexcept {
         PySurface surface(name, roughness, opacity);
-        surface.surface_info.build_glass(ks.texture_info, kt.texture_info, eta);
+        surface.surface_info.build_glass(
+            std::move(ks.texture_info),
+            std::move(kt.texture_info), eta);
         return std::move(surface);
     }
 
@@ -385,15 +391,13 @@ void add_ground(
 ) noexcept {
     static auto z = make_float3(0.f, 0.f, 1.f);
     auto up = normalize(pyarray_to_pack<float, 3>(up_direction));
-    RawTransform transform_info;
-    transform_info.build_srt(
-        height * up,
-        make_float4(cross(z, up), degrees(acos(dot(z, up)))),
-        make_float3(range)
-    );
     auto plane_info = RawShapeInfo(
         luisa::string(name),
-        std::move(transform_info),
+        RawTransformInfo::srt(
+            height * up,
+            make_float4(cross(z, up), degrees(acos(dot(z, up)))),
+            make_float3(range)
+        ),
         surface, "", ""
     );
     plane_info.bulid_plane();
@@ -501,13 +505,12 @@ void destroy() {}
 
 PYBIND11_MODULE(LuisaRenderPy, m) {
     m.doc() = "Python binding of LuisaRender";
-
-    py::enum_<RawSurfaceInfo::RawMaterial>(m, "Material")
-        .value("METAL", RawSurfaceInfo::RawMaterial::RAW_METAL)
-        .value("SUBSTRATE", RawSurfaceInfo::RawMaterial::RAW_SUBSTRATE)
-        .value("MATTE", RawSurfaceInfo::RawMaterial::RAW_MATTE)
-        .value("GLASS", RawSurfaceInfo::RawMaterial::RAW_GLASS)
-        .value("NULL", RawSurfaceInfo::RawMaterial::RAW_NULL);
+    // py::enum_<RawSurfaceInfo::RawMaterial>(m, "Material")
+    //     .value("METAL", RawSurfaceInfo::RawMaterial::RAW_METAL)
+    //     .value("SUBSTRATE", RawSurfaceInfo::RawMaterial::RAW_SUBSTRATE)
+    //     .value("MATTE", RawSurfaceInfo::RawMaterial::RAW_MATTE)
+    //     .value("GLASS", RawSurfaceInfo::RawMaterial::RAW_GLASS)
+    //     .value("NULL", RawSurfaceInfo::RawMaterial::RAW_NULL);
     py::enum_<LogLevel>(m, "LogLevel")
         .value("DEBUG", LogLevel::VERBOSE)
         .value("INFO", LogLevel::INFO)
