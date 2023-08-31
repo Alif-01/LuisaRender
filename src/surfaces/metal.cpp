@@ -131,7 +131,7 @@ protected:
         Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept override;
 
 private:
-    [[nodiscard]] luisa::string _get_eta_from_name(luisa::string eta_name) noexcept {
+    void _get_eta_from_name(luisa::string eta_name) noexcept {
         for (auto &c : eta_name) { c = static_cast<char>(tolower(c)); }
         if (eta_name == "ag" || eta_name == "silver") {
             _ior = _register_eta_k("__internal_ior_Ag", ior::Ag);

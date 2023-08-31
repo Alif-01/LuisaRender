@@ -68,7 +68,7 @@ luisa::unique_ptr<luisa::vector<float4>> ProgressiveIntegrator::Instance::render
     camera->film()->download(command_buffer, (*buffer).data());
     command_buffer << compute::synchronize();
     camera->film()->release();
-    return std::move(buffer);
+    return buffer;
 }
 
 void ProgressiveIntegrator::Instance::_render_one_camera(

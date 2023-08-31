@@ -120,7 +120,7 @@ auto Scene::get_handle_creater(
             _context.runtime_directory(), tag, impl_type);
         auto create = plugin.function<NodeCreater>(creater_name);
         auto destroy = plugin.function<NodeDeleter>("destroy");
-        return std::move(NodeHandle(create(std::forward<Args>(args)...), destroy));
+        return NodeHandle(create(std::forward<Args>(args)...), destroy);
     };
 }
 
@@ -137,17 +137,6 @@ SceneNode *Scene::load_node(SceneNodeTag tag, const SceneNodeDesc *desc) noexcep
             scene_node_tag_description(desc->tag()),
             desc->impl_type());
     }
-
-    // auto &&plugin = detail::scene_plugin_load(
-    //     _context.runtime_directory(), tag, desc->impl_type());
-    // auto create = plugin.function<NodeCreater>("create");
-    // auto destroy = plugin.function<NodeDeleter>("destroy");
-    // auto handle_creater = [&] {
-    //     LUISA_VERBOSE_WITH_LOCATION(
-    //         "Constructing scene graph node '{}' (desc = {}).",
-    //         , fmt::ptr(desc));
-    //     return std::move(NodeHandle{create(), destroy});
-    // };
     
     auto handle_creater = get_handle_creater<NodeCreaterDesc>(tag, desc->impl_type(), "create");
 

@@ -32,17 +32,17 @@ struct RawTransformInfo {
     [[nodiscard]] static RawTransformInfo matrix(float4x4 matrix) noexcept {
         RawTransformInfo transform_info;
         transform_info.build_matrix(std::move(matrix));
-        return std::move(transform_info);
+        return transform_info;
     }
     [[nodiscard]] static RawTransformInfo srt(float3 translate, float4 rotate, float3 scale) noexcept {
         RawTransformInfo transform_info;
         transform_info.build_srt(std::move(translate), std::move(rotate), std::move(scale));
-        return std::move(transform_info);
+        return transform_info;
     }
     [[nodiscard]] static RawTransformInfo view(float3 position, float3 front, float3 up) noexcept {
         RawTransformInfo transform_info;
         transform_info.build_view(std::move(position), std::move(front), std::move(up));
-        return std::move(transform_info);
+        return transform_info;
     }
 
     void build_matrix(float4x4 matrix) noexcept {
@@ -95,11 +95,11 @@ struct RawTextureInfo {
     static RawTextureInfo constant(FloatArr constant) noexcept {
         RawTextureInfo texture_info;
         texture_info.build_constant(std::move(constant));
-        return std::move(texture_info);
+        return texture_info;
     }
     
-    void build_constant(FloatArr &&constant) noexcept;
-    void build_image(StringArr &&image, float3 &&scale) noexcept;
+    void build_constant(FloatArr constant) noexcept;
+    void build_image(StringArr image, float3 scale) noexcept;
     void build_checker(RawTextureInfo on, RawTextureInfo off, float scale) noexcept;
 
     [[nodiscard]] StringArr get_type() const noexcept {
@@ -112,9 +112,9 @@ struct RawTextureInfo {
         return luisa::format("Texture <{}>", get_type());
     }
 
-    UniquePtr<RawConstantInfo> constant_info{nullptr};
-    UniquePtr<RawImageInfo> image_info{nullptr};
-    UniquePtr<RawCheckerInfo> checker_info{nullptr};
+    UniquePtr<RawConstantInfo> constant_info;
+    UniquePtr<RawImageInfo> image_info;
+    UniquePtr<RawCheckerInfo> checker_info;
 };
 
 struct RawConstantInfo {
@@ -132,7 +132,7 @@ struct RawCheckerInfo {
 };
 
 struct RawLightInfo {
-    StringArr get_info() const noexcept {
+    [[nodiscard]] StringArr get_info() const noexcept {
         return luisa::format("Light {} <{}>", name, texture_info.get_info());
     }
     StringArr name;
@@ -140,7 +140,7 @@ struct RawLightInfo {
 };
 
 struct RawEnvironmentInfo {
-    StringArr get_info() const noexcept {
+    [[nodiscard]] StringArr get_info() const noexcept {
         return luisa::format("Environment {} <{}, {}>",
             name, texture_info.get_info(), transform_info.get_info());
     }
@@ -150,7 +150,7 @@ struct RawEnvironmentInfo {
 };
 
 struct RawCameraInfo {
-    StringArr get_info() const noexcept {
+    [[nodiscard]] StringArr get_info() const noexcept {
         return luisa::format("Camera {} <{}, fov={}, spp={}, res={}x{}>",
             name, base_pose.get_info(), fov, spp, resolution[0], resolution[1]);
     }
@@ -169,9 +169,10 @@ struct RawFileInfo;
 struct RawPlaneInfo;
 
 struct RawShapeInfo {
-    RawShapeInfo(StringArr &&name, RawTransformInfo &&transform_info,
-                 StringArr &&surface, StringArr &&light, StringArr &&medium) noexcept:
-        name{name}, transform_info{std::move(transform_info)}, surface{surface}, light{light}, medium{medium} {}
+    RawShapeInfo(StringArr name, RawTransformInfo transform_info,
+                 StringArr surface, StringArr light, StringArr medium) noexcept:
+        name{std::move(name)}, transform_info{std::move(transform_info)},
+        surface{std::move(surface)}, light{std::move(light)}, medium{std::move(medium)} {}
 
     [[nodiscard]] StringArr get_info() const noexcept {
         return luisa::format("Shape {} <{}, {}, surface={}, light={}>",
@@ -179,15 +180,15 @@ struct RawShapeInfo {
     }
     [[nodiscard]] StringArr get_type_info() const noexcept;
 
-    void build_spheres(FloatArr &&centers, float &&radius, uint &&subdivision) noexcept {
+    void build_spheres(FloatArr centers, float radius, uint subdivision) noexcept {
         spheres_info = luisa::make_unique<RawSpheresInfo>(std::move(centers), radius, subdivision);
     }
-    void build_mesh(FloatArr &&vertices, UintArr &&triangles, FloatArr &&normals, FloatArr &&uvs) noexcept {
+    void build_mesh(FloatArr vertices, UintArr triangles, FloatArr normals, FloatArr uvs) noexcept {
         mesh_info = luisa::make_unique<RawMeshInfo>(
             std::move(vertices), std::move(triangles), std::move(normals), std::move(uvs)
         );
     }
-    void build_file(StringArr &&file) noexcept {
+    void build_file(StringArr file) noexcept {
         file_info = luisa::make_unique<RawFileInfo>(std::move(file));
     }
     void build_plane() noexcept {
@@ -244,11 +245,9 @@ struct RawPlasticInfo;
 struct RawGlassInfo;
 
 struct RawSurfaceInfo {
+    RawSurfaceInfo(StringArr name, float roughness, float opacity) noexcept:
+        name{name}, roughness{roughness}, opacity{opacity} {}
 
-    // static const luisa::string mat_string[5];
-    // enum RawMaterial: uint { 
-    //     RAW_NULL, RAW_METAL, RAW_SUBSTRATE, RAW_MATTE, RAW_GLASS
-    // };
     [[nodiscard]] StringArr get_info() const noexcept {
         return luisa::format("Surface {} <material={}, roughness={}, opacity={}>",
             name, get_type(), roughness, opacity);
@@ -260,7 +259,7 @@ struct RawSurfaceInfo {
                glass_info != nullptr ? "glass": "None";
     }
 
-    void build_metal(RawTextureInfo &&kd, StringArr &&eta) noexcept {
+    void build_metal(RawTextureInfo kd, StringArr eta) noexcept {
         metal_info = luisa::make_unique<RawMetalInfo>(std::move(kd), std::move(eta));
     }
 
@@ -268,19 +267,9 @@ struct RawSurfaceInfo {
         plastic_info = luisa::make_unique<RawPlasticInfo>(std::move(kd), std::move(ks), eta);
     }
 
-    void build_glass(RawTextureInfo ks, RawTextureInfo kt, float &&eta) noexcept {
+    void build_glass(RawTextureInfo ks, RawTextureInfo kt, float eta) noexcept {
         glass_info = luisa::make_unique<RawGlassInfo>(std::move(ks), std::move(kt), eta);
     }
-
-    RawSurfaceInfo(StringArr &&name, float &&roughness, float &&opacity) noexcept:
-        name{name}, roughness{roughness}, opacity{opacity} {}
-
-    // void build_file(StringArr &&file) noexcept {
-    //     file_info = luisa::make_unique<RawFileInfo>(std::move(file));
-    // }
-    // void build_plane() noexcept {
-    //     plane_info = luisa::make_unique<RawPlaneInfo>();
-    // }
 
     StringArr name;
     // RawMaterial material;

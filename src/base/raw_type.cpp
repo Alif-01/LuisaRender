@@ -6,11 +6,11 @@ namespace luisa::render {
 using namespace omit;
 // RawTextureInfo::RawTextureInfo() noexcept {}
 
-void RawTextureInfo::build_constant(FloatArr &&constant) noexcept {
+void RawTextureInfo::build_constant(FloatArr constant) noexcept {
     // constant_info = get_ptr<RawConstantInfo>(std::move(constant));
     constant_info = luisa::make_unique<RawConstantInfo>(std::move(constant));
 }
-void RawTextureInfo::build_image(StringArr &&image, float3 &&scale) noexcept {
+void RawTextureInfo::build_image(StringArr image, float3 scale) noexcept {
     // image_info = get_ptr<RawImageInfo>(std::move(image), std::move(scale));
     image_info = luisa::make_unique<RawImageInfo>(std::move(image), std::move(scale));
 }
