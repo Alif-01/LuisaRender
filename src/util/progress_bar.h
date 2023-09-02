@@ -21,9 +21,10 @@ private:
     double _progress;
     uint32_t _width;
     clock_type::time_point _start;
+    bool _silent;
 
 public:
-    explicit ProgressBar(uint32_t width = 50u) noexcept;
+    explicit ProgressBar(bool silent = false, uint32_t width = 50u) noexcept;
     void reset() noexcept;
     void update(double progress) noexcept;
     void done() noexcept;

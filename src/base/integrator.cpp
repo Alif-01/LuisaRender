@@ -21,13 +21,8 @@ Integrator::Instance::Instance(Pipeline &pipeline, CommandBuffer &command_buffer
     : _pipeline{pipeline}, _integrator{integrator},
       _sampler{integrator->sampler()->build(pipeline, command_buffer)},
       _light_sampler{pipeline.has_lighting() ?
-                         integrator->light_sampler()->build(pipeline, command_buffer) :
-                         nullptr} {}
-
-// luisa::unique_ptr<luisa::vector<float4>> Integrator::Instance::render_to_buffer(Stream &stream, uint camera_index) noexcept {
-//     LUISA_ERROR("render_to_buffer not implemented.");
-//     return nullptr;
-// }
+                     integrator->light_sampler()->build(pipeline, command_buffer) :
+                     nullptr} {}
 
 ProgressiveIntegrator::Instance::Instance(Pipeline &pipeline,
                                           CommandBuffer &command_buffer,
@@ -106,7 +101,7 @@ void ProgressiveIntegrator::Instance::_render_one_camera(
 
     LUISA_INFO("Rendering started.");
     Clock clock;
-    ProgressBar progress;
+    ProgressBar progress(use_progress());
     progress.update(0.);
     auto dispatch_count = 0u;
     auto sample_id = 0u;

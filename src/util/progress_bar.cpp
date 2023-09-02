@@ -9,8 +9,9 @@
 
 namespace luisa::render {
 
-ProgressBar::ProgressBar(uint32_t width) noexcept
-    : _progress{0.0f}, _width{width}, _start{clock_type::now()} {}
+ProgressBar::ProgressBar(bool silent, uint32_t width) noexcept
+    : _progress{0.0f}, _width{width},
+      _start{clock_type::now()}, _silent{silent} {}
 
 void ProgressBar::reset() noexcept {
     _start = clock_type::now();
@@ -19,12 +20,14 @@ void ProgressBar::reset() noexcept {
 
 void ProgressBar::done() noexcept {
     update(1.0);
+    if (_silent) return;
     std::cout << std::endl;
 }
 
 void ProgressBar::update(double progress) noexcept {
     using namespace std::chrono_literals;
     _progress = std::clamp(std::max(_progress, progress), 0.0, 1.0);
+    if (_silent) return;
     auto pos = static_cast<uint32_t>(_width * _progress);
     auto dt = static_cast<double>((clock_type::now() - _start) / 1ns) * 1e-9;
     std::cout << "\33[2K\r[";
