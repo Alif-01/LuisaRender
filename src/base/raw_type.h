@@ -157,6 +157,7 @@ struct RawCameraInfo {
 
     StringArr name;
     RawTransformInfo base_pose;
+    RawTransformInfo append_pose;
     float fov;
     uint spp;
     uint2 resolution;
@@ -296,5 +297,12 @@ struct RawGlassInfo {
     RawTextureInfo ks, kt;
     float eta;
 };
+
+struct RawIntegratorInfo {
+    RawIntegratorInfo(StringArr name, ) noexcept {}
+    
+    StringArr light_sampler;
+    StringArr sampler;
+}
 
 } // namespace luisa::render

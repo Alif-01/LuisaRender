@@ -95,7 +95,7 @@ public:
     [[nodiscard]] Medium *load_medium(const SceneNodeDesc *desc) noexcept;
     [[nodiscard]] PhaseFunction *load_phase_function(const SceneNodeDesc *desc) noexcept;
     
-    [[nodiscard]] Film *add_film(luisa::string_view name, const uint2 &resolution) noexcept;
+    [[nodiscard]] Film *update_film(luisa::string_view name, const uint2 &resolution) noexcept;
     [[nodiscard]] Filter *add_filter(luisa::string_view name, const float &radius) noexcept;
 
     [[nodiscard]] Environment *add_environment(const RawEnvironmentInfo &environment_info) noexcept;
@@ -107,12 +107,13 @@ public:
     [[nodiscard]] Surface *add_surface(const RawSurfaceInfo &surface_info) noexcept;
 
     [[nodiscard]] Transform *update_transform(luisa::string_view name, const RawTransformInfo &transform_info) noexcept;
-    [[nodiscard]] Camera *add_camera(const RawCameraInfo &camera_info) noexcept;
-    [[nodiscard]] Camera *update_camera(luisa::string_view name, const RawTransformInfo &transform_info) noexcept;
+    // [[nodiscard]] Camera *add_camera(const RawCameraInfo &camera_info) noexcept;
+    [[nodiscard]] Camera *update_camera(const RawCameraInfo &camera_info) noexcept;
     [[nodiscard]] Shape *update_shape(const RawShapeInfo &shape_info, luisa::string impl_type, bool require_first) noexcept;
 
 public:
-    [[nodiscard]] static luisa::unique_ptr<Scene> create(const Context &ctx, const SceneDesc *desc) noexcept;
+    [[nodiscard]] static luisa::unique_ptr<Scene> create(
+        const Context &ctx, const SceneDesc *desc, bool use_progress) noexcept;
     [[nodiscard]] const Integrator *integrator() const noexcept;
     [[nodiscard]] const Environment *environment() const noexcept;
     [[nodiscard]] const Medium *environment_medium() const noexcept;
@@ -124,6 +125,7 @@ public:
 
     [[nodiscard]] bool shapes_updated() const noexcept;
     [[nodiscard]] bool cameras_updated() const noexcept;
+    [[nodiscard]] bool film_updated() const noexcept;
     [[nodiscard]] bool transforms_updated() const noexcept;
     [[nodiscard]] bool environment_updated() const noexcept;
     void clear_update() noexcept;

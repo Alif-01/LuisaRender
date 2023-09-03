@@ -279,7 +279,7 @@ int main(int argc, char *argv[]) {
     auto desc = scene_desc.get();
     // auto template_node = desc->node("template_1");
     // luisa::unordered_map<luisa::string, CameraStorage> camera_storage;
-    auto scene = Scene::create(context, desc);
+    auto scene = Scene::create(context, desc, true);
 
     std::vector<MeshView> mesh_pool;
     auto denoiser_ext = device.extension<DenoiserExt>();

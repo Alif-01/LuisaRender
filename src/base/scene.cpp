@@ -40,6 +40,7 @@ struct Scene::Config {
     luisa::vector<Shape *> shapes;
 
     bool environment_updated{false};
+    bool film_updated{false};
     bool cameras_updated{false};
     bool shapes_updated{false};
     bool transforms_updated{false};
@@ -57,6 +58,7 @@ float Scene::intersection_offset_factor() const noexcept { return _config->inter
 bool Scene::environment_updated() const noexcept { return _config->environment_updated; }
 bool Scene::shapes_updated() const noexcept { return _config->shapes_updated; }
 bool Scene::cameras_updated() const noexcept { return _config->cameras_updated; }
+bool Scene::film_updated() const noexcept { return _config->film_updated; }
 bool Scene::transforms_updated() const noexcept { return _config->transforms_updated; }
 // void Scene::clear_shapes_update() noexcept { _config->shapes_updated = false; }
 // void Scene::clear_cameras_update() noexcept { _config->cameras_updated = false; }
@@ -65,6 +67,7 @@ void Scene::clear_update() noexcept {
     _config->environment_updated = false;
     _config->shapes_updated = false;
     _config->cameras_updated = false;
+    _config->film_updated = false;
     _config->transforms_updated = false;
 }
 
@@ -244,15 +247,18 @@ PhaseFunction *Scene::load_phase_function(const SceneNodeDesc *desc) noexcept {
     return dynamic_cast<PhaseFunction *>(load_node(SceneNodeTag::PHASE_FUNCTION, desc));
 }
 
-Film *Scene::add_film(luisa::string_view name, const uint2 &resolution) noexcept {
+Film *Scene::update_film(luisa::string_view name, const uint2 &resolution) noexcept {
     using NodeCreater = SceneNode *(Scene *, const uint2 &);
     auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::FILM, "color", "create_raw");
     NodeHandle color_film = handle_creater(this, resolution);
 
-    std::scoped_lock lock{_mutex};
-    return dynamic_cast<Film *>(
-        _config->internal_nodes.emplace_back(std::move(color_film)).get()
-    );
+    auto [node, first_def] = load_from_nodes(name, handle_creater, this, resolution);
+    Film *film = dynamic_cast<Film *>(node);
+
+    if (!first_def) {
+        _config->film_updated |= film->update_film(this, resolution);
+    }
+    return film;
 }
 
 Filter *Scene::add_filter(luisa::string_view name, const float &radius) noexcept {
@@ -342,7 +348,7 @@ Transform *Scene::update_transform(luisa::string_view name, const RawTransformIn
     return transform;
 }
 
-Camera *Scene::add_camera(const RawCameraInfo &camera_info) noexcept {
+Camera *Scene::update_camera(const RawCameraInfo &camera_info) noexcept {
     using NodeCreater = SceneNode *(Scene *, const RawCameraInfo &);
     auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::CAMERA, "pinhole", "create_raw");
     auto [node, first_def] = load_from_nodes(camera_info.name, handle_creater, this, camera_info);
@@ -352,17 +358,18 @@ Camera *Scene::add_camera(const RawCameraInfo &camera_info) noexcept {
         _config->cameras.emplace_back(camera);
         _config->cameras_updated = true;
     } else {
-        LUISA_ERROR_WITH_LOCATION("Camera {} has been defined.", camera_info.name);
+        _config->cameras_updated |= camera->update_camera(this, camera_info);
+        // LUISA_ERROR_WITH_LOCATION("Camera {} has been defined.", camera_info.name);
     }
     return camera;
 }
 
-Camera *Scene::update_camera(luisa::string_view name, const RawTransformInfo &transform_info) noexcept {
-    auto node = load_node_from_name(name);
-    Camera *camera = dynamic_cast<Camera *>(node);
-    _config->cameras_updated |= camera->update_camera(this, name, transform_info);
-    return camera;
-}
+// Camera *Scene::update_camera(const RawCameraInfo &camera_info) noexcept {
+//     auto node = load_node_from_name(name);
+//     Camera *camera = dynamic_cast<Camera *>(node);
+//     _config->cameras_updated |= camera->update_camera(this, camera_info);
+//     return camera;
+// }
 
 Surface *Scene::add_surface(const RawSurfaceInfo &surface_info) noexcept {
     luisa::string impl_type = surface_info.get_type();
@@ -428,7 +435,7 @@ Shape *Scene::update_shape(
     return shape;
 }
 
-luisa::unique_ptr<Scene> Scene::create(const Context &ctx, const SceneDesc *desc) noexcept {
+luisa::unique_ptr<Scene> Scene::create(const Context &ctx, const SceneDesc *desc, bool use_progress) noexcept {
     if (!desc->root()->is_defined()) [[unlikely]] {
         LUISA_ERROR_WITH_LOCATION("Root node is not defined in the scene description.");
     }
@@ -438,6 +445,9 @@ luisa::unique_ptr<Scene> Scene::create(const Context &ctx, const SceneDesc *desc
     scene->_config->spectrum = scene->load_spectrum(desc->root()->property_node_or_default(
         "spectrum", SceneNodeDesc::shared_default_spectrum("sRGB")));
     scene->_config->integrator = scene->load_integrator(desc->root()->property_node("integrator"));
+    if (use_progress) {
+        scene->_config->integrator->disable_progress();
+    }
     scene->_config->environment = scene->load_environment(desc->root()->property_node_or_default("environment"));
     scene->_config->environment_medium = scene->load_medium(desc->root()->property_node_or_default("environment_medium"));
 

@@ -232,7 +232,7 @@ void init(std::string_view context_path, uint cuda_device, uint scene_index, Log
     LUISA_INFO("Parsed scene description file '{}' in {} ms.", scene_path.string(), parse_time);
 
     auto desc = scene_desc.get();
-    scene = Scene::create(*context, desc);
+    scene = Scene::create(*context, desc, log_level != LogLevel::WARNING);
     LUISA_INFO("Scene created!");
 
     auto cameras = desc->root()->property_node_list_or_default("cameras");
@@ -283,29 +283,53 @@ void add_surface(const PySurface &surface) noexcept {
     auto surface_node = scene->add_surface(surface.surface_info);
 }
 
-void add_camera(
-    std::string_view name, PyTransform &origin_pose,
+// void add_camera(
+//     std::string_view name, PyTransform &origin_pose,
+//     float fov, int spp, const PyIntArr &resolution
+// ) noexcept {
+//     auto camera_info = RawCameraInfo{
+//         luisa::string(name),
+//         std::move(origin_pose.transform_info),
+//         fov, uint(spp), 
+//         pyarray_to_pack<uint, 2>(resolution),
+//         1.0
+//     };
+//     LUISA_INFO("Add: {}", camera_info.get_info());
+//     uint camera_id = scene->cameras().size();
+//     auto camera = scene->add_camera(camera_info);
+
+//     uint pixel_count = camera_info.resolution.x * camera_info.resolution.y * 4;
+//     // camera_storage.emplace(camera_info.name, CameraStorage(camera_id, device.get(), pixel_count));
+//     camera_storage[camera_info.name] = luisa::make_unique<CameraStorage>(
+//         camera_id, device.get(), pixel_count
+//     );
+// }
+
+// void update_camera(std::string_view name, PyTransform &transform) noexcept {
+//     // auto real_transform = RawTransformInfo {
+//     //     transform.empty,
+//     //     transform.transform,
+//     //     transform.translate,
+//     //     transform.rotate,
+//     //     transform.scale
+//     // };
+//     LUISA_INFO("Update: Camera {}, {}", name, transform.transform_info.get_info());
+//     auto camera = scene->update_camera(name, std::move(transform.transform_info));
+// }
+
+
+void update_camera(
+    std::string_view name, PyTransform &origin_pose, PyTransform &transform,
     float fov, int spp, const PyIntArr &resolution
 ) noexcept {
     auto camera_info = RawCameraInfo{
         luisa::string(name),
         std::move(origin_pose.transform_info),
-        fov, uint(spp), 
+        std::move(transform.transform_info),
+        fov, uint(spp),
         pyarray_to_pack<uint, 2>(resolution),
         1.0
     };
-    LUISA_INFO("Add: {}", camera_info.get_info());
-    uint camera_id = scene->cameras().size();
-    auto camera = scene->add_camera(camera_info);
-
-    uint pixel_count = camera_info.resolution.x * camera_info.resolution.y * 4;
-    // camera_storage.emplace(camera_info.name, CameraStorage(camera_id, device.get(), pixel_count));
-    camera_storage[camera_info.name] = luisa::make_unique<CameraStorage>(
-        camera_id, device.get(), pixel_count
-    );
-}
-
-void update_camera(std::string_view name, PyTransform &transform) noexcept {
     // auto real_transform = RawTransformInfo {
     //     transform.empty,
     //     transform.transform,
@@ -313,8 +337,8 @@ void update_camera(std::string_view name, PyTransform &transform) noexcept {
     //     transform.rotate,
     //     transform.scale
     // };
-    LUISA_INFO("Update: Camera {}, {}", name, transform.transform_info.get_info());
-    auto camera = scene->update_camera(name, std::move(transform.transform_info));
+    LUISA_INFO("Update: Camera {}, {}", name, camera_info.get_info());
+    auto camera = scene->update_camera(camera_info);
 }
 
 void add_rigid(

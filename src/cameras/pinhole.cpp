@@ -38,6 +38,15 @@ public:
     PinholeCamera(Scene *scene, const RawCameraInfo &camera_info) noexcept
         : Camera{scene, camera_info},
           _fov{radians(std::clamp(camera_info.fov, 1e-3f, 180.f - 1e-3f))} {}
+    
+    [[nodiscard]] bool update_camera(Scene *scene, const RawCameraInfo &camera_info) noexcept {
+        bool updated = Camera::update_camera(scene, camera_info);
+        if (_fov != camera_info.fov) {
+            _fov = camera_info.fov;
+            updated = true;
+        }
+        return updated;
+    }
     [[nodiscard]] luisa::unique_ptr<Camera::Instance> build(
         Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept override;
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }

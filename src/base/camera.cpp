@@ -152,39 +152,80 @@ Camera::Camera(Scene *scene, const SceneNodeDesc *desc) noexcept
 
 Camera::Camera(Scene *scene, const RawCameraInfo &camera_info) noexcept
     : SceneNode{scene, SceneNodeTag::CAMERA},
-      _film{scene->add_film("film_color", camera_info.resolution)},
+      _film{scene->update_film(
+        luisa::format("{}_film", camera_info.name),
+        camera_info.resolution
+      )},
       _filter{scene->add_filter("filter_gaussian", camera_info.radius)},
       _shutter_span{make_float2(0.0f)},
       _shutter_samples{0u},                     // 0 means default
       _spp{camera_info.spp} {
-    // build transform
 
+    // build transform
     auto base_name = luisa::format("{}_base_transform", camera_info.name);
     _base_transform = scene->update_transform(base_name, camera_info.base_pose);
-    auto matrix = _base_transform->matrix(0.f);
+    if (_base_transform == nullptr) {
+        LUISA_ERROR("No camera base pose!");
+    }
+
+    auto append_name = luisa::format("{}_append_transform", name);
+    auto append_transform = scene->update_transform(append_name, append_info);
+
     auto new_name = luisa::format("{}_transform", camera_info.name);
+    auto matrix = _base_transform->matrix(0.f);
+    if (append_transform == nullptr) {
+        matrix = append_transform->matrix(0.f) * matrix;
+    }
     _transform = scene->update_transform(new_name, RawTransformInfo::matrix(std::move(matrix)));
     
     // render file
     _file = std::filesystem::current_path() / luisa::format("render_{}.exr", camera_info.name);
 }
 
-bool Camera::update_camera(Scene *scene, luisa::string_view name, const RawTransformInfo &append_info) noexcept {
-    if (append_info.get_type() == "None") return false;
-    auto append_name = luisa::format("{}_append_transform", name);
-    auto append_transform = scene->update_transform(append_name, append_info);
-    auto append_matrix = append_transform->matrix(0.f);
+// bool Camera::update_camera(Scene *scene, luisa::string_view name, const RawTransformInfo &append_info) noexcept {
+//     if (append_info.get_type() == "None") return false;
+//     auto append_name = luisa::format("{}_append_transform", name);
+//     auto append_transform = scene->update_transform(append_name, append_info);
+//     auto append_matrix = append_transform->matrix(0.f);
     
-    auto matrix = append_matrix * _base_transform->matrix(0.f);
-    auto new_name = luisa::format("{}_transform", name);
-    auto new_transform = scene->update_transform(new_name, RawTransformInfo::matrix(std::move(matrix)));
-    // auto new_transform = scene->update_transform(luisa::format("{}_transform", name), transform_info);
-    if (_transform == new_transform) {
-        return false;
-    } else {
-        _transform = new_transform;
-        return true;
+//     auto matrix = append_matrix * _base_transform->matrix(0.f);
+//     auto new_name = luisa::format("{}_transform", name);
+//     auto new_transform = scene->update_transform(new_name, RawTransformInfo::matrix(std::move(matrix)));
+//     // auto new_transform = scene->update_transform(luisa::format("{}_transform", name), transform_info);
+//     if (_transform == new_transform) {
+//         return false;
+//     } else {
+//         _transform = new_transform;
+//         return true;
+//     }
+// }
+
+bool Camera::update_camera(Scene *scene, const RawCameraInfo &camera_info) noexcept {
+    // if (append_info.get_type() == "None") return false;
+    auto append_name = luisa::format("{}_append_transform", camera_info.name);
+    auto append_transform = scene->update_transform(append_name, append_info);
+    bool updated = false;
+
+    if (append_transform != nullptr) {
+        auto append_matrix = append_transform->matrix(0.f);
+        auto matrix = append_matrix * _base_transform->matrix(0.f);
+        auto new_name = luisa::format("{}_transform", camera_info.name);
+        auto new_transform = scene->update_transform(new_name, RawTransformInfo::matrix(std::move(matrix)));
+        // auto new_transform = scene->update_transform(luisa::format("{}_transform", name), transform_info);
+
+        if (_transform != new_transform) {
+            _transform = new_transform;
+            updated = true;
+        }
     }
+
+    auto file_name = luisa::format("{}_film", camera_info.name);
+    new_film = scene->update_film(file_name, camera_info.resolution);
+    if (_film != new_film) {
+        _film = new_film;
+        updated = true;
+    }
+    return updated;
 }
 
 // void Camera::_build_transform(
