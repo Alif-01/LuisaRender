@@ -18,8 +18,13 @@ public:
                        plane_max_subdivision_level))} {}
     
     Plane(Scene *scene, const RawShapeInfo &shape_info) noexcept
-        : Shape{scene, shape_info},
-          _geometry{PlaneGeometry::create(0u)} {}
+        : Shape{scene, shape_info} {
+
+        if (shape_info.plane_info == nullptr) [[unlikely]]
+            LUISA_ERROR_WITH_LOCATION("Invalid plane info!");
+        auto plane_info = shape_info.plane_info.get();
+        _geometry = PlaneGeometry::create(plane_info->subdivision);
+    }
 
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] bool is_mesh() const noexcept override { return true; }

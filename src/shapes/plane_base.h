@@ -41,7 +41,7 @@ public:
     [[nodiscard]] static auto create(uint subdiv) noexcept {
         LUISA_ASSERT(subdiv <= plane_max_subdivision_level, "Subdivision level {} is too high.", subdiv);
         static constexpr auto position_to_uv = [](float3 w) noexcept {
-            return fract(make_float2(.5f * (w.x + 1.f), .5f * (w.y + 1.f)));
+            return make_float2(.5f * (w.x + 1.f), .5f * (w.y + 1.f));
         };
         static auto base_vertices = [] {
             std::array<Vertex, plane_base_vertices.size()> bv{};

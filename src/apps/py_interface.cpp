@@ -320,7 +320,7 @@ void add_surface(const PySurface &surface) noexcept {
 
 void update_camera(
     std::string_view name, PyTransform &origin_pose, PyTransform &transform,
-    float fov, int spp, const PyIntArr &resolution
+    float fov, uint spp, const PyIntArr &resolution
 ) noexcept {
     auto camera_info = RawCameraInfo{
         luisa::string(name),
@@ -416,20 +416,20 @@ void add_ground(
         ),
         luisa::string(surface), "", ""
     );
-    plane_info.build_plane();
+    plane_info.build_plane(3u);
     LUISA_INFO("Add: {}", plane_info.get_info());
     auto shape = scene->update_shape(plane_info, "plane", true);
 }
 
 void update_particles(
-    std::string_view name, const PyFloatArr &vertices, float radius,
+    std::string_view name, const PyFloatArr &vertices, float radius, uint subdivision,
     std::string_view surface, std::string_view light
 ) noexcept {
     auto spheres_info = RawShapeInfo(
         luisa::string(name), RawTransformInfo(),
         luisa::string(surface), luisa::string(light), ""
     );
-    spheres_info.build_spheres(pyarray_to_vector<float>(vertices), std::move(radius), 0u);
+    spheres_info.build_spheres(pyarray_to_vector<float>(vertices), std::move(radius), subdivision);
     LUISA_INFO("Update: {}", spheres_info.get_info());
     auto shape = scene->update_shape(spheres_info, "spheregroup", false);
 }
@@ -628,6 +628,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
         py::arg("name"),
         py::arg("vertices"),
         py::arg("radius"),
+        py::arg("subdivision") = 0u,
         py::arg("surface") = "",
         py::arg("light") = ""
     );

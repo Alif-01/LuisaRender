@@ -193,8 +193,8 @@ struct RawShapeInfo {
     void build_file(StringArr file) noexcept {
         file_info = luisa::make_unique<RawFileInfo>(std::move(file));
     }
-    void build_plane() noexcept {
-        plane_info = luisa::make_unique<RawPlaneInfo>();
+    void build_plane(uint subdivision) noexcept {
+        plane_info = luisa::make_unique<RawPlaneInfo>(subdivision);
     }
 
     StringArr name;
@@ -240,7 +240,13 @@ struct RawFileInfo {
     StringArr file;
 };
 
-struct RawPlaneInfo {};
+struct RawPlaneInfo {
+    [[nodiscard]] StringArr get_info() const noexcept {
+        return luisa::format("subdiv={}", subdivision);
+    }
+
+    uint subdivision;
+};
 
 struct RawMetalInfo;
 struct RawPlasticInfo;

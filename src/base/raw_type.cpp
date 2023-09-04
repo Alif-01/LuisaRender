@@ -22,7 +22,8 @@ void RawTextureInfo::build_checker(RawTextureInfo on, RawTextureInfo off, float 
 StringArr RawShapeInfo::get_type_info() const noexcept {
     return spheres_info != nullptr ? spheres_info->get_info() :
            mesh_info != nullptr ? mesh_info->get_info() : 
-           file_info != nullptr ? file_info->get_info() : "";
+           file_info != nullptr ? file_info->get_info() :
+           plane_info != nullptr ? "plane" : "";
 }
 // template <typename T, typename... Args>
 // UniquePtr<T> get_ptr(Args&&... args) {
