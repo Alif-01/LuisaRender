@@ -17,7 +17,7 @@ Film::Film(Scene *scene, const uint2 &resolution) noexcept
     : SceneNode{scene, SceneNodeTag::FILM},
       _resolution{resolution} {}
 
-bool update_film(Scene *scene, const uint2 &resolution) noexcept {
+bool Film::update_film(Scene *scene, const uint2 &resolution) noexcept {
     if (any(_resolution != resolution)) {
         _resolution = resolution;
         return true;

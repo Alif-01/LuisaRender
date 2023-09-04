@@ -168,12 +168,12 @@ Camera::Camera(Scene *scene, const RawCameraInfo &camera_info) noexcept
         LUISA_ERROR("No camera base pose!");
     }
 
-    auto append_name = luisa::format("{}_append_transform", name);
-    auto append_transform = scene->update_transform(append_name, append_info);
+    auto append_name = luisa::format("{}_append_transform", camera_info.name);
+    auto append_transform = scene->update_transform(append_name, camera_info.append_pose);
 
     auto new_name = luisa::format("{}_transform", camera_info.name);
     auto matrix = _base_transform->matrix(0.f);
-    if (append_transform == nullptr) {
+    if (append_transform != nullptr) {
         matrix = append_transform->matrix(0.f) * matrix;
     }
     _transform = scene->update_transform(new_name, RawTransformInfo::matrix(std::move(matrix)));
@@ -203,7 +203,7 @@ Camera::Camera(Scene *scene, const RawCameraInfo &camera_info) noexcept
 bool Camera::update_camera(Scene *scene, const RawCameraInfo &camera_info) noexcept {
     // if (append_info.get_type() == "None") return false;
     auto append_name = luisa::format("{}_append_transform", camera_info.name);
-    auto append_transform = scene->update_transform(append_name, append_info);
+    auto append_transform = scene->update_transform(append_name, camera_info.append_pose);
     bool updated = false;
 
     if (append_transform != nullptr) {
@@ -220,7 +220,7 @@ bool Camera::update_camera(Scene *scene, const RawCameraInfo &camera_info) noexc
     }
 
     auto file_name = luisa::format("{}_film", camera_info.name);
-    new_film = scene->update_film(file_name, camera_info.resolution);
+    auto new_film = scene->update_film(file_name, camera_info.resolution);
     if (_film != new_film) {
         _film = new_film;
         updated = true;

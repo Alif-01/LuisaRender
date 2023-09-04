@@ -445,7 +445,7 @@ luisa::unique_ptr<Scene> Scene::create(const Context &ctx, const SceneDesc *desc
     scene->_config->spectrum = scene->load_spectrum(desc->root()->property_node_or_default(
         "spectrum", SceneNodeDesc::shared_default_spectrum("sRGB")));
     scene->_config->integrator = scene->load_integrator(desc->root()->property_node("integrator"));
-    if (use_progress) {
+    if (!use_progress) {
         scene->_config->integrator->disable_progress();
     }
     scene->_config->environment = scene->load_environment(desc->root()->property_node_or_default("environment"));

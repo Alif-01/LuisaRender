@@ -151,8 +151,9 @@ struct RawEnvironmentInfo {
 
 struct RawCameraInfo {
     [[nodiscard]] StringArr get_info() const noexcept {
-        return luisa::format("Camera {} <{}, fov={}, spp={}, res={}x{}>",
-            name, base_pose.get_info(), fov, spp, resolution[0], resolution[1]);
+        return luisa::format("Camera {} <{}, {}, fov={}, spp={}, res={}x{}>",
+            name, base_pose.get_info(), append_pose.get_info(),
+            fov, spp, resolution[0], resolution[1]);
     }
 
     StringArr name;
@@ -298,11 +299,11 @@ struct RawGlassInfo {
     float eta;
 };
 
-struct RawIntegratorInfo {
-    RawIntegratorInfo(StringArr name, ) noexcept {}
+// struct RawIntegratorInfo {
+//     RawIntegratorInfo(StringArr name, ) noexcept {}
     
-    StringArr light_sampler;
-    StringArr sampler;
-}
+//     StringArr light_sampler;
+//     StringArr sampler;
+// };
 
 } // namespace luisa::render

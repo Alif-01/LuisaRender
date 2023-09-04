@@ -202,12 +202,12 @@ float gamma_factor = 2.2f;
 void init(std::string_view context_path, uint cuda_device, uint scene_index, LogLevel log_level) noexcept {
     /* add device */
     context_storage = context_path;
-    context = luisa::make_unique<Context>(context_storage);
     switch (log_level) {
         case VERBOSE: log_level_verbose(); break; 
         case INFO: log_level_info(); break;
         case WARNING: log_level_warning(); break;
     }
+    context = luisa::make_unique<Context>(context_storage);
     
     luisa::string backend = "CUDA";
     compute::DeviceConfig config;
@@ -330,6 +330,7 @@ void update_camera(
         pyarray_to_pack<uint, 2>(resolution),
         1.0
     };
+
     // auto real_transform = RawTransformInfo {
     //     transform.empty,
     //     transform.transform,
@@ -337,8 +338,13 @@ void update_camera(
     //     transform.rotate,
     //     transform.scale
     // };
-    LUISA_INFO("Update: Camera {}, {}", name, camera_info.get_info());
+    LUISA_INFO("Update: {}", camera_info.get_info());
+    uint camera_id = scene->cameras().size();
     auto camera = scene->update_camera(camera_info);
+    if (auto it = camera_storage.find(camera_info.name); it == camera_storage.end()) {
+        uint pixel_count = camera_info.resolution.x * camera_info.resolution.y * 4;
+        camera_storage[camera_info.name] = luisa::make_unique<CameraStorage>(camera_id, device.get(), pixel_count);
+    }
 }
 
 void add_rigid(
@@ -584,14 +590,18 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
     m.def("add_surface", &add_surface,
         py::arg("surface")
     );
-    m.def("add_camera", &add_camera,
-        py::arg("name"),
-        py::arg("origin_pose"),
-        py::arg("fov"), py::arg("spp"), py::arg("resolution")
-    );
+    // m.def("add_camera", &add_camera,
+    //     py::arg("name"),
+    //     py::arg("origin_pose"),
+    //     py::arg("fov"), py::arg("spp"), py::arg("resolution")
+    // );
     m.def("update_camera", &update_camera,
         py::arg("name"),
-        py::arg("transform") = PyTransform()
+        py::arg("origin_pose"),
+        py::arg("transform"),
+        py::arg("fov"),
+        py::arg("spp"),
+        py::arg("resolution")
     );
     m.def("add_ground", &add_ground,
         py::arg("name"),
