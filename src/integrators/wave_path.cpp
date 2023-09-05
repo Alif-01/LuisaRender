@@ -517,7 +517,7 @@ void WavefrontPathTracingInstance::_render_one_camera(
     auto sample_id = 0u;
     auto last_committed_sample_id = 0u;
     Clock clock;
-    ProgressBar progress_bar(use_progress());
+    ProgressBar progress_bar(!use_progress());
     progress_bar.update(0.0);
     for (auto s : shutter_samples) {
         auto time = s.point.time;

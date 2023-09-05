@@ -49,7 +49,7 @@ public:
 private:
     const Sampler *_sampler;
     const LightSampler *_light_sampler;
-    bool _use_progress{false};
+    bool _use_progress{true};
 
 public:
     Integrator(Scene *scene, const SceneNodeDesc *desc) noexcept;
