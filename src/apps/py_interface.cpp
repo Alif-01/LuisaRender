@@ -8,8 +8,6 @@
 #include <luisa/core/stl/format.h>
 #include <luisa/core/basic_types.h>
 #include <luisa/backends/ext/denoiser_ext.h>
-// #include <sdl/scene_desc.h>
-// #include <sdl/scene_parser.h>
 #include <base/scene.h>
 #include <base/pipeline.h>
 
@@ -216,15 +214,15 @@ struct PyIntegrator {
 struct PySpectrum {
     PySpectrum() noexcept {}
     
-    static PySpectrum srgb() noexcept {
-        PySpectrum spectrum;
-        spectrum.spectrum_info.build_srgb();
-        return spectrum;
-    }
-
     static PySpectrum hero(uint dimension) noexcept {
         PySpectrum spectrum;
         spectrum.spectrum_info.build_hero(dimension);
+        return spectrum;
+    }
+
+    static PySpectrum srgb() noexcept {
+        PySpectrum spectrum;
+        spectrum.spectrum_info.build_srgb();
         return spectrum;
     }
 

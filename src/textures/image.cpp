@@ -150,7 +150,7 @@ public:
             _load_image(path);
             // if (channels() != image_info->scale.size()) {
             //     LUISA_ERROR_WITH_LOCATION("Channels of scale and image do not match!");
-            }
+            // }
         }
     }
 

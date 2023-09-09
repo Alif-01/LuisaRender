@@ -119,7 +119,6 @@ struct RawTextureInfo {
 
     UniquePtr<RawConstantInfo> constant_info;
     UniquePtr<RawImageInfo> image_info;
-    // UniquePtr<RawInlineImageInfo> inline_image_info;
     UniquePtr<RawCheckerInfo> checker_info;
 };
 
@@ -289,8 +288,6 @@ struct RawSurfaceInfo {
     }
 
     StringArr name;
-    // RawTextureInfo reflect;
-
     float roughness;
     float opacity;
     UniquePtr<RawMetalInfo> metal_info;
@@ -345,7 +342,7 @@ struct RawSamplerInfo {
 struct RawIntegratorInfo {
     [[nodiscard]] StringArr get_type() const noexcept {
         return version == 1 ? "wavepath" :
-               version == 2 ? "wavepathv2" : "None";
+               version == 2 ? "wavepath_v2" : "None";
     }
     
     uint version;
@@ -373,20 +370,20 @@ struct RawSpectrumInfo {
     }
 
     void build_hero(uint dim) noexcept {
-        spectrum_index = 1;
+        spectrum_index = 1u;
         dimension = dim;
     }
     void build_srgb() noexcept {
-        spectrum_index = 2;
+        spectrum_index = 2u;
     }
 
     [[nodiscard]] StringArr get_type() const noexcept {
-        return spectrum_index == 1 ? "hero" :
-               spectrum_index == 2 ? "srgb" : "None";
+        return spectrum_index == 1u ? "hero" :
+               spectrum_index == 2u ? "srgb" : "None";
     }
 
-    uint spectrum_index;
-    uint dimension;
+    uint spectrum_index{0u};
+    uint dimension{0u};
 };
 
 } // namespace luisa::render

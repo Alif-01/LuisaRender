@@ -945,9 +945,6 @@ void WavefrontPathTracingv2Instance::_render_one_camera(
         } else {//actual rendering
 
             while (launch_state_count > 0 || !queues_empty) {
-                
-                LUISA_INFO("\nRound");
-
                 iteration += 1;
                 command_buffer << pipeline().printer().retrieve();
                 queues_empty = true;
@@ -996,6 +993,7 @@ void WavefrontPathTracingv2Instance::_render_one_camera(
                                                                  shutter_spp - s.spp, s.spp * pixel_count - launch_state_count, time, s.point.weight)
                                           .dispatch(generate_count); // generate rays in [valid_count, state_count)
                     launch_state_count -= generate_count;
+                    // LUISA_INFO("\nRound {}, {}, {}", generate_count, launch_state_count, iteration);
                     queues_empty = false;
                     continue;
                 }
