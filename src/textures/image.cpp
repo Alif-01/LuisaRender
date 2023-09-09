@@ -39,6 +39,17 @@ private:
             return LoadedImage::load(path);
         });
     }
+    
+    void _load_image(const RawImageInfo *image_info) noexcept {
+        _image = global_thread_pool().async([image_info] {
+            return LoadedImage::load(
+                image_info->image_data,
+                image_info->resolution,
+                image_info->channel
+            );
+        });
+    }
+
     [[nodiscard]]luisa::string _get_encoding(const std::filesystem::path &path) noexcept {
         auto ext = path.extension().string();
         for (auto &c : ext) { c = static_cast<char>(tolower(c)); }
@@ -88,7 +99,7 @@ public:
             }));
         auto path = desc->property_path("file");
         auto encoding = desc->property_string_or_default(
-            "encoding", lazy_construct([&path]() noexcept -> luisa::string { return _get_encoding(path); })
+            "encoding", lazy_construct([&path, this]() noexcept -> luisa::string { return _get_encoding(path); })
         );
         for (auto &c : encoding) { c = static_cast<char>(tolower(c)); }
         if (encoding == "srgb") {
@@ -134,38 +145,7 @@ public:
         else _encoding = Encoding::LINEAR;
 
         if (!image_info->image_data.empty()) {
-            _image = global_thread_pool().async([&image_info] {
-                const auto &image_data = image_info->image_data;
-                auto storage = storage_type::FLOAT4;
-                auto expected_channels = 4u;
-                auto channel = image_info->channel;
-                switch (channel) {
-                    case 1u: storage = storage_type::FLOAT1; expected_channels = 1u; break;
-                    case 2u: storage = storage_type::FLOAT2; expected_channels = 2u; break;
-                }
-                auto size = image_info->resolution;
-                auto value_count = size[0] * size[1] * expected_channels;
-                auto pixels = luisa::allocate_with_allocator<float>(value_count);
-                if (channel == expected_channels) {
-                    std::memcpy(pixels, image_data, value_count * sizeof(float));
-                } else {
-                    if (expected_channels != 4u || channel != 3u) [[unlikely]]
-                        LUISA_ERROR_WITH_LOCATION("Invalid image channels!");
-                    for (auto i = 0u; i < size[0] * size[1]; ++i) {
-                        for (auto c = 0u; c < channel; ++c) {
-                            pixels[i * expected_channels + c] = image_data[i * channel + c];
-                        }
-                        for (auto c = channel; c < expected_channels; ++c) {
-                            pixels[i * expected_channels + c] = 1.f;
-                        }
-                    }
-                }
-                auto deleter = luisa::function<void(void *)>{[](void *p) noexcept {
-                    luisa::deallocate_with_allocator(static_cast<float *>(p));
-                }};
-
-                return LoadedImage{pixels, storage, size, std::move(deleter)};
-            });
+            _load_image(image_info);
         } else {
             _load_image(path);
             if (channels() != image_info->scale.size()) {
@@ -203,7 +183,7 @@ private:
     [[nodiscard]] Float4 _decode(Expr<float4> rgba) const noexcept {
         auto texture = node<ImageTexture>();
         auto encoding = texture->encoding();
-        auto scale = make_float4(texture->scale(), 1.f);
+        auto scale = texture->scale();
         if (encoding == ImageTexture::Encoding::SRGB) {
             auto linear = ite(
                 rgba <= 0.04045f,

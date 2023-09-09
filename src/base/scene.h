@@ -40,6 +40,9 @@ class PhaseFunction;
 
 struct RawTextureInfo;
 struct RawLightInfo;
+struct RawSamplerInfo;
+struct RawSpectrumInfo;
+struct RawIntegratorInfo;
 struct RawEnvironmentInfo;
 struct RawSurfaceInfo;
 struct RawTransformInfo;

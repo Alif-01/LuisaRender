@@ -26,6 +26,7 @@ private:
 
 private:
     void _destroy() noexcept;
+    LoadedImage(void *pixels, storage_type storage, uint2 resolution, luisa::function<void(void *)> deleter) noexcept;
     [[nodiscard]] static LoadedImage _load_byte(const std::filesystem::path &path, storage_type storage) noexcept;
     [[nodiscard]] static LoadedImage _load_half(const std::filesystem::path &path, storage_type storage) noexcept;
     [[nodiscard]] static LoadedImage _load_short(const std::filesystem::path &path, storage_type storage) noexcept;
@@ -36,7 +37,6 @@ public:
     LoadedImage() noexcept = default;
     ~LoadedImage() noexcept;
     LoadedImage(LoadedImage &&another) noexcept;
-    LoadedImage(void *pixels, storage_type storage, uint2 resolution, luisa::function<void(void *)> deleter) noexcept;
     LoadedImage &operator=(LoadedImage &&rhs) noexcept;
     LoadedImage(const LoadedImage &) noexcept = delete;
     LoadedImage &operator=(const LoadedImage &) noexcept = delete;
@@ -47,6 +47,7 @@ public:
     [[nodiscard]] auto channels() const noexcept { return compute::pixel_storage_channel_count(_storage); }
     [[nodiscard]] auto pixel_count() const noexcept { return _resolution.x * _resolution.y; }
     [[nodiscard]] explicit operator bool() const noexcept { return _pixels != nullptr; }
+    [[nodiscard]] static LoadedImage load(const luisa::vector<float> &image_data, uint2 resolution, uint channel) noexcept;
     [[nodiscard]] static LoadedImage load(const std::filesystem::path &path) noexcept;
     [[nodiscard]] static LoadedImage load(const std::filesystem::path &path, storage_type storage) noexcept;
     [[nodiscard]] static storage_type parse_storage(const std::filesystem::path &path) noexcept;

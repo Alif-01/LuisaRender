@@ -7,6 +7,7 @@
 #include <luisa/dsl/syntax.h>
 #include <util/command_buffer.h>
 #include <base/scene_node.h>
+#include <base/raw_type.h>
 
 namespace luisa::render {
 
@@ -50,6 +51,7 @@ public:
 
 public:
     Sampler(Scene *scene, const SceneNodeDesc *desc) noexcept;
+    Sampler(Scene *scene) noexcept;
     [[nodiscard]] virtual luisa::unique_ptr<Instance> build(
         Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept = 0;
     [[nodiscard]] auto seed() const noexcept { return _seed; }

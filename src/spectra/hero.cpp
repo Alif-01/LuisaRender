@@ -219,7 +219,7 @@ public:
     HeroWavelengthSpectrum(Scene *scene, const RawSpectrumInfo &spectrum_info) noexcept
         : Spectrum{scene}, _method{SamplingMethod::VISIBLE} {
         
-        if (surface_info.spectrum_index != 1) [[unlikely]]
+        if (spectrum_info.spectrum_index != 1) [[unlikely]]
             LUISA_ERROR_WITH_LOCATION("Invalid spectrum info!");
         
         _dimension = std::max(spectrum_info.dimension, 1u);
