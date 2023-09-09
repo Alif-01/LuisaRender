@@ -25,6 +25,7 @@ namespace luisa::render {
     float4 fv;
     for (auto i = 0u; i < v.size(); ++i) 
         fv[i] = scale * v[i];
+    return fv;
 }
 
 }// namespace luisa::render

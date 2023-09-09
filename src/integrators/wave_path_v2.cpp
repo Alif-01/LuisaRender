@@ -946,7 +946,7 @@ void WavefrontPathTracingv2Instance::_render_one_camera(
 
             while (launch_state_count > 0 || !queues_empty) {
                 
-                LUISA_DEBUG("\nRound");
+                LUISA_INFO("\nRound");
 
                 iteration += 1;
                 command_buffer << pipeline().printer().retrieve();

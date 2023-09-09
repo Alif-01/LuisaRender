@@ -57,6 +57,8 @@ Vector<T, N> pyarray_to_pack(const py::array_t<T> &array) noexcept {
     return v;
 }
 
+enum LogLevel: uint { VERBOSE, INFO, WARNING };
+
 struct PyTransform {
     PyTransform() noexcept = default;
     PyTransform(RawTransformInfo transform_info) noexcept : transform_info{std::move(transform_info)} {}
@@ -130,11 +132,11 @@ struct PyTexture {
         bool has_data = image_data.size() > 0;
         if (has_data) {
             uint channel;
-            if (image_data.ndim == 2) channel = 1;
-            else if (image_data.ndim == 3) channel = image_data.shape(2);
+            if (image_data.ndim() == 2) channel = 1;
+            else if (image_data.ndim() == 3) channel = image_data.shape(2);
             else LUISA_ERROR_WITH_LOCATION("Invalid image dim!");
-            if (scale.shape[0] != channel)
-                LUISA_ERROR_WITH_LOCATION("Channels of scale and image do not match!");
+            // if (scale.shape(0) != channel)
+            //     LUISA_ERROR_WITH_LOCATION("Channels of scale and image do not match!");
             texture.texture_info.build_image(
                 luisa::string(image), 
                 pyarray_to_vector<float>(scale),
@@ -193,7 +195,6 @@ struct PySurface {
 };
 
 struct PyIntegrator {
-    PyIntegrator() noexcept {}
     static PyIntegrator wave_path(
         LogLevel log_level, uint wave_path_version,
         uint max_depth, uint state_limit
@@ -239,8 +240,6 @@ struct CameraStorage {
     Buffer<float> hdr_buffer;
     Buffer<float> denoised_buffer;
 };
-
-enum LogLevel: uint { VERBOSE, INFO, WARNING };
 
 luisa::unique_ptr<Stream> stream;
 luisa::unique_ptr<Device> device;
@@ -290,12 +289,12 @@ void init(
     //                   luisa::format("default_scene/scene_{}.luisa", scene_index);
 
     // SceneParser::MacroMap macros;
-    Clock clock;
+    // Clock clock;
     // auto scene_desc = SceneParser::parse(scene_path, macros);
     // auto parse_time = clock.toc();
     // LUISA_INFO("Parsed scene description file '{}' in {} ms.", scene_path.string(), parse_time);
 
-    auto desc = scene_desc.get();
+    // auto desc = scene_desc.get();
     // scene = Scene::create(*context, desc, log_level != LogLevel::WARNING);
     scene = Scene::create(*context, integrator_options.integrator_info, spectrum_options.spectrum_info);
     LUISA_INFO("Scene created!");
@@ -592,14 +591,20 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
         );
     py::class_<PyTexture>(m, "Texture")
         .def_static("empty", &PyTexture::empty)
-        .def_static("image", &PyTexture::image, py::arg("image"), py::arg("scale"))
+        .def_static("image", &PyTexture::image,
+            py::arg("image") = "",
+            py::arg("scale") = PyFloatArr(),
+            py::arg("image_data") = PyFloatArr()
+        )
         .def_static("color", &PyTexture::color, py::arg("color"))
         .def_static("checker", &PyTexture::checker,
             py::arg("on"), py::arg("off"), py::arg("scale")
         );        
     py::class_<PySurface>(m, "Surface")
         .def_static("metal", &PySurface::metal,
-            py::arg("name"), py::arg("roughness"), py::arg("opacity") = 1.f,
+            py::arg("name"),
+            py::arg("roughness"),
+            py::arg("opacity") = 1.f,
             py::arg("kd"),
             py::arg("eta") = "Al"
         )
@@ -629,19 +634,22 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
     m.def("init", &init,
         py::arg("context_path"),
         py::arg("cuda_device") = 0,
-        py::arg("scene_index") = 0,
-        py::arg("log_level") = LogLevel::WARNING
+        py::arg("log_level") = LogLevel::WARNING,
+        py::arg("integrator_options") = PyIntegrator::wave_path(
+            LogLevel::WARNING, 2u, 32u, 512u * 512u * 32u
+        ),
+        py::arg("spectrum_options") = PySpectrum::hero(4u)
     );
     m.def("destroy", &destroy);
 
     m.def("add_environment", &add_environment,
         py::arg("name"),
-        py::arg("texture") = PyTexture(),
-        py::arg("transform") = PyTransform()
+        py::arg("texture") = PyTexture::empty(),
+        py::arg("transform") = PyTransform::empty()
     );
     m.def("add_light", &add_light,
         py::arg("name"),
-        py::arg("texture") = PyTexture()
+        py::arg("texture") = PyTexture::empty()
     );
     m.def("add_surface", &add_surface,
         py::arg("surface")
