@@ -1,6 +1,8 @@
 //
 // Created by Mike Smith on 2022/11/8.
 //
+#pragma once
+
 #include <future>
 #include <base/shape.h>
 #include <util/loop_subdiv.h>

@@ -215,6 +215,16 @@ public:
             _method = SamplingMethod::VISIBLE;
         }
     }
+
+    HeroWavelengthSpectrum(Scene *scene, const RawSpectrumInfo &spectrum_info) noexcept
+        : Spectrum{scene}, _method{SamplingMethod::VISIBLE} {
+        
+        if (surface_info.spectrum_index != 1) [[unlikely]]
+            LUISA_ERROR_WITH_LOCATION("Invalid spectrum info!");
+        
+        _dimension = std::max(spectrum_info.dimension, 1u);
+    }
+
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] bool is_fixed() const noexcept override { return false; }
     [[nodiscard]] uint dimension() const noexcept override { return _dimension; }
@@ -392,3 +402,8 @@ luisa::unique_ptr<Spectrum::Instance> HeroWavelengthSpectrum::build(
 }// namespace luisa::render
 
 LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::HeroWavelengthSpectrum)
+
+LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
+    luisa::render::Scene *scene, const luisa::render::RawSpectrumInfo &spectrum_info) LUISA_NOEXCEPT {
+    return luisa::new_with_allocator<luisa::render::HeroWavelengthSpectrum>(scene, spectrum_info);
+}

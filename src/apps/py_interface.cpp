@@ -8,8 +8,8 @@
 #include <luisa/core/stl/format.h>
 #include <luisa/core/basic_types.h>
 #include <luisa/backends/ext/denoiser_ext.h>
-#include <sdl/scene_desc.h>
-#include <sdl/scene_parser.h>
+// #include <sdl/scene_desc.h>
+// #include <sdl/scene_parser.h>
 #include <base/scene.h>
 #include <base/pipeline.h>
 
@@ -110,18 +110,42 @@ struct PyTexture {
         return texture;
     }
 
-    static PyTexture inline_image(std::string_view image, const PyFloatArr &scale) noexcept {
-        PyTexture texture;
-        texture.texture_info.build_image(
-            luisa::string(image), pyarray_to_pack<float, 3>(scale)
-        );
-        return texture;
-    }
+    // static PyTexture inline_image(const PyFloatArr image, const PyFloatArr &scale) noexcept {
+    //     PyTexture texture;
+    //     uint channel;
+    //     if (image.ndim == 2) channel = 1;
+    //     else if (image.ndim == 3) channel = image.shape(2);
+    //     else LUISA_ERROR_WITH_LOCATION("Invalid image dim!");
+    //     texture.texture_info.build_inline_image(
+    //         pyarray_to_vector<float>(image),
+    //         make_uint2(image.shape(0), image.shape(1)), channel,
+    //         pyarray_to_pack<float, 3>(scale)
+    //     );
+    //     return texture;
+    // }
 
-    static PyTexture image(std::string_view image, const PyFloatArr &scale) noexcept {
+    static PyTexture image(std::string_view image, const PyFloatArr &scale, const PyFloatArr &image_data) noexcept {
         PyTexture texture;
-        texture.texture_info.build_image(
-            luisa::string(image), pyarray_to_pack<float, 3>(scale));
+
+        bool has_data = image_data.size() > 0;
+        if (has_data) {
+            uint channel;
+            if (image_data.ndim == 2) channel = 1;
+            else if (image_data.ndim == 3) channel = image_data.shape(2);
+            else LUISA_ERROR_WITH_LOCATION("Invalid image dim!");
+            if (scale.shape[0] != channel)
+                LUISA_ERROR_WITH_LOCATION("Channels of scale and image do not match!");
+            texture.texture_info.build_image(
+                luisa::string(image), 
+                pyarray_to_vector<float>(scale),
+                pyarray_to_vector<float>(image_data),
+                make_uint2(image_data.shape(0), image_data.shape(1)), channel
+            );
+        } else {
+            texture.texture_info.build_image(
+                luisa::string(image), pyarray_to_vector<float>(scale)
+            );
+        }
         return texture;
     }
 
@@ -168,6 +192,44 @@ struct PySurface {
     RawSurfaceInfo surface_info;
 };
 
+struct PyIntegrator {
+    PyIntegrator() noexcept {}
+    static PyIntegrator wave_path(
+        LogLevel log_level, uint wave_path_version,
+        uint max_depth, uint state_limit
+    ) noexcept {
+        return PyIntegrator {
+            RawIntegratorInfo {
+                wave_path_version,
+                RawSamplerInfo::independent(),
+                log_level != LogLevel::WARNING,
+                max_depth,
+                0, 0.95, state_limit
+            }
+        };
+    }
+
+    RawIntegratorInfo integrator_info;
+};
+
+struct PySpectrum {
+    PySpectrum() noexcept {}
+    
+    static PySpectrum srgb() noexcept {
+        PySpectrum spectrum;
+        spectrum.spectrum_info.build_srgb();
+        return spectrum;
+    }
+
+    static PySpectrum hero(uint dimension) noexcept {
+        PySpectrum spectrum;
+        spectrum.spectrum_info.build_hero(dimension);
+        return spectrum;
+    }
+
+    RawSpectrumInfo spectrum_info;
+};
+
 struct CameraStorage {
     CameraStorage(uint index, Device* device, uint pixel_count) noexcept:
         index{index},
@@ -199,7 +261,10 @@ float gamma_factor = 2.2f;
 
 // }
 
-void init(std::string_view context_path, uint cuda_device, uint scene_index, LogLevel log_level) noexcept {
+void init(
+    std::string_view context_path, uint cuda_device, LogLevel log_level,
+    const PyIntegrator &integrator_options, const PySpectrum &spectrum_options
+) noexcept {
     /* add device */
     context_storage = context_path;
     switch (log_level) {
@@ -216,36 +281,36 @@ void init(std::string_view context_path, uint cuda_device, uint scene_index, Log
     device = luisa::make_unique<Device>(context->create_device(backend, &config));
 
     /* build denoiser */
-    auto channel_count = 4u;
     stream = luisa::make_unique<Stream>(device->create_stream(StreamTag::COMPUTE));
     denoiser_ext = device->extension<DenoiserExt>();
     mode = luisa::make_unique<DenoiserExt::DenoiserMode>();
 
     /* build scene and pipeline */
-    auto scene_path = std::filesystem::path(context_storage) /
-                      luisa::format("default_scene/scene_{}.luisa", scene_index);
+    // auto scene_path = std::filesystem::path(context_storage) /
+    //                   luisa::format("default_scene/scene_{}.luisa", scene_index);
 
-    SceneParser::MacroMap macros;
+    // SceneParser::MacroMap macros;
     Clock clock;
-    auto scene_desc = SceneParser::parse(scene_path, macros);
-    auto parse_time = clock.toc();
-    LUISA_INFO("Parsed scene description file '{}' in {} ms.", scene_path.string(), parse_time);
+    // auto scene_desc = SceneParser::parse(scene_path, macros);
+    // auto parse_time = clock.toc();
+    // LUISA_INFO("Parsed scene description file '{}' in {} ms.", scene_path.string(), parse_time);
 
     auto desc = scene_desc.get();
-    scene = Scene::create(*context, desc, log_level != LogLevel::WARNING);
+    // scene = Scene::create(*context, desc, log_level != LogLevel::WARNING);
+    scene = Scene::create(*context, integrator_options.integrator_info, spectrum_options.spectrum_info);
     LUISA_INFO("Scene created!");
 
-    auto cameras = desc->root()->property_node_list_or_default("cameras");
-    for (uint camera_id = 0; camera_id < cameras.size(); ++camera_id) {
-        auto c = cameras[camera_id];
-        auto camera = scene->cameras()[camera_id];
-        auto resolution = camera->film()->resolution();
-        uint pixel_count = resolution.x * resolution.y * 4;
-        // camera_storage.emplace(c->identifier(), CameraStorage(camera_id, device.get(), pixel_count));
-        camera_storage[c->identifier()] = luisa::make_unique<CameraStorage>(
-            camera_id, device.get(), pixel_count
-        );
-    }
+    // auto cameras = desc->root()->property_node_list_or_default("cameras");
+    // for (uint camera_id = 0; camera_id < cameras.size(); ++camera_id) {
+    //     auto c = cameras[camera_id];
+    //     auto camera = scene->cameras()[camera_id];
+    //     auto resolution = camera->film()->resolution();
+    //     uint pixel_count = resolution.x * resolution.y * 4;
+    //     // camera_storage.emplace(c->identifier(), CameraStorage(camera_id, device.get(), pixel_count));
+    //     camera_storage[c->identifier()] = luisa::make_unique<CameraStorage>(
+    //         camera_id, device.get(), pixel_count
+    //     );
+    // }
 
     pipeline = Pipeline::create(*device, *stream, *scene);
     LUISA_INFO("Pipeline created!");
@@ -273,12 +338,6 @@ void add_light(std::string_view name, PyTexture &texture) noexcept {
 }
 
 void add_surface(const PySurface &surface) noexcept {
-    // auto surface_info = RawSurfaceInfo {
-    //     luisa::string(name),
-    //     material,
-    //     std::move(texture.texture_info),
-    //     roughness
-    // };
     LUISA_INFO("Add: {}", surface.surface_info.get_info());
     auto surface_node = scene->add_surface(surface.surface_info);
 }
@@ -304,19 +363,6 @@ void add_surface(const PySurface &surface) noexcept {
 //         camera_id, device.get(), pixel_count
 //     );
 // }
-
-// void update_camera(std::string_view name, PyTransform &transform) noexcept {
-//     // auto real_transform = RawTransformInfo {
-//     //     transform.empty,
-//     //     transform.transform,
-//     //     transform.translate,
-//     //     transform.rotate,
-//     //     transform.scale
-//     // };
-//     LUISA_INFO("Update: Camera {}, {}", name, transform.transform_info.get_info());
-//     auto camera = scene->update_camera(name, std::move(transform.transform_info));
-// }
-
 
 void update_camera(
     std::string_view name, PyTransform &origin_pose, PyTransform &transform,
@@ -449,7 +495,7 @@ luisa::unique_ptr<luisa::vector<uint8_t>> convert_to_int_pixel(
     return int_buffer_handle;
 }
 
-PyFloatArr render_frame_exr(
+PyFloatArr render_frame(
     std::string_view name, std::string_view path,
     bool denoise, bool save_picture, bool render_png
 ) noexcept {
@@ -569,6 +615,16 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
             py::arg("kt"),
             py::arg("eta") = 1.5
         );
+    py::class_<PyIntegrator>(m, "Integrator")
+        .def_static("wave_path", &PyIntegrator::wave_path,
+            py::arg("log_level"), 
+            py::arg("wave_path_version") = 2u,
+            py::arg("max_depth") = 32u,
+            py::arg("state_limit") = 512u * 512u * 32u
+        );
+    py::class_<PySpectrum>(m, "Spectrum")
+        .def_static("srgb", &PySpectrum::srgb)
+        .def_static("hero", &PySpectrum::hero, py::arg("dimension") = 4u);
 
     m.def("init", &init,
         py::arg("context_path"),
@@ -641,7 +697,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
         py::arg("surface") = "",
         py::arg("light") = ""
     );
-    m.def("render_frame_exr", &render_frame_exr,
+    m.def("render_frame", &render_frame,
         py::arg("name"),
         py::arg("path"),
         py::arg("denoise") = true,

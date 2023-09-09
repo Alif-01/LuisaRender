@@ -79,4 +79,6 @@ Spectrum::Instance::Instance(Pipeline &pipeline, CommandBuffer &cb,
 Spectrum::Spectrum(Scene *scene, const SceneNodeDesc *desc) noexcept
     : SceneNode{scene, desc, SceneNodeTag::SPECTRUM} {}
 
+Spectrum::Spectrum(Scene *scene) noexcept : SceneNode{scene, SceneNodeTag::SPECTRUM} {}
+
 }// namespace luisa::render

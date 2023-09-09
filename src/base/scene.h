@@ -96,14 +96,14 @@ public:
     [[nodiscard]] PhaseFunction *load_phase_function(const SceneNodeDesc *desc) noexcept;
     
     [[nodiscard]] Film *update_film(luisa::string_view name, const uint2 &resolution) noexcept;
+    [[nodiscard]] Sampler *add_sampler(const RawSamplerInfo &sampler_info) noexcept;
     [[nodiscard]] Filter *add_filter(luisa::string_view name, const float &radius) noexcept;
 
+    [[nodiscard]] Spectrum *add_spectrum(const RawSpectrumInfo &spectrum_info) noexcept;
+    [[nodiscard]] Integrator *add_integrator(const RawIntegratorInfo &integrator_info) noexcept;
     [[nodiscard]] Environment *add_environment(const RawEnvironmentInfo &environment_info) noexcept;
     [[nodiscard]] Light *add_light(const RawLightInfo &light_info) noexcept;
     [[nodiscard]] Texture *add_texture(luisa::string_view name, const RawTextureInfo &texture_info) noexcept;
-    // [[nodiscard]] Texture *add_constant_texture(luisa::string_view name, const luisa::vector<float> &v) noexcept;
-    // [[nodiscard]] Texture *add_image_texture(
-    //     luisa::string_view name, luisa::string_view image, const float &image_scale) noexcept;
     [[nodiscard]] Surface *add_surface(const RawSurfaceInfo &surface_info) noexcept;
 
     [[nodiscard]] Transform *update_transform(luisa::string_view name, const RawTransformInfo &transform_info) noexcept;
@@ -112,8 +112,11 @@ public:
     [[nodiscard]] Shape *update_shape(const RawShapeInfo &shape_info, luisa::string impl_type, bool require_first) noexcept;
 
 public:
-    [[nodiscard]] static luisa::unique_ptr<Scene> create(
-        const Context &ctx, const SceneDesc *desc, bool use_progress) noexcept;
+    [[nodiscard]] static luisa::unique_ptr<Scene> create(const Context &ctx, const SceneDesc *desc, bool use_progress) noexcept;
+    [[nodiscard]] static luisa::unique_ptr<Scene> create(const Context &ctx,
+        const RawIntegratorInfo &integrator_options,
+        const RawSpectrumInfo &spectrum_options
+    ) noexcept;
     [[nodiscard]] const Integrator *integrator() const noexcept;
     [[nodiscard]] const Environment *environment() const noexcept;
     [[nodiscard]] const Medium *environment_medium() const noexcept;

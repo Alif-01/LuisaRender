@@ -7,13 +7,22 @@ using namespace omit;
 // RawTextureInfo::RawTextureInfo() noexcept {}
 
 void RawTextureInfo::build_constant(FloatArr constant) noexcept {
-    // constant_info = get_ptr<RawConstantInfo>(std::move(constant));
     constant_info = luisa::make_unique<RawConstantInfo>(std::move(constant));
 }
-void RawTextureInfo::build_image(StringArr image, float3 scale) noexcept {
-    // image_info = get_ptr<RawImageInfo>(std::move(image), std::move(scale));
-    image_info = luisa::make_unique<RawImageInfo>(std::move(image), std::move(scale));
+void RawTextureInfo::build_image(
+    StringArr image, FloatArr scale,
+    FloatArr image_data, uint2 resolution, uint channel
+) noexcept {
+    image_info = luisa::make_unique<RawImageInfo>(
+        std::move(image), std::move(scale),
+        std::move(image_data), std::move(resolution), channel
+    );
 }
+// void RawTextureInfo::build_inline_image(FloatArr image, uint2 resolution, uint channel, float3 scale) noexcept {
+//     inline_image_info = luisa::make_unique<RawInlineImageInfo>(
+//         std::move(image), std::move(resolution), channel, std::move(scale)
+//     );
+// }
 void RawTextureInfo::build_checker(RawTextureInfo on, RawTextureInfo off, float scale) noexcept {
     // checker_info = get_ptr<RawCheckerInfo>(std::move(on), std::move(off), scale);
     checker_info = luisa::make_unique<RawCheckerInfo>(std::move(on), std::move(off), scale);

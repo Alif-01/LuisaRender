@@ -92,19 +92,24 @@ struct RawCheckerInfo;
 
 struct RawTextureInfo {
     RawTextureInfo() noexcept = default;
-    static RawTextureInfo constant(FloatArr constant) noexcept {
+    [[nodiscard]] static RawTextureInfo constant(FloatArr constant) noexcept {
         RawTextureInfo texture_info;
         texture_info.build_constant(std::move(constant));
         return texture_info;
     }
     
     void build_constant(FloatArr constant) noexcept;
-    void build_image(StringArr image, float3 scale) noexcept;
+    void build_image(
+        StringArr image, FloatArr scale,
+        FloatArr image_data = FloatArr(), uint2 resolution = make_uint2(0u), uint channel = 0u
+    ) noexcept;
+    // void build_inline_image() noexcept;
     void build_checker(RawTextureInfo on, RawTextureInfo off, float scale) noexcept;
 
     [[nodiscard]] StringArr get_type() const noexcept {
         return constant_info != nullptr ? "constant" :
                image_info != nullptr ? "image" :
+            //    inline_image_info != nullptr ? "inline_image" :
                checker_info != nullptr ? "checkerboard": "None";
     }
 
@@ -114,6 +119,7 @@ struct RawTextureInfo {
 
     UniquePtr<RawConstantInfo> constant_info;
     UniquePtr<RawImageInfo> image_info;
+    // UniquePtr<RawInlineImageInfo> inline_image_info;
     UniquePtr<RawCheckerInfo> checker_info;
 };
 
@@ -123,7 +129,10 @@ struct RawConstantInfo {
 
 struct RawImageInfo {
     StringArr image;
-    float3 scale;
+    FloatArr scale;
+    FloatArr image_data;
+    uint2 resolution;
+    uint channel;
 };
 
 struct RawCheckerInfo {
@@ -280,7 +289,6 @@ struct RawSurfaceInfo {
     }
 
     StringArr name;
-    // RawMaterial material;
     // RawTextureInfo reflect;
 
     float roughness;
@@ -305,11 +313,80 @@ struct RawGlassInfo {
     float eta;
 };
 
-// struct RawIntegratorInfo {
-//     RawIntegratorInfo(StringArr name, ) noexcept {}
+struct RawSamplerInfo {
+    RawSamplerInfo() noexcept = default;
+
+    [[nodiscard]] static RawSamplerInfo independent() noexcept {
+        RawSamplerInfo sampler_info;
+        sampler_info.build_independent();
+        return sampler_info;
+    }
+    [[nodiscard]] static RawSamplerInfo pmj02bn() noexcept {
+        RawSamplerInfo sampler_info;
+        sampler_info.build_pmj02bn();
+        return sampler_info;
+    }
+
+    void build_independent() noexcept {
+        sampler_index = 1;
+    }
+    void build_pmj02bn() noexcept {
+        sampler_index = 2;
+    }
+
+    [[nodiscard]] StringArr get_type() const noexcept {
+        return sampler_index == 1 ? "independent" :
+               sampler_index == 2 ? "pmj02bn" : "None";
+    }
+
+    uint sampler_index;
+};
+
+struct RawIntegratorInfo {
+    [[nodiscard]] StringArr get_type() const noexcept {
+        return version == 1 ? "wavepath" :
+               version == 2 ? "wavepathv2" : "None";
+    }
     
-//     StringArr light_sampler;
-//     StringArr sampler;
-// };
+    uint version;
+    RawSamplerInfo sampler_info;
+    bool use_progress;
+
+    uint max_depth;
+    uint rr_depth;
+    float rr_threshold;
+    uint state_limit;
+};
+
+struct RawSpectrumInfo {
+    RawSpectrumInfo() noexcept = default;
+
+    [[nodiscard]] static RawSpectrumInfo hero(uint dimension) noexcept {
+        RawSpectrumInfo spectrum_info;
+        spectrum_info.build_hero(dimension);
+        return spectrum_info;
+    }
+    [[nodiscard]] static RawSpectrumInfo srgb() noexcept {
+        RawSpectrumInfo spectrum_info;
+        spectrum_info.build_srgb();
+        return spectrum_info;
+    }
+
+    void build_hero(uint dim) noexcept {
+        spectrum_index = 1;
+        dimension = dim;
+    }
+    void build_srgb() noexcept {
+        spectrum_index = 2;
+    }
+
+    [[nodiscard]] StringArr get_type() const noexcept {
+        return spectrum_index == 1 ? "hero" :
+               spectrum_index == 2 ? "srgb" : "None";
+    }
+
+    uint spectrum_index;
+    uint dimension;
+};
 
 } // namespace luisa::render

@@ -63,9 +63,7 @@ template<typename T>
     const char *err = nullptr;
     EXRImage exr_image;
     InitEXRImage(&exr_image);
-    if (LoadEXRImageFromFile(
-            &exr_image, &exr_header,
-            filename, &err) != TINYEXR_SUCCESS) [[unlikely]] {
+    if (LoadEXRImageFromFile(&exr_image, &exr_header, filename, &err) != TINYEXR_SUCCESS) [[unlikely]] {
         luisa::string error{"unknown error"};
         if (err) [[likely]] {
             error = err;

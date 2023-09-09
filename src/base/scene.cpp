@@ -267,9 +267,43 @@ Filter *Scene::add_filter(luisa::string_view name, const float &radius) noexcept
     NodeHandle handle = handle_creater(this, radius);
 
     std::scoped_lock lock{_mutex};
-    return dynamic_cast<Filter *>(
-        _config->internal_nodes.emplace_back(std::move(handle)).get()
-    );
+    return dynamic_cast<Filter *>(_config->internal_nodes.emplace_back(std::move(handle)).get());
+}
+
+Sampler *Scene::add_sampler(const RawSamplerInfo &sampler_info) noexcept {
+    luisa::string impl_type = sampler_info.get_type();
+    if (impl_type == "None") return nullptr;
+
+    using NodeCreater = SceneNode *(Scene *, const RawSamplerInfo &);
+    auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::SAMPLER, impl_type, "create_raw");
+    NodeHandle handle = handle_creater(this, sampler_info);
+
+    std::scoped_lock lock{_mutex};
+    return dynamic_cast<Sampler *>(_config->internal_nodes.emplace_back(std::move(handle)).get());
+}
+
+Spectrum *Scene::add_spectrum(const RawSpectrumInfo &spectrum_info) noexcept {
+    luisa::string impl_type = spectrum_info.get_type();
+    if (impl_type == "None") return nullptr;
+
+    using NodeCreater = SceneNode *(Scene *, const RawSpectrumInfo &);
+    auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::SPECTRUM, impl_type, "create_raw");
+    NodeHandle handle = handle_creater(this, spectrum_info);
+    
+    std::scoped_lock lock{_mutex};
+    return dynamic_cast<Spectrum *>(_config->internal_nodes.emplace_back(std::move(handle)).get());
+}
+
+Integrator *Scene::add_integrator(const RawIntegratorInfo &integrator_info) noexcept {
+    luisa::string impl_type = integrator_info.get_type();
+    if (impl_type == "None") return nullptr;
+
+    using NodeCreater = SceneNode *(Scene *, const RawIntegratorInfo &);
+    auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::INTEGRATOR, impl_type, "create_raw");
+    NodeHandle handle = handle_creater(this, integrator_info);
+    
+    std::scoped_lock lock{_mutex};
+    return dynamic_cast<Integrator *>(_config->internal_nodes.emplace_back(std::move(handle)).get());
 }
 
 Environment *Scene::add_environment(const RawEnvironmentInfo &environment_info) noexcept {
@@ -311,27 +345,6 @@ Texture *Scene::add_texture(luisa::string_view name, const RawTextureInfo &textu
     return dynamic_cast<Texture *>(_config->internal_nodes.emplace_back(std::move(handle)).get());
 }
 
-// Texture *Scene::add_constant_texture(luisa::string_view name, const luisa::vector<float> &v) noexcept {
-//     using NodeCreater = SceneNode *(Scene *, const luisa::vector<float> &);
-//     auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::TEXTURE, "constant", "create_dir");
-//     NodeHandle handle = handle_creater(this, v);
-    
-//     std::scoped_lock lock{_mutex};
-//     return dynamic_cast<Texture *>(_config->internal_nodes.emplace_back(std::move(handle)).get());
-// }
-
-// Texture *Scene::add_image_texture(
-//     luisa::string_view name, luisa::string_view image, const float &image_scale
-// ) noexcept {
-//     using NodeCreater = SceneNode *(Scene *, luisa::string_view, const float &);
-//     auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::TEXTURE, "image", "create_raw");
-//     NodeHandle handle = handle_creater(this, image, image_scale);
-    
-//     std::scoped_lock lock{_mutex};
-//     return dynamic_cast<Texture *>(
-//         _config->internal_nodes.emplace_back(std::move(handle)).get()
-//     );
-// }
 Transform *Scene::update_transform(luisa::string_view name, const RawTransformInfo &transform_info) noexcept {
     luisa::string impl_type = transform_info.get_type();
     if (impl_type == "None") return nullptr;
@@ -386,36 +399,6 @@ Surface *Scene::add_surface(const RawSurfaceInfo &surface_info) noexcept {
     return surface;
 }
 
-// Shape *Scene::update_particles(const RawShapeInfo &shape_info) noexcept {
-//     using NodeCreater = SceneNode *(Scene *, const RawShapeInfo &);
-//     auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::SHAPE, , "create_raw");
-//     auto [node, first_def] = load_from_nodes(shape_info.name, handle_creater, this, shape_info);
-//     Shape *shape = dynamic_cast<Shape *>(node);
-
-//     if (first_def) {
-//         _config->shapes.emplace_back(shape);
-//     } else {
-//         node->update_shape(this, shape_info);
-//     }
-
-    // shapes.emplace_back(shape);
-    // for (auto i = 0u; i < sphere_infos.size(); ++i) {
-    //     auto sphere_info = sphere_infos[i];
-    //     auto name = luisa::format("{}_{}", sphere_info.shape_info.name, i);
-    //     auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::SHAPE, "sphere", "create_raw");
-    //     auto [node, first_def] = load_from_nodes(name, handle_creater, this, sphere_info);
-    //     Shape *shape = dynamic_cast<Shape *>(node);
-    //     if (first_def) {
-    //         _config->shapes.emplace_back(shape);
-    //     } else {
-    //         shape->update_shape(this, sphere_info.shape_info);
-    //     }
-    //     shapes.emplace_back(shape);
-    // }
-//     _config->shapes_updated = true;
-//     return shape;
-// }
-
 Shape *Scene::update_shape(
     const RawShapeInfo &shape_info, luisa::string impl_type, bool require_first
 ) noexcept {
@@ -466,6 +449,21 @@ luisa::unique_ptr<Scene> Scene::create(const Context &ctx, const SceneDesc *desc
     scene->_config->shapes_updated = scene->_config->shapes.size() > 0;
     scene->_config->environment_updated = scene->_config->environment != nullptr;
 
+    global_thread_pool().synchronize();
+    return scene;
+}
+
+luisa::unique_ptr<Scene> Scene::create(const Context &ctx,
+    const RawIntegratorInfo &integrator_options,
+    const RawSpectrumInfo &spectrum_options
+) noexcept {
+    auto scene = luisa::make_unique<Scene>(ctx);
+    scene->_config->shadow_terminator = 0.f;
+    scene->_config->intersection_offset = 0.f;
+    scene->_config->spectrum = scene->add_spectrum(spectrum_options);
+    scene->_config->integrator = scene->add_integrator(integrator_options);
+    scene->_config->environment = nullptr;
+    scene->_config->environment_medium = nullptr;
     global_thread_pool().synchronize();
     return scene;
 }

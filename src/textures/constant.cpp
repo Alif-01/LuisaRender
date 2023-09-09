@@ -5,6 +5,7 @@
 #include <base/texture.h>
 #include <base/pipeline.h>
 #include <base/scene.h>
+#include <textures/constant_base.h>
 #include <util/rng.h>
 
 namespace luisa::render {
@@ -17,27 +18,26 @@ private:
     bool _black{false};
     bool _should_inline;
 
-private:
-    void _build_constant(
-        SceneNodeDesc::SourceLocation l, float scale, const luisa::vector<float> &ov
-    ) noexcept {
-        luisa::vector<float> v(ov.begin(), ov.end());
-        if (v.empty()) [[unlikely]] {
-            LUISA_WARNING(
-                "No value for ConstantTexture. Fallback to single-channel zero. [{}]",
-                l.string());
-            v.emplace_back(0.f);
-        } else if (v.size() > 4u) [[unlikely]] {
-            LUISA_WARNING(
-                "Too many values (count = {}) for ConstantTexture. "
-                "Additional values will be discarded. [{}]",
-                v.size(), l.string());
-            v.resize(4u);
-        }
-        _channels = v.size();
-        for (auto i = 0u; i < v.size(); i++) { _v[i] = scale * v[i]; }
-        _black = all(_v == 0.f);
-    }
+// void _build_constant(
+//     SceneNodeDesc::SourceLocation l, float scale, const luisa::vector<float> &ov
+// ) noexcept {
+//     luisa::vector<float> v(ov.begin(), ov.end());
+//     if (v.empty()) [[unlikely]] {
+//         LUISA_WARNING(
+//             "No value for ConstantTexture. Fallback to single-channel zero. [{}]",
+//             l.string());
+//         v.emplace_back(0.f);
+//     } else if (v.size() > 4u) [[unlikely]] {
+//         LUISA_WARNING(
+//             "Too many values (count = {}) for ConstantTexture. "
+//             "Additional values will be discarded. [{}]",
+//             v.size(), l.string());
+//         v.resize(4u);
+//     }
+//     _channels = v.size();
+//     for (auto i = 0u; i < v.size(); i++) { _v[i] = scale * v[i]; }
+//     _black = all(_v == 0.f);
+// }
 
 public:
     ConstantTexture(Scene *scene, const SceneNodeDesc *desc) noexcept
@@ -46,7 +46,9 @@ public:
         auto scale = desc->property_float_or_default("scale", 1.f);
         auto v = desc->property_float_list_or_default("v");
         
-        _build_constant(desc->source_location(), scale, v);
+        _v = build_constant(v, scale);
+        _black = all(_v == 0.f);
+        _channels = v.size();
     }
     
     ConstantTexture(Scene *scene, const RawTextureInfo &texture_info) noexcept
@@ -56,13 +58,10 @@ public:
             LUISA_ERROR_WITH_LOCATION("Invalid color info!");
         auto constant_info = texture_info.constant_info.get();
 
-        _build_constant(SceneNodeDesc::SourceLocation(), 1.f, constant_info->constant);
+        _v = build_constant(constant_info->constant);
+        _black = all(_v == 0.f);
+        _channels = constant_info->constant.size();
     }
-
-    // ConstantTexture(Scene *scene, const luisa::vector<float> &v) noexcept
-    //     : Texture{scene}, _should_inline{true} {
-    //     _build_constant(SceneNodeDesc::SourceLocation(), 1.f, v);
-    // }
     
     [[nodiscard]] auto v() const noexcept { return _v; }
     [[nodiscard]] bool is_black() const noexcept override { return _black; }
@@ -117,8 +116,3 @@ LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
     luisa::render::Scene *scene, const luisa::render::RawTextureInfo &texture_info) LUISA_NOEXCEPT {
     return luisa::new_with_allocator<luisa::render::ConstantTexture>(scene, texture_info);
 }
-
-// LUISA_EXPORT_API luisa::render::SceneNode *create_dir(
-//     luisa::render::Scene *scene, const luisa::vector<float> &v) LUISA_NOEXCEPT {
-//     return luisa::new_with_allocator<luisa::render::ConstantTexture>(scene, v);
-// }

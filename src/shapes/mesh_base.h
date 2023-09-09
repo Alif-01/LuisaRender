@@ -1,6 +1,7 @@
 //
 // Created by Mike on 2022/1/7.
 //
+#pragma once
 
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>

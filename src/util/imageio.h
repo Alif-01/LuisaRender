@@ -26,7 +26,6 @@ private:
 
 private:
     void _destroy() noexcept;
-    LoadedImage(void *pixels, storage_type storage, uint2 resolution, luisa::function<void(void *)> deleter) noexcept;
     [[nodiscard]] static LoadedImage _load_byte(const std::filesystem::path &path, storage_type storage) noexcept;
     [[nodiscard]] static LoadedImage _load_half(const std::filesystem::path &path, storage_type storage) noexcept;
     [[nodiscard]] static LoadedImage _load_short(const std::filesystem::path &path, storage_type storage) noexcept;
@@ -37,6 +36,7 @@ public:
     LoadedImage() noexcept = default;
     ~LoadedImage() noexcept;
     LoadedImage(LoadedImage &&another) noexcept;
+    LoadedImage(void *pixels, storage_type storage, uint2 resolution, luisa::function<void(void *)> deleter) noexcept;
     LoadedImage &operator=(LoadedImage &&rhs) noexcept;
     LoadedImage(const LoadedImage &) noexcept = delete;
     LoadedImage &operator=(const LoadedImage &) noexcept = delete;

@@ -10,6 +10,7 @@ using namespace compute;
 
 struct SRGBSpectrum final : public Spectrum {
     SRGBSpectrum(Scene *scene, const SceneNodeDesc *desc) noexcept : Spectrum{scene, desc} {}
+    SRGBSpectrum(Scene *scene, const RawSpectrumInfo &spectrum_info) noexcept : Spectrum{scene} {}
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] bool is_fixed() const noexcept override { return true; }
     [[nodiscard]] uint dimension() const noexcept override { return 3u; }
@@ -85,3 +86,8 @@ luisa::unique_ptr<Spectrum::Instance> SRGBSpectrum::build(Pipeline &pipeline, Co
 }// namespace luisa::render
 
 LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::SRGBSpectrum)
+
+LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
+    luisa::render::Scene *scene, const luisa::render::RawSpectrumInfo &spectrum_info) LUISA_NOEXCEPT {
+    return luisa::new_with_allocator<luisa::render::SRGBSpectrum>(scene, spectrum_info);
+}

@@ -33,8 +33,7 @@ public:
 
         template<typename T = Integrator>
             requires std::is_base_of_v<Integrator, T>
-        [[nodiscard]] auto
-        node() const noexcept { return static_cast<const T *>(_integrator); }
+        [[nodiscard]] auto node() const noexcept { return static_cast<const T *>(_integrator); }
         [[nodiscard]] auto &pipeline() noexcept { return _pipeline; }
         [[nodiscard]] const auto &pipeline() const noexcept { return _pipeline; }
         [[nodiscard]] auto sampler() noexcept { return _sampler.get(); }
@@ -49,10 +48,11 @@ public:
 private:
     const Sampler *_sampler;
     const LightSampler *_light_sampler;
-    bool _use_progress{true};
+    bool _use_progress;
 
 public:
     Integrator(Scene *scene, const SceneNodeDesc *desc) noexcept;
+    Integrator(Scene *scene, const RawIntegratorInfo &integrator_info) noexcept;
     [[nodiscard]] auto sampler() const noexcept { return _sampler; }
     [[nodiscard]] auto light_sampler() const noexcept { return _light_sampler; }
     [[nodiscard]] virtual luisa::unique_ptr<Instance> build(
@@ -82,6 +82,7 @@ public:
 
 public:
     ProgressiveIntegrator(Scene *scene, const SceneNodeDesc *desc) noexcept;
+    ProgressiveIntegrator(Scene *scene, const RawIntegratorInfo &integrator_info) noexcept;
 };
 
 }// namespace luisa::render

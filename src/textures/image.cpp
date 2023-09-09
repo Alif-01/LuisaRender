@@ -8,6 +8,7 @@
 #include <base/texture.h>
 #include <base/pipeline.h>
 #include <base/scene.h>
+#include <textures/constant_base.h>
 
 namespace luisa::render {
 
@@ -28,7 +29,7 @@ private:
     float2 _uv_offset;
     TextureSampler _sampler{};
     Encoding _encoding{};
-    float3 _scale{make_float3(1.f)};
+    float4 _scale{make_float4(1.f)};
     float _gamma{1.f};
     uint _mipmaps{0u};
 
@@ -37,6 +38,12 @@ private:
         _image = global_thread_pool().async([path = std::move(path)] {
             return LoadedImage::load(path);
         });
+    }
+    [[nodiscard]]luisa::string _get_encoding(const std::filesystem::path &path) noexcept {
+        auto ext = path.extension().string();
+        for (auto &c : ext) { c = static_cast<char>(tolower(c)); }
+        if (ext == ".exr" || ext == ".hdr") { return "linear"; }
+        return "sRGB";
     }
 
     void _generate_mipmaps_gamma(Pipeline &pipeline, CommandBuffer &command_buffer, Image<float> &image) const noexcept;
@@ -81,12 +88,8 @@ public:
             }));
         auto path = desc->property_path("file");
         auto encoding = desc->property_string_or_default(
-            "encoding", lazy_construct([&path]() noexcept -> luisa::string {
-                auto ext = path.extension().string();
-                for (auto &c : ext) { c = static_cast<char>(tolower(c)); }
-                if (ext == ".exr" || ext == ".hdr") { return "linear"; }
-                return "sRGB";
-            }));
+            "encoding", lazy_construct([&path]() noexcept -> luisa::string { return _get_encoding(path); })
+        );
         for (auto &c : encoding) { c = static_cast<char>(tolower(c)); }
         if (encoding == "srgb") {
             _encoding = Encoding::SRGB;
@@ -102,9 +105,10 @@ public:
             }
             _encoding = Encoding::LINEAR;
         }
-        _scale = desc->property_float3_or_default(
+
+        _scale = desc->property_float4_or_default(
             "scale", lazy_construct([desc] {
-                return make_float3(desc->property_float_or_default("scale", 1.0f));
+                return make_float4(desc->property_float_or_default("scale", 1.0f));
             })
         );
         _mipmaps = desc->property_uint_or_default(
@@ -122,19 +126,52 @@ public:
             LUISA_ERROR_WITH_LOCATION("Invalid image info!");
         auto image_info = texture_info.image_info.get();
 
-        _scale = image_info->scale;
+        _scale = build_constant(image_info->scale);
         std::filesystem::path path = image_info->image;
-        luisa::string encoding = [&path] {
-            auto ext = path.extension().string();
-            for (auto &c : ext) { c = static_cast<char>(tolower(c)); }
-            if (ext == ".exr" || ext == ".hdr") { return "linear"; }
-            return "sRGB";
-        }();
+        auto encoding = _get_encoding(path);
         for (auto &c : encoding) { c = static_cast<char>(tolower(c)); }
         if (encoding == "srgb") _encoding = Encoding::SRGB;
         else _encoding = Encoding::LINEAR;
 
-        _load_image(path);
+        if (!image_info->image_data.empty()) {
+            _image = global_thread_pool().async([&image_info] {
+                const auto &image_data = image_info->image_data;
+                auto storage = storage_type::FLOAT4;
+                auto expected_channels = 4u;
+                auto channel = image_info->channel;
+                switch (channel) {
+                    case 1u: storage = storage_type::FLOAT1; expected_channels = 1u; break;
+                    case 2u: storage = storage_type::FLOAT2; expected_channels = 2u; break;
+                }
+                auto size = image_info->resolution;
+                auto value_count = size[0] * size[1] * expected_channels;
+                auto pixels = luisa::allocate_with_allocator<float>(value_count);
+                if (channel == expected_channels) {
+                    std::memcpy(pixels, image_data, value_count * sizeof(float));
+                } else {
+                    if (expected_channels != 4u || channel != 3u) [[unlikely]]
+                        LUISA_ERROR_WITH_LOCATION("Invalid image channels!");
+                    for (auto i = 0u; i < size[0] * size[1]; ++i) {
+                        for (auto c = 0u; c < channel; ++c) {
+                            pixels[i * expected_channels + c] = image_data[i * channel + c];
+                        }
+                        for (auto c = channel; c < expected_channels; ++c) {
+                            pixels[i * expected_channels + c] = 1.f;
+                        }
+                    }
+                }
+                auto deleter = luisa::function<void(void *)>{[](void *p) noexcept {
+                    luisa::deallocate_with_allocator(static_cast<float *>(p));
+                }};
+
+                return LoadedImage{pixels, storage, size, std::move(deleter)};
+            });
+        } else {
+            _load_image(path);
+            if (channels() != image_info->scale.size()) {
+                LUISA_ERROR_WITH_LOCATION("Channels of scale and image do not match!");
+            }
+        }
     }
 
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
