@@ -56,7 +56,8 @@ private:
 public:
     GlassSurface(Scene *scene, const SceneNodeDesc *desc) noexcept
         : Surface{scene, desc},
-          _kr{scene->load_texture(desc->property_node_or_default("Kr"))},
+          _kr{scene->load_texture(desc->property_node_or_default("Kr",
+              lazy_construct([desc] { return desc->property_node_or_default("Ks"); })))},
           _kt{scene->load_texture(desc->property_node_or_default("Kt"))},
           _roughness{scene->load_texture(desc->property_node_or_default("roughness"))},
           _remap_roughness{desc->property_bool_or_default("remap_roughness", true)} {
