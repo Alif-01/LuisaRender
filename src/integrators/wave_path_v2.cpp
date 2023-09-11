@@ -1062,7 +1062,7 @@ void WavefrontPathTracingv2Instance::_render_one_camera(
                 }
             }
         }
-        LUISA_INFO("Total iteration {}, where {} of them are generation", iteration,gen_iter );
+        // LUISA_INFO("Total iteration {}, where {} of them are generation", iteration, gen_iter);
         command_buffer << pipeline().printer().retrieve();
         
     }

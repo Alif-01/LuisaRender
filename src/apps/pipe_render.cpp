@@ -153,8 +153,8 @@ int main(int argc, char *argv[]) {
     auto camera = scene->cameras()[0];
     auto resolution = camera->film()->resolution();
     uint pixel_count = resolution.x * resolution.y * 4;
-    auto hdr_buffer = device->create_buffer<float>(pixel_count);
-    auto denoised_buffer = device->create_buffer<float>(pixel_count);
+    auto hdr_buffer = device.create_buffer<float>(pixel_count);
+    auto denoised_buffer = device.create_buffer<float>(pixel_count);
 
     auto pipeline = Pipeline::create(device, stream, *scene);
     auto picture = pipeline->render_to_buffer(stream, 0);
@@ -169,10 +169,10 @@ int main(int argc, char *argv[]) {
     denoiser_ext->init(stream, mode, data, resolution);
     denoiser_ext->process(stream, data);
     denoiser_ext->get_result(stream, denoised_buffer);
-    stream->synchronize();
+    stream.synchronize();
 
     stream << denoised_buffer.copy_to(buffer);
-    stream->synchronize();
+    stream.synchronize();
 
     save_image(img_path, buffer, resolution);
     denoiser_ext->destroy(stream);
