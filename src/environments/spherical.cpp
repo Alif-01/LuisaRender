@@ -46,17 +46,31 @@ public:
 
 public:
     [[nodiscard]] static auto uv_to_direction(Expr<float2> uv) noexcept {
+        // auto phi = 2.f * pi * (1.f - uv.x);
+        // auto theta = pi * uv.y;
+        // auto y = cos(theta);
+        // auto sin_theta = sin(theta);
+        // auto x = sin(phi) * sin_theta;
+        // auto z = cos(phi) * sin_theta;
+        // return std::make_tuple(theta, phi, normalize(make_float3(x, y, z)));
+        // TODO: check if it is reversed
         auto phi = 2.f * pi * (1.f - uv.x);
         auto theta = pi * uv.y;
-        auto y = cos(theta);
+        // auto y = cos(theta);
+        auto z = cos(theta);
         auto sin_theta = sin(theta);
-        auto x = sin(phi) * sin_theta;
-        auto z = cos(phi) * sin_theta;
+        auto y = sin(phi) * sin_theta;
+        auto x = cos(phi) * sin_theta;
         return std::make_tuple(theta, phi, normalize(make_float3(x, y, z)));
     }
     [[nodiscard]] static auto direction_to_uv(Expr<float3> w) noexcept {
-        auto theta = acos(w.y);
-        auto phi = atan2(w.x, w.z);
+        // auto theta = acos(w.y);
+        // auto phi = atan2(w.x, w.z);
+        // auto u = 1.f - 0.5f * inv_pi * phi;
+        // auto v = theta * inv_pi;
+        // return std::make_tuple(theta, phi, fract(make_float2(u, v)));
+        auto theta = acos(w.z);
+        auto phi = atan2(w.y, w.x);
         auto u = 1.f - 0.5f * inv_pi * phi;
         auto v = theta * inv_pi;
         return std::make_tuple(theta, phi, fract(make_float2(u, v)));

@@ -7,31 +7,35 @@
 #include <vector>
 
 #include <cxxopts.hpp>
-
 #include <luisa/core/stl/format.h>
 #include <sdl/scene_desc.h>
 #include <sdl/scene_parser.h>
 #include <base/scene.h>
 #include <base/pipeline.h>
 
-#include <assimp/Importer.hpp>
-#include <assimp/postprocess.h>
-#include <assimp/mesh.h>
-#include <assimp/scene.h>
-#include <assimp/Subdivision.h>
-#include <util/thread_pool.h>
-
 #include <luisa/backends/ext/denoiser_ext.h>
+
+using namespace luisa;
+using namespace luisa::compute;
+using namespace luisa::render;
+namespace fs = std::filesystem;
 
 [[nodiscard]] auto parse_cli_options(int argc, const char *const *argv) noexcept {
     cxxopts::Options cli{"luisa-render-cli"};
-    cli.add_option("", "b", "backend", "Compute backend name", cxxopts::value<luisa::string>(), "<backend>");
-    cli.add_option("", "d", "device", "Compute device index", cxxopts::value<uint32_t>()->default_value("0"), "<index>");
-    cli.add_option("", "", "scene", "Path to scene description file", cxxopts::value<std::filesystem::path>(), "<file>");
-    cli.add_option("", "m", "mark", "Identifier of the scene", cxxopts::value<luisa::string>()->default_value(""), "<mark>");
+    cli.add_option("", "", "scene", "Path to scene description file",
+        cxxopts::value<fs::path>(), "<file>");
+    cli.add_option("", "o", "output_dir", "Path to output image directory",
+        cxxopts::value<fs::path>()->default_value(""), "<dir>");
+    cli.add_option("", "b", "backend", "Compute backend name",
+        cxxopts::value<luisa::string>(), "<backend>");
+    cli.add_option("", "d", "device", "Compute device index",
+        cxxopts::value<uint32_t>()->default_value("0"), "<index>");
+    cli.add_option("", "m", "mark", "Identifier of the scene",
+        cxxopts::value<luisa::string>()->default_value(""), "<mark>");
     cli.add_option("", "D", "define", "Parameter definitions to override scene description macros.",
-                   cxxopts::value<std::vector<luisa::string>>()->default_value("<none>"), "<key>=<value>");
-    cli.add_option("", "h", "help", "Display this help message", cxxopts::value<bool>()->default_value("false"), "");
+        cxxopts::value<std::vector<luisa::string>>()->default_value("<none>"), "<key>=<value>");
+    cli.add_option("", "h", "help", "Display this help message",
+        cxxopts::value<bool>()->default_value("false"), "");
     cli.allow_unrecognised_options();
     cli.positional_help("<file>");
     cli.parse_positional("scene");
@@ -65,10 +69,6 @@
     }
     return options;
 }
-
-using namespace luisa;
-using namespace luisa::compute;
-using namespace luisa::render;
 
 [[nodiscard]] auto parse_cli_macros(int &argc, char *argv[]) {
     SceneParser::MacroMap macros;
@@ -130,12 +130,14 @@ int main(int argc, char *argv[]) {
     log_level_info();
     auto backend = options["backend"].as<luisa::string>();
     auto index = options["device"].as<uint32_t>();
-    auto path = options["scene"].as<std::filesystem::path>();
+    auto path = options["scene"].as<fs::path>();
     auto mark = options["mark"].as<luisa::string>();
+    auto output_dir = options["output_dir"].as<fs::path>();
+    auto filename = luisa::format("image_{}.exr", mark);
+    if (output_dir.empty())
+        output_dir = path.parent_path();
+    auto img_path = output_dir / filename;
     
-    auto folder = path.parent_path();
-    auto img_path = folder / luisa::format("image_{}.exr", mark);
-
     compute::DeviceConfig config;
     config.device_index = index;
     auto device = context.create_device(backend, &config);
@@ -177,12 +179,4 @@ int main(int argc, char *argv[]) {
     save_image(img_path, buffer, resolution);
     denoiser_ext->destroy(stream);
     stream.synchronize();
-    // denoiser_ext->init(stream, mode, data, resolution);
-    // denoiser_ext->process(stream, data);
-    // denoiser_ext->get_result(stream, denoised_buffer);
-    // stream.synchronize();
-    // float *new_buffer = new float[256*256*4];
-    // stream << denoised_buffer.copy_to(new_buffer);
-    // stream.synchronize();
-    // save_image(save_path_denoised, new_buffer, scene->cameras()[0]->film()->resolution());
 }
