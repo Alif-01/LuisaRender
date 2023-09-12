@@ -38,16 +38,21 @@ See also [BUILD.md](BUILD.md) for details on platform requirements, configuratio
 
 Use command line to execute LuisaRender:
 ```bash
-<build-fodler>/bin/luisa-render-cli -b <backend> [-d <device-index>] <scene-file>
+<build-folder>/bin/luisa-render-cli -b <backend> [-d <device-index>] <scene-file>
 ```
 
 To print the help message about the command line arguments, simply type
 ```bash
-<build-fodler>/bin/luisa-render-cli -h
+<build-folder>/bin/luisa-render-cli -h
 ```
 or
 ```bash
-<build-fodler>/bin/luisa-render-cli --help
+<build-folder>/bin/luisa-render-cli --help
+```
+
+You can also use LuisaRender for an offline rendering with scene script:
+```
+<build-folder>/bin/luisa-render-pipe-render -b CUDA -o /path/to/output_dir/ -m <image_suffix> /path/to/scene.luisa
 ```
 
 # Scenes
