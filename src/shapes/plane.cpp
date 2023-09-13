@@ -24,6 +24,7 @@ public:
             LUISA_ERROR_WITH_LOCATION("Invalid plane info!");
         auto plane_info = shape_info.plane_info.get();
         _geometry = PlaneGeometry::create(plane_info->subdivision);
+        _geometry.wait();
     }
 
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }

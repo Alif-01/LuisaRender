@@ -19,7 +19,7 @@ public:
         : Shape{scene, desc},
           _geometry{SphereGeometry::create(
               std::min(desc->property_uint_or_default("subdivision", 0u),
-                       sphere_max_subdivision_level))} {}
+                  sphere_max_subdivision_level))} {}
     
     // Sphere(Scene *scene, const RawSphereInfo &sphere_info) noexcept
     //     : Shape{scene, sphere_info.shape_info},

@@ -48,6 +48,7 @@ private:
                 image_info->channel
             );
         });
+        _image.wait();
     }
 
     [[nodiscard]]luisa::string _get_encoding(const std::filesystem::path &path) noexcept {

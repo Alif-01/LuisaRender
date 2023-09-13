@@ -705,7 +705,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
     );
     m.def("render_frame", &render_frame,
         py::arg("name"),
-        py::arg("path"),
+        py::arg("path") = "",
         py::arg("denoise") = true,
         py::arg("save_picture") = false,
         py::arg("render_png") = true
