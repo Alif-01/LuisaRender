@@ -139,7 +139,7 @@ struct PyTexture {
                 luisa::string(image), 
                 pyarray_to_vector<float>(scale),
                 pyarray_to_vector<float>(image_data),
-                make_uint2(image_data.shape(0), image_data.shape(1)), channel
+                make_uint2(image_data.shape(1), image_data.shape(0)), channel
             );
         } else {
             texture.texture_info.build_image(
@@ -564,12 +564,6 @@ void destroy() {}
 
 PYBIND11_MODULE(LuisaRenderPy, m) {
     m.doc() = "Python binding of LuisaRender";
-    // py::enum_<RawSurfaceInfo::RawMaterial>(m, "Material")
-    //     .value("METAL", RawSurfaceInfo::RawMaterial::RAW_METAL)
-    //     .value("SUBSTRATE", RawSurfaceInfo::RawMaterial::RAW_SUBSTRATE)
-    //     .value("MATTE", RawSurfaceInfo::RawMaterial::RAW_MATTE)
-    //     .value("GLASS", RawSurfaceInfo::RawMaterial::RAW_GLASS)
-    //     .value("NULL", RawSurfaceInfo::RawMaterial::RAW_NULL);
     py::enum_<LogLevel>(m, "LogLevel")
         .value("DEBUG", LogLevel::VERBOSE)
         .value("INFO", LogLevel::INFO)
