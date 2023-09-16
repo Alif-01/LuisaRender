@@ -10,6 +10,7 @@
 #include <luisa/backends/ext/denoiser_ext.h>
 #include <base/scene.h>
 #include <base/pipeline.h>
+#include <apps/app_base.h>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/embed.h>
@@ -31,10 +32,6 @@ luisa::vector<T> pyarray_to_vector(const py::array_t<T> &array) noexcept {
     luisa::vector<T> v(pd, pd + array.size());
     return v;
 }
-
-// luisa::string pystr_to_string(const py::str &s) noexcept {
-//     return luisa::string(py::cast<std::string>(s));
-// }
 
 template <typename T>
 py::array_t<T> get_default_array(const luisa::vector<T> &a) {
@@ -109,20 +106,6 @@ struct PyTexture {
         texture.texture_info.build_constant(std::move(c));
         return texture;
     }
-
-    // static PyTexture inline_image(const PyFloatArr image, const PyFloatArr &scale) noexcept {
-    //     PyTexture texture;
-    //     uint channel;
-    //     if (image.ndim == 2) channel = 1;
-    //     else if (image.ndim == 3) channel = image.shape(2);
-    //     else LUISA_ERROR_WITH_LOCATION("Invalid image dim!");
-    //     texture.texture_info.build_inline_image(
-    //         pyarray_to_vector<float>(image),
-    //         make_uint2(image.shape(0), image.shape(1)), channel,
-    //         pyarray_to_pack<float, 3>(scale)
-    //     );
-    //     return texture;
-    // }
 
     static PyTexture image(std::string_view image, const PyFloatArr &scale, const PyFloatArr &image_data) noexcept {
         PyTexture texture;
@@ -249,14 +232,6 @@ luisa::unique_ptr<Pipeline> pipeline;
 luisa::unique_ptr<Scene> scene;
 luisa::unordered_map<luisa::string, luisa::unique_ptr<CameraStorage>> camera_storage;
 luisa::string context_storage;
-float gamma_factor = 2.2f;
-
-// RawMeshInfo get_mesh_from_dict(py::dict mesh_info, const SceneDesc *scene_desc) {
-//     luisa::string surface_name = get_string_from_dict(mesh_info, "surface");
-//     luisa::string light_name = get_string_from_dict(mesh_info, "light");
-//     luisa::string medium_name = get_string_from_dict(mesh_info, "medium");
-
-// }
 
 void init(
     std::string_view context_path, uint cuda_device, LogLevel log_level,
@@ -283,31 +258,8 @@ void init(
     mode = luisa::make_unique<DenoiserExt::DenoiserMode>();
 
     /* build scene and pipeline */
-    // auto scene_path = std::filesystem::path(context_storage) /
-    //                   luisa::format("default_scene/scene_{}.luisa", scene_index);
-
-    // SceneParser::MacroMap macros;
-    // Clock clock;
-    // auto scene_desc = SceneParser::parse(scene_path, macros);
-    // auto parse_time = clock.toc();
-    // LUISA_INFO("Parsed scene description file '{}' in {} ms.", scene_path.string(), parse_time);
-
-    // auto desc = scene_desc.get();
-    // scene = Scene::create(*context, desc, log_level != LogLevel::WARNING);
     scene = Scene::create(*context, integrator_options.integrator_info, spectrum_options.spectrum_info);
     LUISA_INFO("Scene created!");
-
-    // auto cameras = desc->root()->property_node_list_or_default("cameras");
-    // for (uint camera_id = 0; camera_id < cameras.size(); ++camera_id) {
-    //     auto c = cameras[camera_id];
-    //     auto camera = scene->cameras()[camera_id];
-    //     auto resolution = camera->film()->resolution();
-    //     uint pixel_count = resolution.x * resolution.y * 4;
-    //     // camera_storage.emplace(c->identifier(), CameraStorage(camera_id, device.get(), pixel_count));
-    //     camera_storage[c->identifier()] = luisa::make_unique<CameraStorage>(
-    //         camera_id, device.get(), pixel_count
-    //     );
-    // }
 
     pipeline = Pipeline::create(*device, *stream, *scene);
     LUISA_INFO("Pipeline created!");
@@ -339,28 +291,6 @@ void add_surface(const PySurface &surface) noexcept {
     auto surface_node = scene->add_surface(surface.surface_info);
 }
 
-// void add_camera(
-//     std::string_view name, PyTransform &origin_pose,
-//     float fov, int spp, const PyIntArr &resolution
-// ) noexcept {
-//     auto camera_info = RawCameraInfo{
-//         luisa::string(name),
-//         std::move(origin_pose.transform_info),
-//         fov, uint(spp), 
-//         pyarray_to_pack<uint, 2>(resolution),
-//         1.0
-//     };
-//     LUISA_INFO("Add: {}", camera_info.get_info());
-//     uint camera_id = scene->cameras().size();
-//     auto camera = scene->add_camera(camera_info);
-
-//     uint pixel_count = camera_info.resolution.x * camera_info.resolution.y * 4;
-//     // camera_storage.emplace(camera_info.name, CameraStorage(camera_id, device.get(), pixel_count));
-//     camera_storage[camera_info.name] = luisa::make_unique<CameraStorage>(
-//         camera_id, device.get(), pixel_count
-//     );
-// }
-
 void update_camera(
     std::string_view name, PyTransform &origin_pose, PyTransform &transform,
     float fov, uint spp, const PyIntArr &resolution
@@ -374,13 +304,6 @@ void update_camera(
         1.0
     };
 
-    // auto real_transform = RawTransformInfo {
-    //     transform.empty,
-    //     transform.transform,
-    //     transform.translate,
-    //     transform.rotate,
-    //     transform.scale
-    // };
     LUISA_INFO("Update: {}", camera_info.get_info());
     uint camera_id = scene->cameras().size();
     auto camera = scene->update_camera(camera_info);
@@ -477,20 +400,6 @@ void update_particles(
     auto shape = scene->update_shape(spheres_info, "spheregroup", false);
 }
 
-luisa::unique_ptr<luisa::vector<uint8_t>> convert_to_int_pixel(
-    const float *buffer, uint2 resolution) noexcept {
-    auto pixel_count = resolution.x * resolution.y;
-    auto int_buffer_handle = luisa::make_unique<luisa::vector<uint8_t>>(pixel_count * 4);
-    luisa::vector<uint8_t> &int_buffer = *int_buffer_handle;
-    for (int i = 0; i < pixel_count * 4; ++i) {
-        if ((i & 3) == 3) {
-            int_buffer[i] = std::clamp(int(buffer[i] * 255 + 0.5), 0, 255);
-        } else {
-            int_buffer[i] = std::clamp(int(std::pow(buffer[i], 1.0f / gamma_factor) * 255 + 0.5), 0, 255);
-        }
-    }
-    return int_buffer_handle;
-}
 
 PyFloatArr render_frame(
     std::string_view name, std::string_view path,
@@ -539,23 +448,18 @@ PyFloatArr render_frame(
     }
 
     /* save image */
-    if (save_picture) {
-        save_image(exr_path, buffer, resolution);
-        if (render_png) {
-            std::filesystem::path png_path = path;
-            png_path.replace_extension(".png");
-            auto int_buffer = convert_to_int_pixel(buffer, resolution);
-            save_image(png_path, (*int_buffer).data(), resolution);
-        }
+    if (save_picture) save_image(exr_path, buffer, resolution);
+
+    apply_gamma(buffer, resolution);
+
+    if (save_picture && render_png) {
+        std::filesystem::path png_path = path;
+        png_path.replace_extension(".png");
+        auto int_buffer = convert_to_int_pixel(buffer, resolution);
+        save_image(png_path, (*int_buffer).data(), resolution);
     }
 
-    auto pixel_count = resolution.x * resolution.y;
-    for (int i = 0; i < pixel_count * 4; ++i) {
-        if ((i & 3) != 3) {
-            buffer[i] = std::clamp(std::pow(buffer[i], 1.0f / gamma_factor), 0.0f, 1.0f);
-        }
-    }
-    auto array_buffer = PyFloatArr(pixel_count * 4);
+    auto array_buffer = PyFloatArr(resolution.x * resolution.y * 4);
     std::memcpy(array_buffer.mutable_data(), buffer, array_buffer.size() * sizeof(float));
     return array_buffer;
 }
@@ -646,11 +550,6 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
     m.def("add_surface", &add_surface,
         py::arg("surface")
     );
-    // m.def("add_camera", &add_camera,
-    //     py::arg("name"),
-    //     py::arg("origin_pose"),
-    //     py::arg("fov"), py::arg("spp"), py::arg("resolution")
-    // );
     m.def("update_camera", &update_camera,
         py::arg("name"),
         py::arg("origin_pose"),
