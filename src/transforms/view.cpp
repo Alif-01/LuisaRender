@@ -42,6 +42,18 @@ public:
         _v = normalize(cross(_w, _u));
     }
 
+    void update_transform(Scene *scene, const RawTransformInfo &transform_info) noexcept override {
+        if (transform_info.view_info == nullptr) [[unlikely]]
+            LUISA_ERROR_WITH_LOCATION("Invalid view info!");
+        auto view_info = transform_info.view_info.get();
+        
+        _origin = view_info->position;
+        auto front = view_info->front;
+        auto up = view_info->up;
+        _w = normalize(-front);
+        _u = normalize(cross(up, _w));
+        _v = normalize(cross(_w, _u));
+    }
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] bool is_static() const noexcept override { return true; }
     [[nodiscard]] bool is_identity() const noexcept override {
