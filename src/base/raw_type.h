@@ -159,14 +159,15 @@ struct RawEnvironmentInfo {
 
 struct RawCameraInfo {
     [[nodiscard]] StringArr get_info() const noexcept {
-        return luisa::format("Camera {} <{}, {}, fov={}, spp={}, res={}x{}>",
-            name, base_pose.get_info(), append_pose.get_info(),
-            fov, spp, resolution[0], resolution[1]);
+        return luisa::format("Camera {} <pos={}, fov={}, spp={}, res={}x{}>",
+            name, pose.get_info(), fov, spp, resolution[0], resolution[1]
+        );
+        // append_pose.get_info(),
     }
 
     StringArr name;
-    RawTransformInfo base_pose;
-    RawTransformInfo append_pose;
+    RawTransformInfo pose;
+    // RawTransformInfo append_pose;
     float fov;
     uint spp;
     uint2 resolution;

@@ -292,13 +292,13 @@ void add_surface(const PySurface &surface) noexcept {
 }
 
 void update_camera(
-    std::string_view name, PyTransform &origin_pose, PyTransform &transform,
+    std::string_view name, PyTransform &pose, //PyTransform &transform,
     float fov, uint spp, const PyIntArr &resolution
 ) noexcept {
     auto camera_info = RawCameraInfo{
         luisa::string(name),
-        std::move(origin_pose.transform_info),
-        std::move(transform.transform_info),
+        std::move(pose.transform_info),
+        // std::move(transform.transform_info),
         fov, uint(spp),
         pyarray_to_pack<uint, 2>(resolution),
         1.0
@@ -552,8 +552,8 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
     );
     m.def("update_camera", &update_camera,
         py::arg("name"),
-        py::arg("origin_pose"),
-        py::arg("transform"),
+        py::arg("pose"),
+        // py::arg("transform"),
         py::arg("fov"),
         py::arg("spp"),
         py::arg("resolution")

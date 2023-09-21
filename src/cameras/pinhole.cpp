@@ -41,8 +41,9 @@ public:
     
     [[nodiscard]] bool update_camera(Scene *scene, const RawCameraInfo &camera_info) noexcept {
         bool updated = Camera::update_camera(scene, camera_info);
-        if (_fov != camera_info.fov) {
-            _fov = camera_info.fov;
+        auto new_fov = radians(std::clamp(camera_info.fov, 1e-3f, 180.f - 1e-3f));
+        if (_fov != new_fov) {
+            _fov = new_fov;
             updated = true;
         }
         return updated;

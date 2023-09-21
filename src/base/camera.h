@@ -91,18 +91,12 @@ private:
     const Film *_film;
     const Filter *_filter;
     const Transform *_transform;
-    const Transform *_base_transform;
+    // const Transform *_base_transform;
     float2 _shutter_span;
     uint _shutter_samples;
     uint _spp;
     std::filesystem::path _file;
     luisa::vector<ShutterPoint> _shutter_points;
-
-// private:
-//     void _build_transform(
-//         Scene *scene, luisa::string_view name, SceneNodeDesc::SourceLocation l,
-//         const float3 &position, const float3 &front, const float3 &up, const float4x4 &matrix
-//     ) noexcept;
 
 public:
     Camera(Scene *scene, const SceneNodeDesc *desc) noexcept;

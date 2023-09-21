@@ -18,13 +18,8 @@ void RawTextureInfo::build_image(
         std::move(image_data), std::move(resolution), channel
     );
 }
-// void RawTextureInfo::build_inline_image(FloatArr image, uint2 resolution, uint channel, float3 scale) noexcept {
-//     inline_image_info = luisa::make_unique<RawInlineImageInfo>(
-//         std::move(image), std::move(resolution), channel, std::move(scale)
-//     );
-// }
+
 void RawTextureInfo::build_checker(RawTextureInfo on, RawTextureInfo off, float scale) noexcept {
-    // checker_info = get_ptr<RawCheckerInfo>(std::move(on), std::move(off), scale);
     checker_info = luisa::make_unique<RawCheckerInfo>(std::move(on), std::move(off), scale);
 }
 
@@ -34,12 +29,5 @@ StringArr RawShapeInfo::get_type_info() const noexcept {
            file_info != nullptr ? file_info->get_info() :
            plane_info != nullptr ? "plane" : "";
 }
-// template <typename T, typename... Args>
-// UniquePtr<T> get_ptr(Args&&... args) {
-//     return luisa::make_unique<T>(std::forward<Args>(args)...);
-// }
-// const luisa::string RawSurfaceInfo::mat_string[5] = {
-//     "null", "metal", "substrate", "matte", "glass"
-// };
 
 } // namespace luisa::render
