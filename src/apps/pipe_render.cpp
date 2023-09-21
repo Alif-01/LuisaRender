@@ -23,7 +23,7 @@ namespace fs = std::filesystem;
 int main(int argc, char *argv[]) {
     luisa::compute::Context context{argv[0]};
     auto macros = parse_macros(argc, argv);
-    auto options = parse_options(argc, argv);
+    auto options = parse_options(argc, argv, "pipe-render");
     log_level_info();
     auto backend = options["backend"].as<luisa::string>();
     auto index = options["device"].as<uint32_t>();

@@ -3,14 +3,16 @@
 #include <span>
 #include <iostream>
 #include <vector>
+#include <string>
 
-#include <luisa/core/logging.h>
+#include <luisa/core/stl/format.h>
 #include <cxxopts.hpp>
 #include <sdl/scene_parser.h>
 
 using namespace luisa;
 using namespace luisa::compute;
 using namespace luisa::render;
+namespace fs = std::filesystem;
 
 [[nodiscard]] auto parse_macros(int &argc, char *argv[], bool print_macro=true) noexcept {
     SceneParser::MacroMap macros;
@@ -80,7 +82,8 @@ void add_cli_options(cxxopts::Options &parser) noexcept {
     int argc, const char *const *argv,
     luisa::string_view app_name
 ) noexcept {
-    cxxopts::Options parser(luisa::format("luisa-render-{}", app_name));
+    auto parser_name = luisa::format("luisa-render-{}", app_name);
+    cxxopts::Options parser{std::string(parser_name)};
 
     if (app_name == "pipe-render") {
         add_render_options(parser);
