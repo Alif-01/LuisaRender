@@ -498,7 +498,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
             py::arg("on"), py::arg("off"), py::arg("scale")
         );        
     py::class_<PySurface>(m, "Surface")
-        .def_static("empty", &PySurface::Empty),
+        .def_static("empty", &PySurface::Empty)
         .def_static("metal", &PySurface::metal,
             py::arg("name"),
             py::arg("roughness"),
