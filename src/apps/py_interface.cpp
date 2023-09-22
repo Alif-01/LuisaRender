@@ -146,6 +146,8 @@ struct PyTexture {
 struct PySurface {
     PySurface(luisa::string name, float roughness, float opacity) noexcept
         : surface_info{name, roughness, opacity} {}
+    static PySurface Empty() noexcept { return PySurface("Null_Surface", 1.0, 1.0); }
+
     static PySurface metal(
         std::string_view name, float roughness, float opacity,
         PyTexture &kd, std::string_view eta) noexcept {
@@ -277,7 +279,7 @@ void add_environment(
     auto environment_node = scene->add_environment(environment_info);
 }
 
-void add_light(std::string_view name, PyTexture &texture) noexcept {
+void add_emission(std::string_view name, PyTexture &texture) noexcept {
     auto light_info = RawLightInfo {
         luisa::string(name),
         std::move(texture.texture_info)
@@ -292,13 +294,12 @@ void add_surface(const PySurface &surface) noexcept {
 }
 
 void update_camera(
-    std::string_view name, PyTransform &pose, //PyTransform &transform,
+    std::string_view name, PyTransform &pose,
     float fov, uint spp, const PyIntArr &resolution
 ) noexcept {
     auto camera_info = RawCameraInfo{
         luisa::string(name),
         std::move(pose.transform_info),
-        // std::move(transform.transform_info),
         fov, uint(spp),
         pyarray_to_pack<uint, 2>(resolution),
         1.0
@@ -316,11 +317,11 @@ void update_camera(
 void add_rigid(
     std::string_view name, std::string_view obj_path,
     const PyFloatArr &vertices, const PyIntArr &triangles, const PyFloatArr &normals, const PyFloatArr &uvs,
-    std::string_view surface, std::string_view light
+    std::string_view surface, std::string_view emission
 ) noexcept {
     auto mesh_info = RawShapeInfo(
         luisa::string(name), RawTransformInfo(),
-        luisa::string(surface), luisa::string(light), ""
+        luisa::string(surface), luisa::string(emission), ""
     );
     if (!obj_path.empty()) {
         mesh_info.build_file(luisa::string(obj_path));
@@ -351,11 +352,11 @@ void update_rigid(
 void update_deformable(
     std::string_view name,
     const PyFloatArr &vertices, const PyIntArr &triangles, const PyFloatArr &normals, const PyFloatArr &uvs,
-    std::string_view surface, std::string_view light
+    std::string_view surface, std::string_view emission
 ) noexcept {
     auto mesh_info = RawShapeInfo(
         luisa::string(name), RawTransformInfo(),
-        luisa::string(surface), luisa::string(light), ""
+        luisa::string(surface), luisa::string(emission), ""
     );
     mesh_info.build_mesh(
         pyarray_to_vector<float>(vertices),
@@ -389,11 +390,11 @@ void add_ground(
 
 void update_particles(
     std::string_view name, const PyFloatArr &vertices, float radius, uint subdivision,
-    std::string_view surface, std::string_view light
+    std::string_view surface, std::string_view emission
 ) noexcept {
     auto spheres_info = RawShapeInfo(
         luisa::string(name), RawTransformInfo(),
-        luisa::string(surface), luisa::string(light), ""
+        luisa::string(surface), luisa::string(emission), ""
     );
     spheres_info.build_spheres(pyarray_to_vector<float>(vertices), std::move(radius), subdivision);
     LUISA_INFO("Update: {}", spheres_info.get_info());
@@ -497,6 +498,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
             py::arg("on"), py::arg("off"), py::arg("scale")
         );        
     py::class_<PySurface>(m, "Surface")
+        .def_static("empty", &PySurface::Empty),
         .def_static("metal", &PySurface::metal,
             py::arg("name"),
             py::arg("roughness"),
@@ -543,7 +545,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
         py::arg("texture") = PyTexture::empty(),
         py::arg("transform") = PyTransform::empty()
     );
-    m.def("add_light", &add_light,
+    m.def("add_emission", &add_emission,
         py::arg("name"),
         py::arg("texture") = PyTexture::empty()
     );
@@ -553,7 +555,6 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
     m.def("update_camera", &update_camera,
         py::arg("name"),
         py::arg("pose"),
-        // py::arg("transform"),
         py::arg("fov"),
         py::arg("spp"),
         py::arg("resolution")
@@ -573,7 +574,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
         py::arg("normals") = PyFloatArr(),
         py::arg("uvs") = PyFloatArr(),
         py::arg("surface") = "",
-        py::arg("light") = ""
+        py::arg("emission") = ""
     );
     m.def("update_rigid", &update_rigid,
         py::arg("name"),
@@ -585,7 +586,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
         py::arg("radius"),
         py::arg("subdivision") = 0u,
         py::arg("surface") = "",
-        py::arg("light") = ""
+        py::arg("emission") = ""
     );
     m.def("update_deformable", &update_deformable,
         py::arg("name"),
@@ -594,7 +595,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
         py::arg("normals") = PyFloatArr(),
         py::arg("uvs") = PyFloatArr(),
         py::arg("surface") = "",
-        py::arg("light") = ""
+        py::arg("emission") = ""
     );
     m.def("render_frame", &render_frame,
         py::arg("name"),
