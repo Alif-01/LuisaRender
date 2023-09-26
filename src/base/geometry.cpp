@@ -293,11 +293,11 @@ ShadingAttribute Geometry::shading_point(const Shape::Handle &instance, const Va
     auto fallback_frame = Frame::make(ng);
     
     auto p = m * interpolate(bary, p0_local, p1_local, p2_local) + t;
-    auto dpdu = fallback_frame.s();
-    auto dpdv = fallback_frame.t();
+    Float3 dpdu = fallback_frame.s();
+    Float3 dpdv = fallback_frame.t();
     auto uv = bary.yz();
 
-    if (instance.has_vertex_uv()) {
+    $if (instance.has_vertex_uv()) {
         auto uv0 = v0->uv();
         auto uv1 = v1->uv();
         auto uv2 = v2->uv();
@@ -307,17 +307,17 @@ ShadingAttribute Geometry::shading_point(const Shape::Handle &instance, const Va
         auto duv0 = uv1 - uv0;
         auto duv1 = uv2 - uv0;
         auto det = duv0.x * duv1.y - duv0.y * duv1.x;
-        if (det != 0.f) {
+        $if (det != 0.f) {
             auto inv_det = 1.f / det;
             auto dpdu_local = (dp0_local * duv1.y - dp1_local * duv0.y) * inv_det;
             auto dpdv_local = (dp1_local * duv0.x - dp0_local * duv1.x) * inv_det;
             dpdu = m * dpdu_local;
             dpdv = m * dpdv_local;
-        } 
-    }
+        };
+    };
 
     auto ns = ng;
-    if (instance.has_vertex_normal()) {
+    $if (instance.has_vertex_normal()) {
         auto n0_local = clamp_normal_angle(v0->normal(), ng_local, clamp_cos_angle);
         auto n1_local = clamp_normal_angle(v1->normal(), ng_local, clamp_cos_angle);
         auto n2_local = clamp_normal_angle(v2->normal(), ng_local, clamp_cos_angle);
@@ -326,7 +326,7 @@ ShadingAttribute Geometry::shading_point(const Shape::Handle &instance, const Va
         // ns = clamp_normal_angle(
         //     face_forward(normalize(m * ns_local), ng), ng, clamp_cos_angle
         // );
-    }
+    };
 
     return {.g = {.p = p,
                   .n = ng,

@@ -376,13 +376,6 @@ Camera *Scene::update_camera(const RawCameraInfo &camera_info) noexcept {
     return camera;
 }
 
-// Camera *Scene::update_camera(const RawCameraInfo &camera_info) noexcept {
-//     auto node = load_node_from_name(name);
-//     Camera *camera = dynamic_cast<Camera *>(node);
-//     _config->cameras_updated |= camera->update_camera(this, camera_info);
-//     return camera;
-// }
-
 Surface *Scene::add_surface(const RawSurfaceInfo &surface_info) noexcept {
     luisa::string impl_type = surface_info.get_type();
     if (impl_type == "None") return nullptr;

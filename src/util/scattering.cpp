@@ -75,9 +75,10 @@ SampledSpectrum fresnel_conductor(
 
 Float3 clamp_normal_angle(Float3 v, Float3 n, float cosClamp) noexcept {
     auto cosTheta = dot(normalize(v), normalize(n));
-    if (cosTheta >= cosClamp) {
+    $if (cosTheta >= cosClamp) {
         return v;
-    }
+        LUISA_INFO("Never Hit!!!!!!");
+    };
     auto k = normalize(cross(v, n));
     auto phi = acos(cosTheta) - acos(cosClamp);
     auto cosPhi = cos(phi);

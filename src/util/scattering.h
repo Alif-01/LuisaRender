@@ -19,6 +19,7 @@ using compute::Float4;
 
 [[nodiscard]] Bool refract(Float3 wi, Float3 n, Float eta, Float3 *wt) noexcept;
 [[nodiscard]] Float3 face_forward(Float3 v, Float3 n) noexcept;
+[[nodiscard]] Float3 clamp_normal_angle(Float3 v, Float3 n, float cosClamp) noexcept;
 
 [[nodiscard]] Float3 spherical_direction(Float sinTheta, Float cosTheta, Float phi) noexcept;
 [[nodiscard]] Float3 spherical_direction(Float sinTheta, Float cosTheta, Float phi, Float3 x, Float3 y, Float3 z) noexcept;

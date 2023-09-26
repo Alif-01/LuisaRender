@@ -48,6 +48,7 @@ struct RawSurfaceInfo;
 struct RawTransformInfo;
 struct RawCameraInfo;
 struct RawShapeInfo;
+struct RawSceneInfo;
 
 class Scene {
 

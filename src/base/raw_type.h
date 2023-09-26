@@ -391,6 +391,6 @@ struct RawSceneInfo {
     RawIntegratorInfo integrator_info;
     RawSpectrumInfo spectrum_info;
     float clamp_normal;
-}
+};
 
 } // namespace luisa::render
