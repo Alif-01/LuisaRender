@@ -237,7 +237,8 @@ luisa::string context_storage;
 
 void init(
     std::string_view context_path, uint cuda_device, LogLevel log_level,
-    const PyIntegrator &integrator_options, const PySpectrum &spectrum_options
+    const PyIntegrator &integrator_options, const PySpectrum &spectrum_options,
+    float clamp_normal
 ) noexcept {
     /* add device */
     context_storage = context_path;
@@ -260,7 +261,12 @@ void init(
     mode = luisa::make_unique<DenoiserExt::DenoiserMode>();
 
     /* build scene and pipeline */
-    scene = Scene::create(*context, integrator_options.integrator_info, spectrum_options.spectrum_info);
+    auto scene_info = RawSceneInfo {
+        integrator_options.integrator_info,
+        spectrum_options.spectrum_info,
+        clamp_normal
+    };
+    scene = Scene::create(*context, scene_info);
     LUISA_INFO("Scene created!");
 
     pipeline = Pipeline::create(*device, *stream, *scene);
@@ -531,12 +537,13 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
 
     m.def("init", &init,
         py::arg("context_path"),
-        py::arg("cuda_device") = 0,
+        py::arg("cuda_device") = 0u,
         py::arg("log_level") = LogLevel::WARNING,
         py::arg("integrator_options") = PyIntegrator::wave_path(
             LogLevel::WARNING, 2u, 32u, 512u * 512u * 32u
         ),
-        py::arg("spectrum_options") = PySpectrum::hero(4u)
+        py::arg("spectrum_options") = PySpectrum::hero(4u),
+        py::arg("clamp_normal") = 0.f
     );
     m.def("destroy", &destroy);
 

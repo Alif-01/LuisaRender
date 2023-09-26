@@ -101,6 +101,7 @@ private:
     // other things
     luisa::unique_ptr<Printer> _printer;
     float _initial_time{};
+    float _clamp_normal{};   // cos angle > clamp
 
 public:
     // for internal use only; use Pipeline::create() instead
@@ -189,21 +190,6 @@ public:
         _resources[index] = nullptr;
     }
 
-    // template<typename T>
-    // [[nodiscard]] BufferView<T> arena_buffer(size_t n) noexcept {
-    //     return create<Buffer<T>>(n)->view();
-    //     // FIXME: buffer arena is broken
-    //     return _general_buffer_arena->allocate<T>(
-    //         std::max(n, static_cast<size_t>(1u)));
-    // }
-
-    // template<typename T>
-    // [[nodiscard]] std::pair<BufferView<T>, uint /* bindless id */> bindless_arena_buffer(size_t n) noexcept {
-    //     auto view = arena_buffer<T>(n);
-    //     auto buffer_id = register_bindless(view);
-    //     return std::make_pair(view, buffer_id);
-    // }
-
     /* buffer view, resource id, bindless id */
     template<typename T>
     [[nodiscard]] std::tuple<BufferView<T>, uint, uint> bindless_buffer(size_t n) noexcept {
@@ -235,6 +221,7 @@ public:
     [[nodiscard]] auto spectrum() const noexcept { return _spectrum.get(); }
     [[nodiscard]] auto geometry() const noexcept { return _geometry.get(); }
     [[nodiscard]] auto has_lighting() const noexcept { return !_lights.empty() || _environment != nullptr; }
+    [[nodiscard]] auto clamp_normal() const noexcept { return _clamp_normal; }
     [[nodiscard]] const Texture::Instance *build_texture(CommandBuffer &command_buffer, const Texture *texture) noexcept;
     [[nodiscard]] const Filter::Instance *build_filter(CommandBuffer &command_buffer, const Filter *filter) noexcept;
     [[nodiscard]] const PhaseFunction::Instance *build_phasefunction(CommandBuffer &command_buffer, const PhaseFunction *phasefunction) noexcept;

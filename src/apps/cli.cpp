@@ -37,7 +37,7 @@ int main(int argc, char *argv[]) {
 
     luisa::unordered_map<luisa::string, CameraStorage> camera_storage;
     while (1) {
-		auto scene = Scene::create(context, scene_desc.get(), device, camera_storage);
+		auto scene = Scene::create(context, scene_desc.get());
 		auto stream = device.create_stream(StreamTag::COMPUTE);
 		auto pipeline = Pipeline::create(device, stream, *scene, {});
 		pipeline->render(stream);

@@ -277,9 +277,8 @@ int main(int argc, char *argv[]) {
                path.string(), parse_time);
 
     auto desc = scene_desc.get();
-    auto template_node = desc->node("template_1");
     luisa::unordered_map<luisa::string, CameraStorage> camera_storage;
-    auto scene = Scene::create(context, desc, device, camera_storage);
+    auto scene = Scene::create(context, desc);
 
     std::vector<MeshView> mesh_pool;
     for (auto i = 1; i <= 60; i++) {

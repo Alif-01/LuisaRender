@@ -58,7 +58,6 @@ public:
     [[nodiscard]] virtual luisa::unique_ptr<Instance> build(
         Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept = 0;
     [[nodiscard]] bool use_progress() const noexcept { return _use_progress; }
-    void disable_progress() noexcept { _use_progress = false; }
 };
 
 class ProgressiveIntegrator : public Integrator {

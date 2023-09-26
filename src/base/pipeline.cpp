@@ -63,6 +63,7 @@ luisa::unique_ptr<Pipeline> Pipeline::create(
         }
     }
     pipeline->_initial_time = initial_time;
+    pipeline->_clamp_normal = scene.clamp_normal();
 
     pipeline->_spectrum = scene.spectrum()->build(*pipeline, command_buffer);
     update_bindless_if_dirty();

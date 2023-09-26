@@ -104,12 +104,13 @@ public:
     [[nodiscard]] auto valid() const noexcept { return _inst_id != ~0u; }
     [[nodiscard]] auto &shading() noexcept { return _shading; }
     [[nodiscard]] const auto &shading() const noexcept { return _shading; }
-    void set_shading(Frame frame) noexcept { _shading = std::move(frame); }
     [[nodiscard]] auto &shape() const noexcept { return _shape; }
     [[nodiscard]] auto shared_shape() const noexcept { return _shape; }
     [[nodiscard]] auto back_facing() const noexcept { return _back_facing; }
     [[nodiscard]] Bool same_sided(Expr<float3> wo, Expr<float3> wi) const noexcept;
     [[nodiscard]] Float3 p_robust(Expr<float3> w) const noexcept;
+    void set_shading(Frame frame) noexcept { _shading = std::move(frame); }
+    void set_uv(Expr<float2> uv) noexcept { _uv = std::move(uv); }
 
 public:
     static constexpr auto default_t_max = std::numeric_limits<float>::max();

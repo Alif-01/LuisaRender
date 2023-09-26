@@ -272,41 +272,67 @@ ShadingAttribute Geometry::shading_point(const Shape::Handle &instance, const Va
     auto v0 = _pipeline.buffer<Vertex>(v_buffer).read(triangle.i0);
     auto v1 = _pipeline.buffer<Vertex>(v_buffer).read(triangle.i1);
     auto v2 = _pipeline.buffer<Vertex>(v_buffer).read(triangle.i2);
+
+    // world space
+    auto m = make_float3x3(shape_to_world);
+    auto t = make_float3(shape_to_world[3]);
+    auto clamp_cos_angle = _pipeline.clamp_normal();
+    // auto mn = transpose(inverse(m));
+
     // object space
     auto p0_local = v0->position();
     auto p1_local = v1->position();
     auto p2_local = v2->position();
-    auto ns_local = interpolate(bary, v0->normal(), v1->normal(), v2->normal());
-    // compute dpdu and dpdv
-    auto uv0 = v0->uv();
-    auto uv1 = v1->uv();
-    auto uv2 = v2->uv();
-    auto duv0 = uv1 - uv0;
-    auto duv1 = uv2 - uv0;
-    auto det = duv0.x * duv1.y - duv0.y * duv1.x;
-    auto inv_det = 1.f / det;
     auto dp0_local = p1_local - p0_local;
     auto dp1_local = p2_local - p0_local;
-    auto dpdu_local = (dp0_local * duv1.y - dp1_local * duv0.y) * inv_det;
-    auto dpdv_local = (dp1_local * duv0.x - dp0_local * duv1.x) * inv_det;
-    // world space
-    auto m = make_float3x3(shape_to_world);
-    auto t = make_float3(shape_to_world[3]);
-    auto p = m * interpolate(bary, p0_local, p1_local, p2_local) + t;
-    auto c = cross(m * dp0_local, m * dp1_local);
-    auto area = length(c) * .5f;
-    auto ng = normalize(c);
+    auto c_local = cross(dp0_local, dp1_local);
+    // auto c = cross(m * dp0_local, m * dp1_local);
+    auto area = length(c_local) * .5f;
+    auto ng_local = normalize(c_local);
+    auto ng = m * ng_local;
     auto fallback_frame = Frame::make(ng);
-    auto dpdu = ite(det == 0.f, fallback_frame.s(), m * dpdu_local);
-    auto dpdv = ite(det == 0.f, fallback_frame.t(), m * dpdv_local);
-    auto mn = transpose(inverse(m));
-    auto ns = ite(instance.has_vertex_normal(), normalize(mn * ns_local), ng);
-    auto uv = ite(instance.has_vertex_uv(), interpolate(bary, uv0, uv1, uv2), bary.yz());
+    
+    auto p = m * interpolate(bary, p0_local, p1_local, p2_local) + t;
+    auto dpdu = fallback_frame.s();
+    auto dpdv = fallback_frame.t();
+    auto uv = bary.yz();
+
+    if (instance.has_vertex_uv()) {
+        auto uv0 = v0->uv();
+        auto uv1 = v1->uv();
+        auto uv2 = v2->uv();
+        uv = interpolate(bary, uv0, uv1, uv2);
+
+        // compute dpdu and dpdv
+        auto duv0 = uv1 - uv0;
+        auto duv1 = uv2 - uv0;
+        auto det = duv0.x * duv1.y - duv0.y * duv1.x;
+        if (det != 0.f) {
+            auto inv_det = 1.f / det;
+            auto dpdu_local = (dp0_local * duv1.y - dp1_local * duv0.y) * inv_det;
+            auto dpdv_local = (dp1_local * duv0.x - dp0_local * duv1.x) * inv_det;
+            dpdu = m * dpdu_local;
+            dpdv = m * dpdv_local;
+        } 
+    }
+
+    auto ns = ng;
+    if (instance.has_vertex_normal()) {
+        auto n0_local = clamp_normal_angle(v0->normal(), ng_local, clamp_cos_angle);
+        auto n1_local = clamp_normal_angle(v1->normal(), ng_local, clamp_cos_angle);
+        auto n2_local = clamp_normal_angle(v2->normal(), ng_local, clamp_cos_angle);
+        auto ns_local = interpolate(bary, n0_local, n1_local, n2_local);
+        ns = face_forward(normalize(m * ns_local), ng);
+        // ns = clamp_normal_angle(
+        //     face_forward(normalize(m * ns_local), ng), ng, clamp_cos_angle
+        // );
+    }
+
     return {.g = {.p = p,
                   .n = ng,
                   .area = area},
             .ps = p,
-            .ns = face_forward(ns, ng),
+            .ns = ns,
             .dpdu = dpdu,
             .dpdv = dpdv,
             .uv = uv};

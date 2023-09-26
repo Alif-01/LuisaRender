@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) {
     auto parse_time = clock.toc();
     LUISA_INFO("Parsed scene description file '{}' in {} ms.", path.string(), parse_time);
     auto desc = scene_desc.get();
-    auto scene = Scene::create(context, desc, true);
+    auto scene = Scene::create(context, desc);
 
     auto camera = scene->cameras()[0];
     auto resolution = camera->film()->resolution();

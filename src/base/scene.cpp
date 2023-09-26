@@ -30,6 +30,7 @@ namespace luisa::render {
 struct Scene::Config {
     float shadow_terminator{0.f};
     float intersection_offset{0.f};
+    float clamp_normal{0.f};
     luisa::vector<NodeHandle> internal_nodes;
     luisa::unordered_map<luisa::string, NodeHandle> nodes;
     Integrator *integrator{nullptr};
@@ -54,15 +55,13 @@ luisa::span<const Shape *const> Scene::shapes() const noexcept { return _config-
 luisa::span<const Camera *const> Scene::cameras() const noexcept { return _config->cameras; }
 float Scene::shadow_terminator_factor() const noexcept { return _config->shadow_terminator; }
 float Scene::intersection_offset_factor() const noexcept { return _config->intersection_offset; }
+float Scene::clamp_normal() const noexcept { return _config->clamp_normal; }
 
 bool Scene::environment_updated() const noexcept { return _config->environment_updated; }
 bool Scene::shapes_updated() const noexcept { return _config->shapes_updated; }
 bool Scene::cameras_updated() const noexcept { return _config->cameras_updated; }
 bool Scene::film_updated() const noexcept { return _config->film_updated; }
 bool Scene::transforms_updated() const noexcept { return _config->transforms_updated; }
-// void Scene::clear_shapes_update() noexcept { _config->shapes_updated = false; }
-// void Scene::clear_cameras_update() noexcept { _config->cameras_updated = false; }
-// void Scene::clear_transforms_update() noexcept { _config->transforms_updated = false; }
 void Scene::clear_update() noexcept {
     _config->environment_updated = false;
     _config->shapes_updated = false;
@@ -418,19 +417,18 @@ Shape *Scene::update_shape(
     return shape;
 }
 
-luisa::unique_ptr<Scene> Scene::create(const Context &ctx, const SceneDesc *desc, bool use_progress) noexcept {
+luisa::unique_ptr<Scene> Scene::create(const Context &ctx, const SceneDesc *desc) noexcept {
     if (!desc->root()->is_defined()) [[unlikely]] {
         LUISA_ERROR_WITH_LOCATION("Root node is not defined in the scene description.");
     }
     auto scene = luisa::make_unique<Scene>(ctx);
     scene->_config->shadow_terminator = desc->root()->property_float_or_default("shadow_terminator", 0.f);
     scene->_config->intersection_offset = desc->root()->property_float_or_default("intersection_offset", 0.f);
+    scene->_config->clamp_normal = desc->root()->property_float_or_default("clamp_normal", 0.f);
+
     scene->_config->spectrum = scene->load_spectrum(desc->root()->property_node_or_default(
         "spectrum", SceneNodeDesc::shared_default_spectrum("sRGB")));
     scene->_config->integrator = scene->load_integrator(desc->root()->property_node("integrator"));
-    if (!use_progress) {
-        scene->_config->integrator->disable_progress();
-    }
     scene->_config->environment = scene->load_environment(desc->root()->property_node_or_default("environment"));
     scene->_config->environment_medium = scene->load_medium(desc->root()->property_node_or_default("environment_medium"));
 
@@ -453,15 +451,13 @@ luisa::unique_ptr<Scene> Scene::create(const Context &ctx, const SceneDesc *desc
     return scene;
 }
 
-luisa::unique_ptr<Scene> Scene::create(const Context &ctx,
-    const RawIntegratorInfo &integrator_options,
-    const RawSpectrumInfo &spectrum_options
-) noexcept {
+luisa::unique_ptr<Scene> Scene::create(const Context &ctx, const RawSceneInfo &scene_info) noexcept {
     auto scene = luisa::make_unique<Scene>(ctx);
     scene->_config->shadow_terminator = 0.f;
     scene->_config->intersection_offset = 0.f;
-    scene->_config->spectrum = scene->add_spectrum(spectrum_options);
-    scene->_config->integrator = scene->add_integrator(integrator_options);
+    scene->_config->clamp_normal = scene_info.clamp_normal;
+    scene->_config->spectrum = scene->add_spectrum(scene_info.spectrum_info);
+    scene->_config->integrator = scene->add_integrator(scene_info.integrator_info);
     scene->_config->environment = nullptr;
     scene->_config->environment_medium = nullptr;
     global_thread_pool().synchronize();
