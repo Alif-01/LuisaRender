@@ -32,9 +32,9 @@ public:
             _method = MixMethod::MIX;
         } else if (method == "add") {
             _method = MixMethod::ADD;
-        } else if (method != "subtract") {
+        } else if (method == "subtract") {
             _method = MixMethod::SUBSTRACT;
-        } else if (method != "multiply") {
+        } else if (method == "multiply") {
             _method = MixMethod::MULTIPLY;
         } else {
             LUISA_WARNING_WITH_LOCATION("Unknown mix method '{}'. Fallback to 'mix'", method);
