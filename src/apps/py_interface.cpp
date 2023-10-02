@@ -5,12 +5,11 @@
 #include <vector>
 #include <string>
 
-#include <luisa/core/stl/format.h>
-#include <luisa/core/basic_types.h>
 #include <luisa/backends/ext/denoiser_ext.h>
 #include <base/scene.h>
 #include <base/pipeline.h>
 #include <apps/app_base.h>
+#include <apps/py_class.h>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/embed.h>
@@ -146,7 +145,7 @@ struct PyTexture {
 struct PySurface {
     PySurface(luisa::string name, float roughness, float opacity) noexcept
         : surface_info{name, roughness, opacity} {}
-    static PySurface Empty() noexcept { return PySurface("Null_Surface", 1.0, 1.0); }
+    static PySurface empty() noexcept { return PySurface("Null_Surface", 1.0, 1.0); }
 
     static PySurface metal(
         std::string_view name, float roughness, float opacity,
@@ -213,6 +212,32 @@ struct PySpectrum {
 
     RawSpectrumInfo spectrum_info;
 };
+
+struct PyShape {
+    static PyShape rigid(
+        std::string_view name, std::string_view obj_path,
+        const PyFloatArr &vertices, const PyIntArr &triangles, const PyFloatArr &normals, const PyFloatArr &uvs,
+        std::string_view surface, std::string_view emission, float clamp_normal
+    ) noexcept {
+
+    }
+
+    static PyShape deformable(
+        std::string_view name,
+        const PyFloatArr &vertices, const PyIntArr &triangles, const PyFloatArr &normals, const PyFloatArr &uvs,
+        std::string_view surface, std::string_view emission, float clamp_normal
+    ) noexcept {
+
+    }
+
+    static PyShape particles() noexcept {
+
+    }
+
+    static PyShape plane() noexcept {
+
+    }
+}
 
 struct CameraStorage {
     CameraStorage(uint index, Device* device, uint pixel_count) noexcept:
@@ -320,92 +345,97 @@ void update_camera(
     }
 }
 
-void add_rigid(
-    std::string_view name, std::string_view obj_path,
-    const PyFloatArr &vertices, const PyIntArr &triangles, const PyFloatArr &normals, const PyFloatArr &uvs,
-    std::string_view surface, std::string_view emission
-) noexcept {
-    auto mesh_info = RawShapeInfo(
-        luisa::string(name), RawTransformInfo(),
-        luisa::string(surface), luisa::string(emission), ""
-    );
-    if (!obj_path.empty()) {
-        mesh_info.build_file(luisa::string(obj_path));
-    } else {
-        mesh_info.build_mesh(
-            pyarray_to_vector<float>(vertices),
-            pyarray_to_vector<uint>(triangles),
-            pyarray_to_vector<float>(normals),
-            pyarray_to_vector<float>(uvs)
-        );
-    }
-    LUISA_INFO("Add: {}", mesh_info.get_info());
-    auto shape = scene->update_shape(mesh_info, "mesh", true);
+void update_shape(const PyShape &shape) noexcept {
+    LUISA_INFO("Update: {}", shape.shape_info.get_info());
+    auto shape_node = scene->update_shape(shape.shape_info);
 }
 
-void update_rigid(
-    std::string_view name, PyTransform &transform
-) noexcept {
-    auto mesh_info = RawShapeInfo(
-        luisa::string(name),
-        std::move(transform.transform_info),
-        "", "", ""
-    );
-    LUISA_INFO("Update: {}", mesh_info.get_info());
-    auto shape = scene->update_shape(mesh_info, "mesh", false);
-}
+// void add_rigid(
+//     std::string_view name, std::string_view obj_path,
+//     const PyFloatArr &vertices, const PyIntArr &triangles, const PyFloatArr &normals, const PyFloatArr &uvs,
+//     std::string_view surface, std::string_view emission, float clamp_normal
+// ) noexcept {
+//     auto mesh_info = RawShapeInfo(
+//         luisa::string(name), RawTransformInfo(), clamp_normal,
+//         luisa::string(surface), luisa::string(emission), ""
+//     );
+//     if (!obj_path.empty()) {
+//         mesh_info.build_file(luisa::string(obj_path));
+//     } else {
+//         mesh_info.build_mesh(
+//             pyarray_to_vector<float>(vertices),
+//             pyarray_to_vector<uint>(triangles),
+//             pyarray_to_vector<float>(normals),
+//             pyarray_to_vector<float>(uvs)
+//         );
+//     }
+//     LUISA_INFO("Add: {}", mesh_info.get_info());
+//     auto shape = scene->update_shape(mesh_info, "mesh", true);
+// }
 
-void update_deformable(
-    std::string_view name,
-    const PyFloatArr &vertices, const PyIntArr &triangles, const PyFloatArr &normals, const PyFloatArr &uvs,
-    std::string_view surface, std::string_view emission
-) noexcept {
-    auto mesh_info = RawShapeInfo(
-        luisa::string(name), RawTransformInfo(),
-        luisa::string(surface), luisa::string(emission), ""
-    );
-    mesh_info.build_mesh(
-        pyarray_to_vector<float>(vertices),
-        pyarray_to_vector<uint>(triangles),
-        pyarray_to_vector<float>(normals),
-        pyarray_to_vector<float>(uvs)
-    );
-    LUISA_INFO("Update: {}", mesh_info.get_info());
-    auto shape = scene->update_shape(mesh_info, "deformablemesh", false);
-}
+// void update_rigid(
+//     std::string_view name, PyTransform &transform
+// ) noexcept {
+//     auto mesh_info = RawShapeInfo(
+//         luisa::string(name),
+//         std::move(transform.transform_info),
+//         "", "", ""
+//     );
+//     LUISA_INFO("Update: {}", mesh_info.get_info());
+//     auto shape = scene->update_shape(mesh_info, "mesh", false);
+// }
 
-void add_ground(
-    std::string_view name, float height, float range, const PyFloatArr &up_direction,
-    std::string_view surface
-) noexcept {
-    static auto z = make_float3(0.f, 0.f, 1.f);
-    auto up = normalize(pyarray_to_pack<float, 3>(up_direction));
-    auto plane_info = RawShapeInfo(
-        luisa::string(name),
-        RawTransformInfo::srt(
-            height * up,
-            make_float4(cross(z, up), degrees(acos(dot(z, up)))),
-            make_float3(range)
-        ),
-        luisa::string(surface), "", ""
-    );
-    plane_info.build_plane(3u);
-    LUISA_INFO("Add: {}", plane_info.get_info());
-    auto shape = scene->update_shape(plane_info, "plane", true);
-}
+// void update_deformable(
+//     std::string_view name,
+//     const PyFloatArr &vertices, const PyIntArr &triangles, const PyFloatArr &normals, const PyFloatArr &uvs,
+//     std::string_view surface, std::string_view emission, float clamp_normal
+// ) noexcept {
+//     auto mesh_info = RawShapeInfo(
+//         luisa::string(name), RawTransformInfo(), clamp_normal,
+//         luisa::string(surface), luisa::string(emission), ""
+//     );
+//     mesh_info.build_mesh(
+//         pyarray_to_vector<float>(vertices),
+//         pyarray_to_vector<uint>(triangles),
+//         pyarray_to_vector<float>(normals),
+//         pyarray_to_vector<float>(uvs)
+//     );
+//     LUISA_INFO("Update: {}", mesh_info.get_info());
+//     auto shape = scene->update_shape(mesh_info, "deformablemesh", false);
+// }
 
-void update_particles(
-    std::string_view name, const PyFloatArr &vertices, float radius, uint subdivision,
-    std::string_view surface, std::string_view emission
-) noexcept {
-    auto spheres_info = RawShapeInfo(
-        luisa::string(name), RawTransformInfo(),
-        luisa::string(surface), luisa::string(emission), ""
-    );
-    spheres_info.build_spheres(pyarray_to_vector<float>(vertices), std::move(radius), subdivision);
-    LUISA_INFO("Update: {}", spheres_info.get_info());
-    auto shape = scene->update_shape(spheres_info, "spheregroup", false);
-}
+// void add_ground(
+//     std::string_view name, float height, float range, const PyFloatArr &up_direction,
+//     std::string_view surface
+// ) noexcept {
+//     static auto z = make_float3(0.f, 0.f, 1.f);
+//     auto up = normalize(pyarray_to_pack<float, 3>(up_direction));
+//     auto plane_info = RawShapeInfo(
+//         luisa::string(name),
+//         RawTransformInfo::srt(
+//             height * up,
+//             make_float4(cross(z, up), degrees(acos(dot(z, up)))),
+//             make_float3(range)
+//         ), -1,
+//         luisa::string(surface), "", ""
+//     );
+//     plane_info.build_plane(3u);
+//     LUISA_INFO("Add: {}", plane_info.get_info());
+//     auto shape = scene->update_shape(plane_info, "plane", true);
+// }
+
+// void update_particles(
+//     std::string_view name, const PyFloatArr &vertices, float radius, uint subdivision,
+//     std::string_view surface, std::string_view emission
+// ) noexcept {
+//     auto spheres_info = RawShapeInfo(
+//         luisa::string(name), RawTransformInfo(),
+//         luisa::string(surface), luisa::string(emission), ""
+//     );
+//     spheres_info.build_spheres(pyarray_to_vector<float>(vertices), std::move(radius), subdivision);
+//     LUISA_INFO("Update: {}", spheres_info.get_info());
+//     auto shape = scene->update_shape(spheres_info, "spheregroup", false);
+// }
 
 
 PyFloatArr render_frame(
@@ -524,6 +554,57 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
             py::arg("kt"),
             py::arg("eta") = 1.5
         );
+    py::class_<PyShape>(m, "Shape")
+        .def_static("rigid_from_file", &PyShape::rigid_from_file,
+            py::arg("name"),
+            py::arg("obj_path"),
+            py::arg("surface") = "",
+            py::arg("emission") = "",
+            py::arg("clamp_normal") = -1.f
+        )
+        .def_static("rigid_from_mesh", &PyShape::rigid_from_mesh,
+            py::arg("name"),
+            py::arg("vertices"),
+            py::arg("triangles"),
+            py::arg("normals") = PyFloatArr(),
+            py::arg("uvs") = PyFloatArr(),
+            py::arg("surface") = "",
+            py::arg("emission") = "",
+            py::arg("clamp_normal") = -1.f
+        )
+        .def_static("deformable", &PyShape::deformable,
+            py::arg("name"),
+            py::arg("surface") = "",
+            py::arg("emission") = "",
+            py::arg("clamp_normal") = -1.f
+        )
+        .def_static("particles", &PyShape::particles,
+            py::arg("name"),
+            py::arg("radius"),
+            py::arg("subdivision") = 0u,
+            py::arg("surface") = "",
+            py::arg("emission") = ""
+        )
+        .def_static("plane", &PyShape::plane,
+            py::arg("name"),
+            py::arg("height"),
+            py::arg("range"),
+            py::arg("up_direction"),
+            py::arg("surface") = "",
+            py::arg("emission") = ""
+        )
+        .def("update_rigid", &PyShape::update_rigid,
+            py::arg("transform")
+        )
+        .def("update_deformable", &PyShape::update_deformable,
+            py::arg("vertices"),
+            py::arg("triangles"),
+            py::arg("normals") = PyFloatArr(),
+            py::arg("uvs") = PyFloatArr()
+        )
+        .def("update_particles", &PyShape::update_particles,
+            py::arg("vertices")
+        );
     py::class_<PyIntegrator>(m, "Integrator")
         .def_static("wave_path", &PyIntegrator::wave_path,
             py::arg("log_level"), 
@@ -566,44 +647,44 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
         py::arg("spp"),
         py::arg("resolution")
     );
-    m.def("add_ground", &add_ground,
-        py::arg("name"),
-        py::arg("height"),
-        py::arg("range"),
-        py::arg("up_direction"),
-        py::arg("surface") = ""
-    );
-    m.def("add_rigid", &add_rigid,
-        py::arg("name"),
-        py::arg("obj_path") = "",
-        py::arg("vertices") = PyFloatArr(),
-        py::arg("triangles") = PyIntArr(),
-        py::arg("normals") = PyFloatArr(),
-        py::arg("uvs") = PyFloatArr(),
-        py::arg("surface") = "",
-        py::arg("emission") = ""
-    );
-    m.def("update_rigid", &update_rigid,
-        py::arg("name"),
-        py::arg("transform")
-    );
-    m.def("update_particles", &update_particles,
-        py::arg("name"),
-        py::arg("vertices"),
-        py::arg("radius"),
-        py::arg("subdivision") = 0u,
-        py::arg("surface") = "",
-        py::arg("emission") = ""
-    );
-    m.def("update_deformable", &update_deformable,
-        py::arg("name"),
-        py::arg("vertices"),
-        py::arg("triangles"),
-        py::arg("normals") = PyFloatArr(),
-        py::arg("uvs") = PyFloatArr(),
-        py::arg("surface") = "",
-        py::arg("emission") = ""
-    );
+    // m.def("add_ground", &add_ground,
+    //     py::arg("name"),
+    //     py::arg("height"),
+    //     py::arg("range"),
+    //     py::arg("up_direction"),
+    //     py::arg("surface") = ""
+    // );
+    // m.def("add_rigid", &add_rigid,
+    //     py::arg("name"),
+    //     py::arg("obj_path") = "",
+    //     py::arg("vertices") = PyFloatArr(),
+    //     py::arg("triangles") = PyIntArr(),
+    //     py::arg("normals") = PyFloatArr(),
+    //     py::arg("uvs") = PyFloatArr(),
+    //     py::arg("surface") = "",
+    //     py::arg("emission") = ""
+    // );
+    // m.def("update_rigid", &update_rigid,
+    //     py::arg("name"),
+    //     py::arg("transform")
+    // // );
+    // m.def("update_particles", &update_particles,
+    //     py::arg("name"),
+    //     py::arg("vertices"),
+    //     py::arg("radius"),
+    //     py::arg("subdivision") = 0u,
+    //     py::arg("surface") = "",
+    //     py::arg("emission") = ""
+    // );
+    // m.def("update_deformable", &update_deformable,
+    //     py::arg("name"),
+    //     py::arg("vertices"),
+    //     py::arg("triangles"),
+    //     py::arg("normals") = PyFloatArr(),
+    //     py::arg("uvs") = PyFloatArr(),
+    //     py::arg("surface") = "",
+    //     py::arg("emission") = ""
+    // );
     m.def("render_frame", &render_frame,
         py::arg("name"),
         py::arg("path") = "",

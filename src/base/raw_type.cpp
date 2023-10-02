@@ -30,4 +30,11 @@ StringArr RawShapeInfo::get_type_info() const noexcept {
            plane_info != nullptr ? "plane" : "";
 }
 
+StringArr RawShapeInfo::get_type() const noexcept {
+    return spheres_info != nullptr ? "spheregroup" :
+            mesh_info != nullptr ? mesh_info->get_type() : 
+            file_info != nullptr ? "mesh" :
+            plane_info != nullptr ? "plane" : "None";
+}
+
 } // namespace luisa::render

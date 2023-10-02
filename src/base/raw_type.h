@@ -180,9 +180,9 @@ struct RawFileInfo;
 struct RawPlaneInfo;
 
 struct RawShapeInfo {
-    RawShapeInfo(StringArr name, RawTransformInfo transform_info,
+    RawShapeInfo(StringArr name, RawTransformInfo transform_info, float clamp_normal,
                  StringArr surface, StringArr light, StringArr medium) noexcept:
-        name{std::move(name)}, transform_info{std::move(transform_info)},
+        name{std::move(name)}, transform_info{std::move(transform_info)}, clamp_normal{clamp_normal},
         surface{std::move(surface)}, light{std::move(light)}, medium{std::move(medium)} {}
 
     [[nodiscard]] StringArr get_info() const noexcept {
@@ -190,6 +190,7 @@ struct RawShapeInfo {
             name, get_type_info(), transform_info.get_info(), surface, light);
     }
     [[nodiscard]] StringArr get_type_info() const noexcept;
+    [[nodiscard]] StringArr get_type() const noexcept;
 
     void build_spheres(FloatArr centers, float radius, uint subdivision) noexcept {
         spheres_info = luisa::make_unique<RawSpheresInfo>(std::move(centers), radius, subdivision);
@@ -208,6 +209,7 @@ struct RawShapeInfo {
 
     StringArr name;
     RawTransformInfo transform_info;
+    float clamp_normal;
     StringArr surface;
     StringArr light;
     StringArr medium;
@@ -235,10 +237,15 @@ struct RawMeshInfo {
         );
     }
     
+    [[nodiscard]] StringArr get_type() const noexcept {
+        return is_deformable ? "deformablemesh" : "mesh";
+    }
+
     FloatArr vertices;
     UintArr triangles;
     FloatArr normals;
     FloatArr uvs;
+    bool is_deformable;
 };
 
 struct RawFileInfo {

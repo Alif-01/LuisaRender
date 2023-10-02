@@ -57,15 +57,12 @@ public:
     }
     
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
-    [[nodiscard]] bool is_mesh() const noexcept override { return true; }
+    // [[nodiscard]] bool is_mesh() const noexcept override { return true; }
     [[nodiscard]] MeshView mesh() const noexcept override { return _loader.get().mesh(); }
     [[nodiscard]] uint vertex_properties() const noexcept override { return _loader.get().properties(); }
 };
 
-using MeshWrapper =
-    VisibilityShapeWrapper<
-        ShadowTerminatorShapeWrapper<
-            IntersectionOffsetShapeWrapper<Mesh>>>;
+using MeshWrapper = VisibilityShapeWrapper<ShadingShapeWrapper<Mesh>>;
 
 }// namespace luisa::render
 

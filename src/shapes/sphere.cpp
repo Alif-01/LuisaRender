@@ -26,7 +26,7 @@ public:
     //       _geometry{SphereGeometry::create(0u)} {}
 
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
-    [[nodiscard]] bool is_mesh() const noexcept override { return true; }
+    // [[nodiscard]] bool is_mesh() const noexcept override { return true; }
     [[nodiscard]] MeshView mesh() const noexcept override { return _geometry.get().mesh(); }
     [[nodiscard]] uint vertex_properties() const noexcept override {
         return Shape::property_flag_has_vertex_normal |
@@ -34,10 +34,7 @@ public:
     }
 };
 
-using SphereWrapper =
-    VisibilityShapeWrapper<
-        ShadowTerminatorShapeWrapper<
-            IntersectionOffsetShapeWrapper<Sphere>>>;
+using SphereWrapper = VisibilityShapeWrapper<ShadingShapeWrapper<Sphere>>;
 
 }// namespace luisa::render
 

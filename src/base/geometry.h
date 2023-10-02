@@ -49,8 +49,9 @@ public:
 
     struct MeshData {
         Mesh *resource;
-        uint16_t shadow_term;
-        uint16_t intersection_offset;
+        uint shadow_term : 10;
+        uint intersection_offset : 10;
+        uint clamp_normal : 12;
         uint geometry_buffer_id_base : 22;
         uint vertex_properties : 10;
     };

@@ -55,7 +55,7 @@ luisa::span<const Shape *const> Scene::shapes() const noexcept { return _config-
 luisa::span<const Camera *const> Scene::cameras() const noexcept { return _config->cameras; }
 float Scene::shadow_terminator_factor() const noexcept { return _config->shadow_terminator; }
 float Scene::intersection_offset_factor() const noexcept { return _config->intersection_offset; }
-float Scene::clamp_normal() const noexcept { return _config->clamp_normal; }
+float Scene::clamp_normal_factor() const noexcept { return _config->clamp_normal; }
 
 bool Scene::environment_updated() const noexcept { return _config->environment_updated; }
 bool Scene::shapes_updated() const noexcept { return _config->shapes_updated; }
@@ -391,9 +391,10 @@ Surface *Scene::add_surface(const RawSurfaceInfo &surface_info) noexcept {
     return surface;
 }
 
-Shape *Scene::update_shape(
-    const RawShapeInfo &shape_info, luisa::string impl_type, bool require_first
-) noexcept {
+Shape *Scene::update_shape(const RawShapeInfo &shape_info) noexcept {
+    luisa::string impl_type = shape_info.get_type();
+    if (impl_type == "None") return nullptr;
+
     using NodeCreater = SceneNode *(Scene *, const RawShapeInfo &);
     auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::SHAPE, impl_type, "create_raw");
     auto [node, first_def] = load_from_nodes(shape_info.name, handle_creater, this, shape_info);
@@ -402,8 +403,6 @@ Shape *Scene::update_shape(
     if (first_def) {
         _config->shapes.emplace_back(shape);
     } else {
-        if (require_first)
-            LUISA_ERROR_WITH_LOCATION("Shape has been defined!");
         shape->update_shape(this, shape_info);
     }
     _config->shapes_updated = true;
@@ -417,7 +416,7 @@ luisa::unique_ptr<Scene> Scene::create(const Context &ctx, const SceneDesc *desc
     auto scene = luisa::make_unique<Scene>(ctx);
     scene->_config->shadow_terminator = desc->root()->property_float_or_default("shadow_terminator", 0.f);
     scene->_config->intersection_offset = desc->root()->property_float_or_default("intersection_offset", 0.f);
-    scene->_config->clamp_normal = desc->root()->property_float_or_default("clamp_normal", 0.f);
+    scene->_config->clamp_normal = desc->root()->property_float_or_default("clamp_normal", -1.f);
 
     scene->_config->spectrum = scene->load_spectrum(desc->root()->property_node_or_default(
         "spectrum", SceneNodeDesc::shared_default_spectrum("sRGB")));

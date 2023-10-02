@@ -47,7 +47,7 @@ public:
         }
     }
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
-    [[nodiscard]] bool is_mesh() const noexcept override { return true; }
+    // [[nodiscard]] bool is_mesh() const noexcept override { return true; }
     [[nodiscard]] MeshView mesh() const noexcept override {
         return _geometry.valid() ?
                    MeshView{_geometry.get().first, _geometry.get().second} :
@@ -61,10 +61,7 @@ public:
     [[nodiscard]] AccelOption build_option() const noexcept override { return _mesh->build_option(); }
 };
 
-using LoopSubdivWrapper =
-    VisibilityShapeWrapper<
-        ShadowTerminatorShapeWrapper<
-            IntersectionOffsetShapeWrapper<LoopSubdiv>>>;
+using LoopSubdivWrapper = VisibilityShapeWrapper<ShadingShapeWrapper<LoopSubdiv>>;
 
 }// namespace luisa::render
 

@@ -73,7 +73,7 @@ public:
     }
 
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
-    [[nodiscard]] bool is_mesh() const noexcept override { return true; }
+    // [[nodiscard]] bool is_mesh() const noexcept override { return true; }
     [[nodiscard]] MeshView mesh() const noexcept override { return MeshView{_vertices, _triangles}; }
     [[nodiscard]] uint vertex_properties() const noexcept override {
         return Shape::property_flag_has_vertex_normal |
@@ -81,10 +81,7 @@ public:
     }
 };
 
-using SphereGroupWrapper =
-    VisibilityShapeWrapper<
-        ShadowTerminatorShapeWrapper<
-            IntersectionOffsetShapeWrapper<SphereGroup>>>;
+using SphereGroupWrapper = VisibilityShapeWrapper<ShadingShapeWrapper<SphereGroup>>;
 
 }// namespace luisa::render
 

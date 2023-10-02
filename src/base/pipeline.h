@@ -101,7 +101,7 @@ private:
     // other things
     luisa::unique_ptr<Printer> _printer;
     float _initial_time{};
-    float _clamp_normal{};   // cos angle > clamp
+    // float _clamp_normal{};   // cos angle > clamp
 
 public:
     // for internal use only; use Pipeline::create() instead
@@ -221,7 +221,7 @@ public:
     [[nodiscard]] auto spectrum() const noexcept { return _spectrum.get(); }
     [[nodiscard]] auto geometry() const noexcept { return _geometry.get(); }
     [[nodiscard]] auto has_lighting() const noexcept { return !_lights.empty() || _environment != nullptr; }
-    [[nodiscard]] auto clamp_normal() const noexcept { return _clamp_normal; }
+    // [[nodiscard]] auto clamp_normal() const noexcept { return _clamp_normal; }
     [[nodiscard]] const Texture::Instance *build_texture(CommandBuffer &command_buffer, const Texture *texture) noexcept;
     [[nodiscard]] const Filter::Instance *build_filter(CommandBuffer &command_buffer, const Filter *filter) noexcept;
     [[nodiscard]] const PhaseFunction::Instance *build_phasefunction(CommandBuffer &command_buffer, const PhaseFunction *phasefunction) noexcept;

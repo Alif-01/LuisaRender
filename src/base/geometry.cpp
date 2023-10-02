@@ -15,9 +15,10 @@ Geometry::~Geometry() noexcept {
     }
 }
 
-void Geometry::build(CommandBuffer &command_buffer,
-                     luisa::span<const Shape *const> shapes,
-                     float init_time) noexcept {
+void Geometry::build(
+    CommandBuffer &command_buffer,
+    luisa::span<const Shape *const> shapes, float init_time
+) noexcept {
     // TODO: AccelOption
     _accel = _pipeline.device().create_accel({});
     for (auto i = 0u; i < 3u; ++i) {
@@ -43,21 +44,8 @@ void Geometry::_process_shape(
     auto visible = overridden_visible && shape->visible();
 
     if (shape->is_mesh()) {
-        // if (shape->deformable()) [[unlikely]] {
-        //     LUISA_ERROR_WITH_LOCATION(
-        //         "Deformable meshes are not yet supported.");
-        // }
         auto mesh = [&] {
-            // if (auto iter = _meshes.find(shape); !shape->is_template_mesh() && iter != _meshes.end()) {
-            //     return iter->second;
-            // }
             auto mesh_geom = [&] {
-                // if (shape->is_template_mesh() && !template_mapping.contains(shape->template_id())) [[unlikely]] {
-                //     LUISA_ERROR_WITH_LOCATION("Template mesh '{}' missing.", shape->template_id());
-                // }
-                // auto [vertices, triangles] = shape->is_template_mesh()
-                //             ? template_mapping.at(shape->template_id())
-                //             : shape->mesh();
                 auto [vertices, triangles] = shape->mesh();
                 LUISA_ASSERT(!vertices.empty() && !triangles.empty(), "Empty mesh.");
                 auto hash = luisa::hash64(vertices.data(), vertices.size_bytes(), luisa::hash64_default_seed);
@@ -105,14 +93,22 @@ void Geometry::_process_shape(
                 _mesh_cache.emplace(hash, geom);
                 return geom;
             }();
-            auto encode_fixed_point = [](float x) noexcept {
-                return static_cast<uint16_t>(std::clamp(std::round(x * 65535.f), 0.f, 65535.f));
-            };
+            // auto encode_fixed_point = [](float x) noexcept {
+            //     return static_cast<uint16_t>(std::clamp(std::round(x * 65535.f), 0.f, 65535.f));
+            // };
             // assign mesh data
             MeshData mesh_data{
                 .resource = mesh_geom.resource,
-                .shadow_term = encode_fixed_point(shape->has_vertex_normal() ? shape->shadow_terminator_factor() : 0.f),
-                .intersection_offset = encode_fixed_point(shape->intersection_offset_factor()),
+                .shadow_term = Shape::Handle::encode_fixed_point(
+                    shape->has_vertex_normal() ? shape->shadow_terminator_factor() : 0.f,
+                    Shape::Handle::shadow_term_mask
+                ),
+                .intersection_offset = Shape::Handle::encode_fixed_point(
+                    shape->intersection_offset_factor(), Shape::Handle::inter_offset_mask
+                ),
+                .clamp_normal = Shape::Handle::encode_fixed_point(
+                    shape->clamp_normal_factor() * 0.5f + 0.5f, Shape::Handle::clamp_normal_mask
+                ),
                 .geometry_buffer_id_base = mesh_geom.buffer_id_base,
                 .vertex_properties = shape->vertex_properties()};
             _meshes[shape] = mesh_data;
@@ -153,12 +149,15 @@ void Geometry::_process_shape(
             mesh.geometry_buffer_id_base,
             properties, surface_tag, light_tag, medium_tag,
             mesh.resource->triangle_count(),
-            static_cast<float>(mesh.shadow_term) / 65535.f,
-            static_cast<float>(mesh.intersection_offset) / 65535.f));
+            static_cast<float>(mesh.shadow_term) / static_cast<float>(Shape::Handle::shadow_term_mask),
+            static_cast<float>(mesh.intersection_offset) / static_cast<float>(Shape::Handle::inter_offset_mask),
+            static_cast<float>(mesh.clamp_normal) / static_cast<float>(Shape::Handle::clamp_normal_mask) * 2.f - 1
+        ));
         if (properties & Shape::property_flag_has_light) {
             _instanced_lights.emplace_back(Light::Handle{
                 .instance_id = instance_id,
-                .light_tag = light_tag});
+                .light_tag = light_tag
+            });
         }
     } else {
         _transform_tree.push(shape->transform());
@@ -217,9 +216,11 @@ luisa::shared_ptr<Interaction> Geometry::interaction(const Var<Ray> &ray, const 
     using namespace luisa::compute;
     Interaction it;
     $if(!hit->miss()) {
-        it = *interaction(hit.inst, hit.prim,
-                          make_float3(1.f - hit.bary.x - hit.bary.y, hit.bary),
-                          -ray->direction());
+        it = *interaction(
+            hit.inst, hit.prim,
+            make_float3(1.f - hit.bary.x - hit.bary.y, hit.bary),
+            -ray->direction()
+        );
     };
     return luisa::make_shared<Interaction>(std::move(it));
 }
@@ -237,10 +238,9 @@ Var<Triangle> Geometry::triangle(const Shape::Handle &instance, Expr<uint> index
 }
 
 template<typename T>
-[[nodiscard]] inline auto interpolate(Expr<float3> uvw,
-                                      const T &v0,
-                                      const T &v1,
-                                      const T &v2) noexcept {
+[[nodiscard]] inline auto interpolate(
+    Expr<float3> uvw, const T &v0, const T &v1, const T &v2
+) noexcept {
     return uvw.x * v0 + uvw.y * v1 + uvw.z * v2;
 }
 
@@ -269,10 +269,10 @@ GeometryAttribute Geometry::geometry_point(const Shape::Handle &instance, const 
 ShadingAttribute Geometry::shading_point(const Shape::Handle &instance, const Var<Triangle> &triangle,
                                          const Var<float3> &bary, const Var<float4x4> &shape_to_world) const noexcept {
     auto v_buffer = instance.vertex_buffer_id();
+    auto clamp_cos_angle = instance.clamp_normal_factor();
     auto v0 = _pipeline.buffer<Vertex>(v_buffer).read(triangle.i0);
     auto v1 = _pipeline.buffer<Vertex>(v_buffer).read(triangle.i1);
     auto v2 = _pipeline.buffer<Vertex>(v_buffer).read(triangle.i2);
-    auto clamp_cos_angle = _pipeline.clamp_normal();
 
     // object space
     auto p0_local = v0->position();

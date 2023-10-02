@@ -55,9 +55,10 @@ public:
     [[nodiscard]] virtual bool visible() const noexcept;
     [[nodiscard]] virtual float shadow_terminator_factor() const noexcept;
     [[nodiscard]] virtual float intersection_offset_factor() const noexcept;
+    [[nodiscard]] virtual float clamp_normal_factor() const noexcept;
     [[nodiscard]] virtual bool is_mesh() const noexcept;
-    [[nodiscard]] virtual bool is_template_mesh() const noexcept;
-    [[nodiscard]] virtual luisa::string template_id() const noexcept;
+    // [[nodiscard]] virtual bool is_template_mesh() const noexcept;
+    // [[nodiscard]] virtual luisa::string template_id() const noexcept;
     [[nodiscard]] virtual uint vertex_properties() const noexcept;
     [[nodiscard]] bool has_vertex_normal() const noexcept;
     [[nodiscard]] bool has_vertex_uv() const noexcept;
@@ -68,46 +69,84 @@ public:
 };
 
 template<typename BaseShape>
-class ShadowTerminatorShapeWrapper : public BaseShape {
+class ShadingShapeWrapper : public BaseShape {
 
 private:
     float _shadow_terminator;
+    float _intersection_offset;
+    float _clamp_normal;
 
 public:
-    ShadowTerminatorShapeWrapper(Scene *scene, const SceneNodeDesc *desc) noexcept
-        : BaseShape{scene, desc},
-          _shadow_terminator{std::clamp(
-              desc->property_float_or_default("shadow_terminator", scene->shadow_terminator_factor()),
-          0.f, 1.f)} {}
-    ShadowTerminatorShapeWrapper(Scene *scene, const RawShapeInfo &shape_info) noexcept
-        : BaseShape{scene, shape_info},
-           _shadow_terminator{std::clamp(scene->shadow_terminator_factor(), 0.f, 1.f)} {}
+    ShadingShapeWrapper(Scene *scene, const SceneNodeDesc *desc) noexcept :
+        BaseShape{scene, desc},
+        _shadow_terminator{std::clamp(
+            desc->property_float_or_default("shadow_terminator", scene->shadow_terminator_factor()),
+        0.f, 1.f)},
+        _intersection_offset{std::clamp(
+            desc->property_float_or_default("intersection_offset", scene->intersection_offset_factor()),
+        0.f, 1.f)},
+        _clamp_normal{std::clamp(
+            desc->property_float_or_default("clamp_normal", scene->clamp_normal_factor()),
+        -1.f, 1.f)} {}
+    ShadingShapeWrapper(Scene *scene, const RawShapeInfo &shape_info) noexcept :
+        BaseShape{scene, shape_info},
+        _shadow_terminator{std::clamp(scene->shadow_terminator_factor(), 0.f, 1.f)},
+        _intersection_offset{std::clamp(scene->intersection_offset_factor(), 0.f, 1.f)},
+        _clamp_normal{std::clamp(shape_info.clamp_normal, -1.f, 1.f)} {}
     
     [[nodiscard]] float shadow_terminator_factor() const noexcept override {
         return _shadow_terminator;
     }
-};
-
-template<typename BaseShape>
-class IntersectionOffsetShapeWrapper : public BaseShape {
-
-private:
-    float _intersection_offset;
-
-public:
-    IntersectionOffsetShapeWrapper(Scene *scene, const SceneNodeDesc *desc) noexcept
-        : BaseShape{scene, desc},
-          _intersection_offset{std::clamp(
-              desc->property_float_or_default(
-                  "intersection_offset", scene->intersection_offset_factor()), 0.f, 1.f)} {}
-    IntersectionOffsetShapeWrapper(Scene *scene, const RawShapeInfo &shape_info) noexcept
-        : BaseShape{scene, shape_info},
-          _intersection_offset{std::clamp(scene->intersection_offset_factor(), 0.f, 1.f)} {}
-
     [[nodiscard]] float intersection_offset_factor() const noexcept override {
         return _intersection_offset;
     }
+    [[nodiscard]] float clamp_normal_factor() const noexcept override {
+        return _clamp_normal;
+    }
+    [[nodiscard]] bool is_mesh() const noexcept override { return true; }
 };
+
+// template<typename BaseShape>
+// class ShadowTerminatorShapeWrapper : public BaseShape {
+
+// private:
+//     float _shadow_terminator;
+
+// public:
+//     ShadowTerminatorShapeWrapper(Scene *scene, const SceneNodeDesc *desc) noexcept
+//         : BaseShape{scene, desc},
+//           _shadow_terminator{std::clamp(
+//               desc->property_float_or_default("shadow_terminator", scene->shadow_terminator_factor()),
+//           0.f, 1.f)} {}
+//     ShadowTerminatorShapeWrapper(Scene *scene, const RawShapeInfo &shape_info) noexcept
+//         : BaseShape{scene, shape_info},
+//            _shadow_terminator{std::clamp(scene->shadow_terminator_factor(), 0.f, 1.f)} {}
+    
+//     [[nodiscard]] float shadow_terminator_factor() const noexcept override {
+//         return _shadow_terminator;
+//     }
+// };
+
+// template<typename BaseShape>
+// class IntersectionOffsetShapeWrapper : public BaseShape {
+
+// private:
+//     float _intersection_offset;
+
+// public:
+//     IntersectionOffsetShapeWrapper(Scene *scene, const SceneNodeDesc *desc) noexcept
+//         : BaseShape{scene, desc},
+//           _intersection_offset{std::clamp(
+//               desc->property_float_or_default(
+//                   "intersection_offset", scene->intersection_offset_factor()), 0.f, 1.f)} {}
+//     IntersectionOffsetShapeWrapper(Scene *scene, const RawShapeInfo &shape_info) noexcept
+//         : BaseShape{scene, shape_info},
+//           _intersection_offset{std::clamp(scene->intersection_offset_factor(), 0.f, 1.f)} {}
+
+//     [[nodiscard]] float intersection_offset_factor() const noexcept override {
+//         return _intersection_offset;
+//     }
+// };
 
 template<typename BaseShape>
 class VisibilityShapeWrapper : public BaseShape {
@@ -116,10 +155,10 @@ private:
     bool _visible;
 
 public:
-    VisibilityShapeWrapper(Scene *scene, const SceneNodeDesc *desc) noexcept
-        : BaseShape{scene, desc}, _visible{desc->property_bool_or_default("visible", true)} {}
-    VisibilityShapeWrapper(Scene *scene, const RawShapeInfo &shape_info) noexcept
-        : BaseShape{scene, shape_info}, _visible{true} {}
+    VisibilityShapeWrapper(Scene *scene, const SceneNodeDesc *desc) noexcept :
+        BaseShape{scene, desc}, _visible{desc->property_bool_or_default("visible", true)} {}
+    VisibilityShapeWrapper(Scene *scene, const RawShapeInfo &shape_info) noexcept :
+        BaseShape{scene, shape_info}, _visible{true} {}
         
     [[nodiscard]] bool visible() const noexcept override { return _visible; }
 };
@@ -137,14 +176,24 @@ public:
     static constexpr auto buffer_base_max = (1u << (32u - property_flag_bits)) - 1u;
 
     static constexpr auto light_tag_bits = 12u;
-    static constexpr auto surface_tag_bits = 12u;
-    static constexpr auto medium_tag_bits = 32u - light_tag_bits - surface_tag_bits;
-    static constexpr auto surface_tag_max = (1u << surface_tag_bits) - 1u;
     static constexpr auto light_tag_max = (1u << light_tag_bits) - 1u;
-    static constexpr auto medium_tag_max = (1u << medium_tag_bits) - 1u;
     static constexpr auto light_tag_offset = 0u;
+    static constexpr auto surface_tag_bits = 12u;
+    static constexpr auto surface_tag_max = (1u << surface_tag_bits) - 1u;
     static constexpr auto surface_tag_offset = light_tag_offset + light_tag_bits;
+    static constexpr auto medium_tag_bits = 32u - light_tag_bits - surface_tag_bits;
+    static constexpr auto medium_tag_max = (1u << medium_tag_bits) - 1u;
     static constexpr auto medium_tag_offset = surface_tag_offset + surface_tag_bits;
+
+    static constexpr auto shadow_term_bits = 10u;
+    static constexpr auto shadow_term_mask = (1u << shadow_term_bits) - 1u;
+    static constexpr auto shadow_term_offset = 0u;
+    static constexpr auto inter_offset_bits = 10u;
+    static constexpr auto inter_offset_mask = (1u << inter_offset_bits) - 1u;
+    static constexpr auto inter_offset_offset = shadow_term_offset + shadow_term_bits;
+    static constexpr auto clamp_normal_bits = 32u - shadow_term_bits - inter_offset_bits;
+    static constexpr auto clamp_normal_mask = (1u << clamp_normal_bits) - 1u;
+    static constexpr auto clamp_normal_offset = inter_offset_offset + inter_offset_bits;
 
     static constexpr auto vertex_buffer_id_offset = 0u;
     static constexpr auto triangle_buffer_id_offset = 1u;
@@ -160,22 +209,27 @@ private:
     UInt _triangle_count;
     Float _shadow_terminator;
     Float _intersection_offset;
+    Float _clamp_normal;
 
 private:
     Handle(Expr<uint> buffer_base, Expr<uint> flags,
-           Expr<uint> surface_tag, Expr<uint> light_tag, Expr<uint> medium_tag,
-           Expr<uint> triangle_count, Expr<float> shadow_terminator, Expr<float> intersection_offset) noexcept
-        : _buffer_base{buffer_base}, _properties{flags},
-          _surface_tag{surface_tag}, _light_tag{light_tag}, _medium_tag{medium_tag},
-          _triangle_count{triangle_count},
-          _shadow_terminator{shadow_terminator},
-          _intersection_offset{intersection_offset} {}
+           Expr<uint> surface_tag, Expr<uint> light_tag, Expr<uint> medium_tag, Expr<uint> triangle_count,
+           Expr<float> shadow_terminator, Expr<float> intersection_offset, Expr<float> clamp_normal) noexcept :
+        _buffer_base{buffer_base}, _properties{flags},
+        _surface_tag{surface_tag}, _light_tag{light_tag}, _medium_tag{medium_tag},
+        _triangle_count{triangle_count},
+        _shadow_terminator{shadow_terminator},
+        _intersection_offset{intersection_offset},
+        _clamp_normal{clamp_normal} {}
 
 public:
     Handle() noexcept = default;
-    [[nodiscard]] static uint4 encode(uint buffer_base, uint flags,
-                                      uint surface_tag, uint light_tag, uint medium_tag,
-                                      uint tri_count, float shadow_terminator, float intersection_offset) noexcept;
+    [[nodiscard]] static uint encode_fixed_point(float x, uint mask) noexcept;
+    [[nodiscard]] static Expr<float> decode_fixed_point(Expr<uint> x, uint mask) noexcept;
+    [[nodiscard]] static uint4 encode(
+        uint buffer_base, uint flags,
+        uint surface_tag, uint light_tag, uint medium_tag, uint tri_count,
+        float shadow_terminator, float intersection_offset, float clamp_normal) noexcept;
     [[nodiscard]] static Shape::Handle decode(Expr<uint4> compressed) noexcept;
 
 public:
@@ -197,6 +251,7 @@ public:
     [[nodiscard]] auto has_medium() const noexcept { return test_property_flag(luisa::render::Shape::property_flag_has_medium); }
     [[nodiscard]] auto shadow_terminator_factor() const noexcept { return _shadow_terminator; }
     [[nodiscard]] auto intersection_offset_factor() const noexcept { return _intersection_offset; }
+    [[nodiscard]] auto clamp_normal_factor() const noexcept { return _clamp_normal; }
 };
 
 }// namespace luisa::render
