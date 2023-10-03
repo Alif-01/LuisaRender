@@ -126,7 +126,7 @@ void update_camera(
     }
 }
 
-void update_shape(const PyShape &shape) noexcept {
+void add_shape(const PyShape &shape) noexcept {
     LUISA_INFO("Update: {}", shape.shape_info.get_info());
     auto shape_node = scene->update_shape(shape.shape_info);
 }
@@ -428,6 +428,9 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
         py::arg("fov"),
         py::arg("spp"),
         py::arg("resolution")
+    );
+    m.def("add_shape", &add_shape,
+        py::arg("shape")
     );
     // m.def("add_ground", &add_ground,
     //     py::arg("name"),
