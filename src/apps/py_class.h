@@ -212,11 +212,11 @@ struct PySpectrum {
 
 struct PyShape {
     PyShape(
-        luisa::string name, PyTransform &transform,
+        luisa::string name, PyTransform transform,
         luisa::string surface, luisa::string emission, luisa::string medium,
         float clamp_normal
     ) noexcept : shape_info{
-        name, transform.transform_info, clamp_normal,
+        name, std::move(transform.transform_info), clamp_normal,
         surface, emission, medium
     } {}
 
@@ -225,10 +225,10 @@ struct PyShape {
         std::string_view surface, std::string_view emission, float clamp_normal
     ) noexcept {
         PyShape shape(
-            luisa::string(name), PyTransform.empty(),
+            luisa::string(name), PyTransform::empty(),
             luisa::string(surface), luisa::string(emission), "", clamp_normal
         );
-        shape.shape_info.build_file(luisa::string(file));
+        shape.shape_info.build_file(luisa::string(obj_path));
         return shape;
     }
 
@@ -239,7 +239,7 @@ struct PyShape {
         std::string_view surface, std::string_view emission, float clamp_normal
     ) noexcept {
         PyShape shape(
-            luisa::string(name), PyTransform.empty(),
+            luisa::string(name), PyTransform::empty(),
             luisa::string(surface), luisa::string(emission), "", clamp_normal
         );
         shape.shape_info.build_mesh(
@@ -256,14 +256,14 @@ struct PyShape {
         std::string_view surface, std::string_view emission, float clamp_normal
     ) noexcept {
         PyShape shape(
-            luisa::string(name), PyTransform.empty(),
+            luisa::string(name), PyTransform::empty(),
             luisa::string(surface), luisa::string(emission), "", clamp_normal
         );
         shape.shape_info.build_mesh(
             luisa::vector<float>(),
             luisa::vector<uint>(),
             luisa::vector<float>(),
-            luisa::vector<float>(),
+            luisa::vector<float>()
         );
         return shape;
     }
@@ -274,15 +274,14 @@ struct PyShape {
         std::string_view surface, std::string_view emission
     ) noexcept {
         PyShape shape(
-            luisa::string(name), PyTransform.empty(),
-            luisa::string(surface), luisa::string(emission), "", -1.f,
+            luisa::string(name), PyTransform::empty(),
+            luisa::string(surface), luisa::string(emission), "", -1.f
         );
         shape.shape_info.build_spheres(
             luisa::vector<float>(),
             std::move(radius), subdivision
         );
-        // LUISA_INFO("Update: {}", spheres_info.get_info());
-        // auto shape = scene->update_shape(spheres_info, "spheregroup", false);
+        return shape;
     }
 
     static PyShape plane(
@@ -290,15 +289,18 @@ struct PyShape {
         float height, float range, const PyFloatArr &up_direction, uint subdivision,
         std::string_view surface, std::string_view emission
     ) noexcept {
+        static auto z = make_float3(0.f, 0.f, 1.f);
+        auto up = normalize(pyarray_to_pack<float, 3>(up_direction));
         PyShape shape(
             luisa::string(name), PyTransform(RawTransformInfo::srt(
                 height * up,
                 make_float4(cross(z, up), degrees(acos(dot(z, up)))),
                 make_float3(range)
             )),
-            luisa::string(surface), luisa::string(emission), "", -1.f,
+            luisa::string(surface), luisa::string(emission), "", -1.f
         );
-        plane_info.build_plane(subdivision);
+        shape.shape_info.build_plane(subdivision);
+        return shape;
     }
 
     void update_rigid(PyTransform &transform) noexcept {
@@ -321,7 +323,7 @@ struct PyShape {
     }
 
     void update_particles(
-        const PyFloatArr &vertices, 
+        const PyFloatArr &vertices
     ) noexcept {
         if (shape_info.get_type() != "spheregroup") 
             LUISA_ERROR_WITH_LOCATION("This object is not particles!");

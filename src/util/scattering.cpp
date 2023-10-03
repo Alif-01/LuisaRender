@@ -73,7 +73,7 @@ SampledSpectrum fresnel_conductor(
     return .5f * (Rp + Rs);
 }
 
-Float3 clamp_normal_angle(Float3 v, Float3 n, float cosClamp) noexcept {
+Float3 clamp_normal_angle(Float3 v, Float3 n, Float cosClamp) noexcept {
     auto cosTheta = dot(normalize(v), normalize(n));
     auto k = normalize(cross(v, n));
     auto phi = acos(cosTheta) - acos(cosClamp);
