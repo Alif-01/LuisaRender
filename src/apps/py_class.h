@@ -246,7 +246,8 @@ struct PyShape {
             pyarray_to_vector<float>(vertices),
             pyarray_to_vector<uint>(triangles),
             pyarray_to_vector<float>(normals),
-            pyarray_to_vector<float>(uvs)
+            pyarray_to_vector<float>(uvs),
+            false
         );
         return shape;
     }
@@ -263,7 +264,8 @@ struct PyShape {
             luisa::vector<float>(),
             luisa::vector<uint>(),
             luisa::vector<float>(),
-            luisa::vector<float>()
+            luisa::vector<float>(),
+            true
         );
         return shape;
     }

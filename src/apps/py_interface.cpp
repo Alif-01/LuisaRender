@@ -11,11 +11,6 @@
 #include <apps/app_base.h>
 #include <apps/py_class.h>
 
-#include <pybind11/pybind11.h>
-#include <pybind11/embed.h>
-#include <pybind11/numpy.h>
-
-
 using namespace luisa;
 using namespace luisa::compute;
 using namespace luisa::render;

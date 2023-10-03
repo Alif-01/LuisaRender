@@ -195,9 +195,13 @@ struct RawShapeInfo {
     void build_spheres(FloatArr centers, float radius, uint subdivision) noexcept {
         spheres_info = luisa::make_unique<RawSpheresInfo>(std::move(centers), radius, subdivision);
     }
-    void build_mesh(FloatArr vertices, UintArr triangles, FloatArr normals, FloatArr uvs) noexcept {
+    void build_mesh(
+        FloatArr vertices, UintArr triangles,
+        FloatArr normals, FloatArr uvs, bool is_deformable
+    ) noexcept {
         mesh_info = luisa::make_unique<RawMeshInfo>(
-            std::move(vertices), std::move(triangles), std::move(normals), std::move(uvs)
+            std::move(vertices), std::move(triangles),
+            std::move(normals), std::move(uvs), is_deformable
         );
     }
     void build_file(StringArr file) noexcept {
