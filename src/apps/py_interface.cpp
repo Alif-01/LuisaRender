@@ -121,30 +121,10 @@ void update_camera(
     }
 }
 
-void add_shape(const PyShape &shape) noexcept {
+void update_shape(const PyShape &shape) noexcept {
     LUISA_INFO("Update: {}", shape.shape_info.get_info());
     auto shape_node = scene->update_shape(shape.shape_info);
 }
-
-// void add_ground(
-//     std::string_view name, float height, float range, const PyFloatArr &up_direction,
-//     std::string_view surface
-// ) noexcept {
-//     static auto z = make_float3(0.f, 0.f, 1.f);
-//     auto up = normalize(pyarray_to_pack<float, 3>(up_direction));
-//     auto plane_info = RawShapeInfo(
-//         luisa::string(name),
-//         RawTransformInfo::srt(
-//             height * up,
-//             make_float4(cross(z, up), degrees(acos(dot(z, up)))),
-//             make_float3(range)
-//         ), -1,
-//         luisa::string(surface), "", ""
-//     );
-//     plane_info.build_plane(3u);
-//     LUISA_INFO("Add: {}", plane_info.get_info());
-//     auto shape = scene->update_shape(plane_info, "plane", true);
-// }
 
 PyFloatArr render_frame(
     std::string_view name, std::string_view path,
@@ -355,16 +335,9 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
         py::arg("spp"),
         py::arg("resolution")
     );
-    m.def("add_shape", &add_shape,
+    m.def("update_shape", &update_shape,
         py::arg("shape")
     );
-    // m.def("add_ground", &add_ground,
-    //     py::arg("name"),
-    //     py::arg("height"),
-    //     py::arg("range"),
-    //     py::arg("up_direction"),
-    //     py::arg("surface") = ""
-    // );
     m.def("render_frame", &render_frame,
         py::arg("name"),
         py::arg("path") = "",
