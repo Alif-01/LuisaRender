@@ -184,7 +184,7 @@ struct RawShapeInfo {
 
     [[nodiscard]] StringArr get_info() const noexcept {
         return luisa::format("Shape {} <type <{}>, transform <{}>, clamp_normal={}, surface={}, light={}>",
-            name, get_type_info(), transform_info.get_info(), surface, light);
+            name, get_type_info(), transform_info.get_info(), clamp_normal, surface, light);
     }
     [[nodiscard]] StringArr get_type_info() const noexcept;
     [[nodiscard]] StringArr get_type() const noexcept;
