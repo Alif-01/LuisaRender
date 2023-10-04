@@ -51,10 +51,6 @@ public:
         _matrix = transform_info.matrix_info->matrix;
     }
 
-    // MatrixTransform(Scene *scene, const float4x4 &matrix) noexcept
-    //     : Transform{scene}, _matrix{matrix} {
-    // }
-
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] float4x4 matrix(float) const noexcept override { return _matrix; }
     [[nodiscard]] bool is_static() const noexcept override { return true; }

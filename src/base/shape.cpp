@@ -81,7 +81,6 @@ uint4 Shape::Handle::encode(
     LUISA_ASSERT(surface_tag <= surface_tag_max, "Invalid surface tag: {}.", surface_tag);
     LUISA_ASSERT(light_tag <= light_tag_max, "Invalid light tag: {}.", light_tag);
     LUISA_ASSERT(medium_tag <= medium_tag_max, "Invalid medium tag: {}.", medium_tag);
-    // constexpr auto fixed_point_bits = 16u;
     auto buffer_base_and_properties = (buffer_base << property_flag_bits) | flags;
     auto tags =
         (surface_tag << surface_tag_offset) |

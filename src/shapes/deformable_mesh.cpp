@@ -27,8 +27,8 @@ public:
     DeformableMesh(Scene *scene, const RawShapeInfo &shape_info) noexcept
         : Shape{scene, shape_info} {
 
-        if (shape_info.mesh_info == nullptr) [[unlikely]]
-            LUISA_ERROR_WITH_LOCATION("Invalid mesh info!");
+        if (shape_info.get_type() != "deformablemesh") [[unlikely]]
+            LUISA_ERROR_WITH_LOCATION("Invalid deformable info!");
         auto mesh_info = shape_info.mesh_info.get();
 
         _loader.build_mesh(
@@ -42,15 +42,16 @@ public:
     void update_shape(Scene *scene, const RawShapeInfo &shape_info) noexcept override {
         Shape::update_shape(scene, shape_info);
 
-        if (shape_info.mesh_info != nullptr) {
-            auto mesh_info = shape_info.mesh_info.get();
-            _loader.build_mesh(
-                mesh_info->vertices,
-                mesh_info->triangles,
-                mesh_info->normals,
-                mesh_info->uvs
-            );
-        }
+        if (shape_info.get_type() != "deformablemesh") [[unlikely]]
+            LUISA_ERROR_WITH_LOCATION("Invalid deformable info!");
+        auto mesh_info = shape_info.mesh_info.get();
+
+        _loader.build_mesh(
+            mesh_info->vertices,
+            mesh_info->triangles,
+            mesh_info->normals,
+            mesh_info->uvs
+        );
     }
 
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }

@@ -11,13 +11,10 @@ class Mesh : public Shape {
 
 private:
     std::shared_future<MeshLoader> _loader;
-    // luisa::vector<Vertex> _vertices;
-    // luisa::vector<Triangle> _triangles;
-    // uint _properties{};
 
 public:
-    Mesh(Scene *scene, const SceneNodeDesc *desc) noexcept
-        : Shape{scene, desc},
+    Mesh(Scene *scene, const SceneNodeDesc *desc) noexcept :
+        Shape{scene, desc},
         _loader{MeshLoader::load(desc->property_path("file"),
                                  desc->property_uint_or_default("subdivision", 0u),
                                  desc->property_bool_or_default("flip_uv", false),
@@ -26,8 +23,11 @@ public:
         _loader.wait();
     }
 
-    Mesh(Scene *scene, const RawShapeInfo &shape_info) noexcept
-        : Shape{scene, shape_info} {
+    Mesh(Scene *scene, const RawShapeInfo &shape_info) noexcept :
+        Shape{scene, shape_info} {
+
+        if (shape_info.type() != "mesh") [[unlikely]]
+            LUISA_ERROR_WITH_LOCATION("Invalid rigid info!");
 
         if (shape_info.file_info != nullptr) {
             auto file_info = shape_info.file_info.get();
@@ -44,20 +44,15 @@ public:
             );
             _loader.wait();
         } else {
-            LUISA_ERROR_WITH_LOCATION("Invalid file info!");
+            LUISA_ERROR_WITH_LOCATION("Invalid rigid info!");
         }
     }
 
     void update_shape(Scene *scene, const RawShapeInfo& shape_info) noexcept override {
         Shape::update_shape(scene, shape_info);
-
-        if (shape_info.mesh_info != nullptr) {
-            LUISA_WARNING_WITH_LOCATION("Try to update mesh of rigid body. Igonred.");
-        }
     }
     
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
-    // [[nodiscard]] bool is_mesh() const noexcept override { return true; }
     [[nodiscard]] MeshView mesh() const noexcept override { return _loader.get().mesh(); }
     [[nodiscard]] uint vertex_properties() const noexcept override { return _loader.get().properties(); }
 };
