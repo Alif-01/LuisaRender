@@ -103,13 +103,11 @@ struct RawTextureInfo {
         StringArr image, FloatArr scale,
         FloatArr image_data = FloatArr(), uint2 resolution = make_uint2(0u), uint channel = 0u
     ) noexcept;
-    // void build_inline_image() noexcept;
     void build_checker(RawTextureInfo on, RawTextureInfo off, float scale) noexcept;
 
     [[nodiscard]] StringArr get_type() const noexcept {
         return constant_info != nullptr ? "constant" :
                image_info != nullptr ? "image" :
-            //    inline_image_info != nullptr ? "inline_image" :
                checker_info != nullptr ? "checkerboard": "None";
     }
 

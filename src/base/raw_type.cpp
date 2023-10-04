@@ -4,7 +4,6 @@
 namespace luisa::render {
 
 using namespace omit;
-// RawTextureInfo::RawTextureInfo() noexcept {}
 
 void RawTextureInfo::build_constant(FloatArr constant) noexcept {
     constant_info = luisa::make_unique<RawConstantInfo>(std::move(constant));

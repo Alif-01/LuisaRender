@@ -231,6 +231,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
             py::arg("up")
         );
     py::class_<PyTexture>(m, "Texture")
+        .def_static("empty", &PyTexture::empty)
         .def_static("image", &PyTexture::image,
             py::arg("image") = "",
             py::arg("scale") = PyFloatArr(),
