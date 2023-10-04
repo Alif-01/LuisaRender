@@ -27,7 +27,7 @@ StringArr RawShapeInfo::get_type_info() const noexcept {
     return spheres_info != nullptr ? spheres_info->get_info() :
            mesh_info != nullptr ? mesh_info->get_info() : 
            file_info != nullptr ? file_info->get_info() :
-           plane_info != nullptr ? "plane" : "";
+           plane_info != nullptr ? plane_info->get_info() : "";
 }
 
 StringArr RawShapeInfo::get_type() const noexcept {

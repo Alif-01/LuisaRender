@@ -142,7 +142,7 @@ struct PyTexture {
 struct PySurface {
     PySurface(luisa::string name, float roughness, float opacity) noexcept
         : surface_info{name, roughness, opacity} {}
-    static PySurface empty() noexcept { return PySurface("Null_Surface", 1.0, 1.0); }
+    // static PySurface empty() noexcept { return PySurface("Null_Surface", 1.0, 1.0); }
 
     static PySurface metal(
         std::string_view name, float roughness, float opacity,

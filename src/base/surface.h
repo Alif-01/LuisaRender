@@ -272,7 +272,6 @@ public:
         : BaseSurface{scene, surface_info},
           _opacity{scene->add_texture("surface_opacity",
                 RawTextureInfo::constant({surface_info.opacity}))} {}
-        //   _opacity{surface_info.opacity} {}
 
 protected:
     [[nodiscard]] luisa::unique_ptr<Surface::Instance> _build(

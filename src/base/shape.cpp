@@ -54,8 +54,6 @@ bool Shape::has_vertex_uv() const noexcept {
 }
 
 bool Shape::is_mesh() const noexcept { return false; }
-// bool Shape::is_template_mesh() const noexcept { return false; }
-// luisa::string Shape::template_id() const noexcept { return ""; }
 uint Shape::vertex_properties() const noexcept { return 0u; }
 MeshView Shape::mesh() const noexcept { return {}; }
 luisa::span<const Shape *const> Shape::children() const noexcept { return {}; }
@@ -117,10 +115,10 @@ Shape::Handle Shape::Handle::decode(Expr<uint4> compressed) noexcept {
     auto clamp_normal = decode_fixed_point(
         (shadow_intersect_clamp >> clamp_normal_offset) & clamp_normal_mask, clamp_normal_mask) * 2.f - 1.f;
 
-    // TODO: Why *256?
+    // TODO: Why *255?
     return {buffer_base, flags, surface_tag, light_tag, medium_tag, triangle_buffer_size,
-            // shadow_terminator, clamp(intersection_offset * 255.f + 1.f, 1.f, 256.f), clampe_normal};
-            shadow_terminator, intersection_offset, clamp_normal};
+            shadow_terminator, clamp(intersection_offset * 255.f + 1.f, 1.f, 256.f), clamp_normal};
+            // shadow_terminator, intersection_offset, clamp_normal};
 }
 
 }// namespace luisa::render

@@ -57,8 +57,6 @@ public:
     [[nodiscard]] virtual float intersection_offset_factor() const noexcept;
     [[nodiscard]] virtual float clamp_normal_factor() const noexcept;
     [[nodiscard]] virtual bool is_mesh() const noexcept;
-    // [[nodiscard]] virtual bool is_template_mesh() const noexcept;
-    // [[nodiscard]] virtual luisa::string template_id() const noexcept;
     [[nodiscard]] virtual uint vertex_properties() const noexcept;
     [[nodiscard]] bool has_vertex_normal() const noexcept;
     [[nodiscard]] bool has_vertex_uv() const noexcept;
@@ -105,48 +103,6 @@ public:
     }
     [[nodiscard]] bool is_mesh() const noexcept override { return true; }
 };
-
-// template<typename BaseShape>
-// class ShadowTerminatorShapeWrapper : public BaseShape {
-
-// private:
-//     float _shadow_terminator;
-
-// public:
-//     ShadowTerminatorShapeWrapper(Scene *scene, const SceneNodeDesc *desc) noexcept
-//         : BaseShape{scene, desc},
-//           _shadow_terminator{std::clamp(
-//               desc->property_float_or_default("shadow_terminator", scene->shadow_terminator_factor()),
-//           0.f, 1.f)} {}
-//     ShadowTerminatorShapeWrapper(Scene *scene, const RawShapeInfo &shape_info) noexcept
-//         : BaseShape{scene, shape_info},
-//            _shadow_terminator{std::clamp(scene->shadow_terminator_factor(), 0.f, 1.f)} {}
-    
-//     [[nodiscard]] float shadow_terminator_factor() const noexcept override {
-//         return _shadow_terminator;
-//     }
-// };
-
-// template<typename BaseShape>
-// class IntersectionOffsetShapeWrapper : public BaseShape {
-
-// private:
-//     float _intersection_offset;
-
-// public:
-//     IntersectionOffsetShapeWrapper(Scene *scene, const SceneNodeDesc *desc) noexcept
-//         : BaseShape{scene, desc},
-//           _intersection_offset{std::clamp(
-//               desc->property_float_or_default(
-//                   "intersection_offset", scene->intersection_offset_factor()), 0.f, 1.f)} {}
-//     IntersectionOffsetShapeWrapper(Scene *scene, const RawShapeInfo &shape_info) noexcept
-//         : BaseShape{scene, shape_info},
-//           _intersection_offset{std::clamp(scene->intersection_offset_factor(), 0.f, 1.f)} {}
-
-//     [[nodiscard]] float intersection_offset_factor() const noexcept override {
-//         return _intersection_offset;
-//     }
-// };
 
 template<typename BaseShape>
 class VisibilityShapeWrapper : public BaseShape {

@@ -55,8 +55,6 @@ public:
 
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] bool deformable() const noexcept override { return true; }
-    // [[nodiscard]] MeshView mesh() const noexcept override { return {_vertices, _triangles}; }
-    // [[nodiscard]] uint vertex_properties() const noexcept override { return _properties; }
     [[nodiscard]] MeshView mesh() const noexcept override { return _loader.mesh(); }
     [[nodiscard]] uint vertex_properties() const noexcept override { return _loader.properties(); }
 

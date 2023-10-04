@@ -301,6 +301,9 @@ ShadingAttribute Geometry::shading_point(const Shape::Handle &instance, const Va
     auto n0_local = clamp_normal_angle(v0->normal(), ng_local, clamp_cos_angle);
     auto n1_local = clamp_normal_angle(v1->normal(), ng_local, clamp_cos_angle);
     auto n2_local = clamp_normal_angle(v2->normal(), ng_local, clamp_cos_angle);
+    // auto n0_local = v0->normal();
+    // auto n1_local = v1->normal();
+    // auto n2_local = v2->normal();
     
     // LUISA_INFO(dot)
     // auto n0_local = v0->normal();

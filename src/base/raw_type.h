@@ -167,7 +167,6 @@ struct RawCameraInfo {
 
     StringArr name;
     RawTransformInfo pose;
-    // RawTransformInfo append_pose;
     float fov;
     uint spp;
     uint2 resolution;
@@ -186,7 +185,7 @@ struct RawShapeInfo {
         surface{std::move(surface)}, light{std::move(light)}, medium{std::move(medium)} {}
 
     [[nodiscard]] StringArr get_info() const noexcept {
-        return luisa::format("Shape {} <{}, {}, surface={}, light={}>",
+        return luisa::format("Shape {} <type <{}>, transform <{}>, clamp_normal={}, surface={}, light={}>",
             name, get_type_info(), transform_info.get_info(), surface, light);
     }
     [[nodiscard]] StringArr get_type_info() const noexcept;
@@ -236,8 +235,8 @@ struct RawSpheresInfo {
 struct RawMeshInfo {
     [[nodiscard]] StringArr get_info() const noexcept {
         return luisa::format(
-            "vertices={}, triangles={}, normals={}, uvs={}",
-            vertices.size(), triangles.size(), normals.size(), uvs.size()
+            "vertices={}, triangles={}, normals={}, uvs={}, is_deformable={}",
+            vertices.size(), triangles.size(), normals.size(), uvs.size(), is_deformable
         );
     }
     
