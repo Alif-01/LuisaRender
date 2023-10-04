@@ -26,7 +26,7 @@ public:
     Mesh(Scene *scene, const RawShapeInfo &shape_info) noexcept :
         Shape{scene, shape_info} {
 
-        if (shape_info.type() != "mesh") [[unlikely]]
+        if (shape_info.get_type() != "mesh") [[unlikely]]
             LUISA_ERROR_WITH_LOCATION("Invalid rigid info!");
 
         if (shape_info.file_info != nullptr) {
