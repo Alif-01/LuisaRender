@@ -12,6 +12,7 @@
 #include <base/scene.h>
 #include <base/pipeline.h>
 #include <apps/app_base.h>
+#include <apps/py_class.h>
 
 #include <luisa/backends/ext/denoiser_ext.h>
 
@@ -73,16 +74,15 @@ int main(int argc, char *argv[]) {
 
     stream << denoised_buffer.copy_to(buffer);
     stream.synchronize();
-
-    save_image(img_path, buffer, resolution);
-
-    apply_gamma(buffer, resolution);
-
+    
     if (render_png) {
+        apply_gamma(buffer, resolution);
         std::filesystem::path png_path = img_path;
         png_path.replace_extension(".png");
         auto int_buffer = convert_to_int_pixel(buffer, resolution);
         save_image(png_path, (*int_buffer).data(), resolution);
+    } else {
+        save_image(img_path, buffer, resolution);
     }
 
     denoiser_ext->destroy(stream);

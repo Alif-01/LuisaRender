@@ -70,6 +70,7 @@ void add_render_options(cxxopts::Options &parser) noexcept {
     parser.add_option("", "b", "backend", "Compute backend name", cxxopts::value<luisa::string>(), "<backend>");
     parser.add_option("", "d", "device", "Compute device index", cxxopts::value<uint32_t>()->default_value("0"), "<index>");
     parser.add_option("", "m", "mark", "Identifier of the scene", cxxopts::value<luisa::string>()->default_value(""), "<mark>");
+    parser.add_option("", "l", "log_level", "Logging level of renderer", cxxopts::value<luisa::string>()->default_value("info"), "<logging-level>");
     parser.add_option("", "r", "render_png", "Whether to render png", cxxopts::value<bool>(), "<render>");
 }
 
