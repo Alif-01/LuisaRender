@@ -12,7 +12,6 @@
 #include <base/scene.h>
 #include <base/pipeline.h>
 #include <apps/app_base.h>
-#include <apps/py_class.h>
 
 #include <luisa/backends/ext/denoiser_ext.h>
 
