@@ -40,8 +40,6 @@ int main(int argc, char *argv[]) {
     config.device_index = index;
     auto device = context.create_device(backend, &config);
     auto stream = device.create_stream(StreamTag::COMPUTE);
-    auto denoiser_ext = device.extension<DenoiserExt>();
-    DenoiserExt::DenoiserMode mode{};
 
     Clock clock;
     auto scene_desc = SceneParser::parse(path, macros);
@@ -49,28 +47,32 @@ int main(int argc, char *argv[]) {
     LUISA_INFO("Parsed scene description file '{}' in {} ms.", path.string(), parse_time);
     auto desc = scene_desc.get();
     auto scene = Scene::create(context, desc);
-
-    auto camera = scene->cameras()[0];
-    auto resolution = camera->film()->resolution();
-    uint pixel_count = resolution.x * resolution.y * 4;
-    auto hdr_buffer = device.create_buffer<float>(pixel_count);
-    auto denoised_buffer = device.create_buffer<float>(pixel_count);
-
     auto pipeline = Pipeline::create(device, stream, *scene);
     auto picture = pipeline->render_to_buffer(stream, 0);
     auto buffer = reinterpret_cast<float *>((*picture).data());
+    
+    auto camera = scene->cameras()[0];
+    auto resolution = camera->film()->resolution();
+    uint pixel_count = resolution.x * resolution.y * 4;
+    auto denoiser_ext = device.extension<DenoiserExt>();
+    auto hdr_buffer = device.create_buffer<float>(pixel_count);
+    auto denoised_buffer = device.create_buffer<float>(pixel_count);
+    auto denoiser = denoiser_ext->create(stream);
+    {
+        auto input = DenoiserExt::DenoiserInput{resolution.x, resolution.y};
+        input.push_noisy_image(
+            hdr_buffer.view(), denoised_buffer.view(),
+            DenoiserExt::ImageFormat::FLOAT3, DenoiserExt::ImageColorSpace::HDR
+        );
+        input.filter_quality = DenoiserExt::FilterQuality::ACCURATE;
+        input.prefilter_mode = DenoiserExt::PrefilterMode::NONE;
+        denoiser->init(input);
+    }
 
     LUISA_INFO("Start denoising...");
     stream << hdr_buffer.copy_from(buffer);
     stream.synchronize();
-    DenoiserExt::DenoiserInput data;
-    data.beauty = &hdr_buffer;
-
-    denoiser_ext->init(stream, mode, data, resolution);
-    denoiser_ext->process(stream, data);
-    denoiser_ext->get_result(stream, denoised_buffer);
-    stream.synchronize();
-
+    denoiser->execute(true);
     stream << denoised_buffer.copy_to(buffer);
     stream.synchronize();
     
@@ -83,7 +85,4 @@ int main(int argc, char *argv[]) {
     } else {
         save_image(img_path, buffer, resolution);
     }
-
-    denoiser_ext->destroy(stream);
-    stream.synchronize();
 }
