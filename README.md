@@ -25,7 +25,8 @@ LuisaRender follows the standard CMake build process. Basically these steps:
 - Configure the project using CMake. E.g., for command line, `cd` into the project folder and type `cmake -S . -B <build-folder>`. You might also want to specify your favorite generators and build types using options like `-G Ninja` and `-D CMAKE_BUILD_TYPE=Release`. A typical, full command sequence for this would be like
     ```bash
     cd LuisaRender
-    cmake -S . -B build -D CMAKE_BUILD_TYPE=Release
+    cmake -S . -B build -D CMAKE_BUILD_TYPE=Release -D PYTHON_VERSIONS=3.9 -D LUISA_COMPUTE_DOWNLOAD_OIDN=ON -D LUISA_COMPUTE_DOWNLOAD_NVCOMP=ON
+    cmake --build build
     ```
 
 - If the configuration succeeds, you are now able to build the project. Type `cmake --build <build-folder>` in the command line, or push the build button if you generated, e.g., a VS project. (And in case the configuration step unluckily failed :-(, please file an [issue](https://github.com/LuisaGroup/LuisaRender/issues)). 
