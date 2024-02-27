@@ -21,7 +21,15 @@ add_library(luisa-render-util SHARED
         counter_buffer.cpp counter_buffer.h
         polymorphic_closure.h
         command_buffer.cpp command_buffer.h
-        thread_pool.cpp thread_pool.h)
+        thread_pool.cpp thread_pool.h
+        mesh_reconstruct.cpp mesh_reconstruct.h)
+
+if(DEFINED OPENVDB_MODULE_PATH)
+    list(APPEND CMAKE_MODULE_PATH ${OPENVDB_MODULE_PATH})
+    find_package(OpenVDB REQUIRED)
+    target_link_libraries(luisa-render-util PUBLIC OpenVDB::openvdb)
+endif()
+
 target_link_libraries(luisa-render-util PUBLIC
         luisa::compute
         luisa-render-include

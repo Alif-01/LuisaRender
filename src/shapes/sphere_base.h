@@ -105,4 +105,4 @@ public:
     }
 };
 
-}
+}  // namespace luisa::render
