@@ -4,7 +4,8 @@
 
 #pragma once
 
-#include <chrono>
+// #include <chrono>
+#include <luisa/core/clock.h>
 
 namespace luisa::render {
 
@@ -15,12 +16,13 @@ public:
     static constexpr auto complete_char = '=';
     static constexpr auto heading_char = '>';
     static constexpr auto incomplete_char = ' ';
-    using clock_type = std::chrono::steady_clock;
+    // using clock_type = std::chrono::steady_clock;
 
 private:
     double _progress;
     uint32_t _width;
-    clock_type::time_point _start;
+    Clock _clock;
+    // clock_type::time_point _start;
     bool _silent;
 
 public:

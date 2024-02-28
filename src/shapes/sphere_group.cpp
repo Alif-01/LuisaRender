@@ -20,14 +20,14 @@ private:
 private:
     void _build_mesh(
         const luisa::vector<float> &centers, float radius, uint subdiv,
-        bool reconstruction, float voxel_scale, float smoothing_scale
+        bool reconstruction, float voxel_scale, float smooth_scale
     ) noexcept {
         if (reconstruction) {
             static auto constructor = getConstructor();
             auto future = global_thread_pool().async([&] {
-                return constructor.reconstruct(centers, radius, voxel_scale, smoothing_scale);
+                return constructor->reconstruct(centers, radius, voxel_scale, smoothing_scale);
             });
-            auto recon_mesh = future.get().mesh();
+            auto recon_mesh = future.get();
             _vertices = std::move(recon_mesh.vertices);
             _triangles = std::move(recon_mesh.triangles);
         } else {

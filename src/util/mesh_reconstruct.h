@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <luisa/core/stl.h>
 #include <luisa/runtime/rtx/triangle.h>
 #include <util/vertex.h>
@@ -19,12 +20,15 @@ struct ReconstructMesh {
 };
 
 class MeshReconstructor {
+private:
+    [[nodiscard]] _start_time() noexcept { return ; }
+
 public:
     MeshReconstructor() noexcept = default;
     [[nodiscard]] virtual ReconstructMesh reconstruct(
-        luisa::span<float> positions, float particle_radius,
-        float voxel_scale, float smoothing_scale
-    ) noexcept;
+        const luisa::vector<float> &positions, float particle_radius,
+        float voxel_scale, float smooth_scale
+    ) noexcept = 0;
 };
 
 
@@ -41,6 +45,7 @@ class OpenVDBMeshReconstructor : public MeshReconstructor {
         luisa::vector<Vec3R> _particle_list;
 
     public:
+        typedef Vec3R PosType;
         OpenVDBParticleList(Real r) noexcept: _radius{r} {}
         [[nodiscard]] size_t size() const noexcept {
             return _particle_list.size();
@@ -69,12 +74,12 @@ class OpenVDBMeshReconstructor : public MeshReconstructor {
 public:
     OpenVDBMeshReconstructor() noexcept;
     [[nodiscard]] ReconstructMesh reconstruct(
-        luisa::span<float> positions, float particle_radius,
-        float voxel_scale, float smoothing_scale
-    ) override noexcept;
-}
+        const luisa::vector<float> &positions, float particle_radius,
+        float voxel_scale, float smooth_scale
+    ) noexcept override;
+};
 #endif
 
-MeshReconstructor getConstructor() noexcept;
+luisa::unique_ptr<MeshReconstructor> getConstructor() noexcept;
 
 }  // namespace luisa::render

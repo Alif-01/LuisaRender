@@ -28,6 +28,7 @@ if(DEFINED OPENVDB_MODULE_PATH)
     list(APPEND CMAKE_MODULE_PATH ${OPENVDB_MODULE_PATH})
     find_package(OpenVDB REQUIRED)
     target_link_libraries(luisa-render-util PUBLIC OpenVDB::openvdb)
+    add_definitions(-DUSE_OPENVDB)
 endif()
 
 target_link_libraries(luisa-render-util PUBLIC

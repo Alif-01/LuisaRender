@@ -269,6 +269,9 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
             py::arg("name"),
             py::arg("radius"),
             py::arg("subdivision") = 0u,
+            py::arg("reconstruction") = false,
+            py::arg("voxel_scale") = 2.f,
+            py::arg("smooth_scale") = 4.f,
             py::arg("surface") = "",
             py::arg("emission") = ""
         )

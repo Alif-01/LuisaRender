@@ -1,3 +1,4 @@
+#include <luisa/core/logging.h>
 #include <util/mesh_reconstruct.h>
 
 namespace luisa::render {
@@ -48,8 +49,8 @@ OpenVDBMeshReconstructor::OpenVDBMeshReconstructor() noexcept {
 }
 
 ReconstructMesh OpenVDBMeshReconstructor::reconstruct(
-    luisa::span<float> positions, float particle_radius,
-    float voxel_scale, float smoothing_scale
+    const luisa::vector<float> &positions, float particle_radius,
+    float voxel_scale, float smooth_scale
 ) noexcept {
     if (positions.size() % 3u != 0u)
         LUISA_ERROR_WITH_LOCATION("Invalid particle count.");
@@ -62,7 +63,7 @@ ReconstructMesh OpenVDBMeshReconstructor::reconstruct(
         ));
     }
     float voxel_size = particle_radius * voxel_scale;
-    float smoothing_radius = particle_radius * smoothing_scale;
+    float smoothing_radius = particle_radius * smooth_scale;
     auto sdf = createLevelSet<FloatGrid>(voxel_size, voxel_size * 2);
     particlesToSdf(pa, *sdf, smoothing_radius);
 
@@ -98,9 +99,9 @@ ReconstructMesh OpenVDBMeshReconstructor::reconstruct(
 #endif
 
 
-MeshReconstructor getConstructor() noexcept {
+luisa::unique_ptr<MeshReconstructor> getConstructor() noexcept {
 #ifdef USE_OPENVDB
-    return OpenVDBMeshReconstructor();
+    return luisa::make_unique<OpenVDBMeshReconstructor>();
 #else
     LUISA_ERROR_WITH_LOCATION("Invalid reconstruction library.");
 #endif

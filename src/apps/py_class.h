@@ -271,7 +271,8 @@ struct PyShape {
 
     static PyShape particles(
         std::string_view name,
-        float radius, uint subdivision,
+        float radius, uint subdivision, bool reconstruction,
+        float voxel_scale, float smooth_scale,
         std::string_view surface, std::string_view emission
     ) noexcept {
         PyShape shape(
@@ -279,8 +280,8 @@ struct PyShape {
             luisa::string(surface), luisa::string(emission), "", -1.f
         );
         shape.shape_info.build_spheres(
-            luisa::vector<float>(),
-            std::move(radius), subdivision
+            luisa::vector<float>(), std::move(radius), subdivision,
+            reconstruction, voxel_scale, smooth_scale
         );
         return shape;
     }
