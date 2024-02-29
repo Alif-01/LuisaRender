@@ -56,7 +56,7 @@ luisa::span<const Camera *const> Scene::cameras() const noexcept { return _confi
 float Scene::shadow_terminator_factor() const noexcept { return _config->shadow_terminator; }
 float Scene::intersection_offset_factor() const noexcept { return _config->intersection_offset; }
 float Scene::clamp_normal_factor() const noexcept { return _config->clamp_normal; }
-MeshConstructor *mesh_constructor() const noexcept {
+MeshConstructor *Scene::mesh_constructor() const noexcept {
     return _mesh_constructor == nullptr ? nullptr : _mesh_constructor.get();
 }
 
@@ -430,7 +430,7 @@ luisa::unique_ptr<Scene> Scene::create(const Context &ctx, const SceneDesc *desc
     scene->_config->environment_medium = scene->load_medium(desc->root()->property_node_or_default("environment_medium"));
 
     auto constructor = desc->root()->property_node_or_default("mesh_constructor");
-    scene->_mesh_constructor = get_constructor(
+    scene->_mesh_constructor = get_mesh_constructor(
         constructor->property_string_or_default("type", "None"),
         constructor->property_float_or_default("particle_radius", 0.01f),
         constructor->property_float_or_default("voxel_scale", 2.f),
@@ -467,8 +467,8 @@ luisa::unique_ptr<Scene> Scene::create(const Context &ctx, const RawSceneInfo &s
     scene->_config->environment = nullptr;
     scene->_config->environment_medium = nullptr;
 
-    RawConstructionInfo &construction_info = scene_info.construction_info;
-    scene->_mesh_constructor = get_constructor(
+    auto &construction_info = scene_info.construction_info;
+    scene->_mesh_constructor = get_mesh_constructor(
         construction_info.get_type(),
         construction_info.particle_radius, construction_info.voxel_scale,
         construction_info.isovalue, construction_info.adaptivity

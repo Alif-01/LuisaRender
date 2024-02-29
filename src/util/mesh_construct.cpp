@@ -32,13 +32,11 @@ ConstructMesh OpenVDBMeshConstructor::construct(
     OpenVDBParticleList pa(_particle_radius);
     auto particle_count = positions.size() / 3u;
     for (auto i = 0; i < particle_count; i++) {
-        pa.addPos(Vec3R(
-            positions[i * 3u + 0u], positions[i * 3u + 1u], positions[i * 3u + 2u]
-        ));
+        pa.addPos(Vec3R(positions[i * 3u + 0u], positions[i * 3u + 1u], positions[i * 3u + 2u]));
     }
     LUISA_INFO(
         "Particles count = {}, radius = {}, voxel_scale = {}",
-        particle_count, _particle_radius, _voxel_scale,
+        particle_count, _particle_radius, _voxel_scale
     );
     LUISA_INFO("Add particles in {} ms: ", clock.toc());
 

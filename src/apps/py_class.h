@@ -281,7 +281,6 @@ struct PyShape {
         );
         shape.shape_info.build_spheres(
             luisa::vector<float>(), std::move(radius), subdivision
-            // construction, voxel_scale, smooth_scale
         );
         return shape;
     }
@@ -337,11 +336,13 @@ struct PyShape {
 };
 
 struct PyConstruction {
-    PyConstruction(
-        float particle_radius, float voxel_scale, float isovalue
-    ) noexcept : construction_info{
-        particle_radius, voxel_scale, isovalue
-    } {}
+    PyConstruction() noexcept = default;
+    PyConstruction(float particle_radius, float voxel_scale, float isovalue) noexcept:
+        construction_info{particle_radius, voxel_scale, isovalue} {}
+
+    static PyConstruction empty() noexcept {
+        return PyConstruction();
+    }
 
     static PyConstruction OpenVDB(
         float particle_radius, float voxel_scale,
@@ -353,4 +354,4 @@ struct PyConstruction {
     }
 
     RawConstructionInfo construction_info;
-}
+};

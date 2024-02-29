@@ -270,9 +270,6 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
             py::arg("name"),
             py::arg("radius"),
             py::arg("subdivision") = 0u,
-            // py::arg("construction") = false,
-            // py::arg("voxel_scale") = 2.f,
-            // py::arg("smooth_scale") = 4.f,
             py::arg("surface") = "",
             py::arg("emission") = ""
         )
@@ -308,6 +305,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
         .def_static("srgb", &PySpectrum::srgb)
         .def_static("hero", &PySpectrum::hero, py::arg("dimension") = 4u);
     py::class_<PyConstruction>(m, "MeshConstructor")
+        .def_static("empty", &PyConstruction::empty)
         .def_static("OpenVDB", &PyConstruction::OpenVDB,
             py::arg("particle_radius"),
             py::arg("voxel_scale") = 2.f,
@@ -323,7 +321,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
             LogLevel::WARNING, 2u, 32u, 512u * 512u * 32u
         ),
         py::arg("spectrum_options") = PySpectrum::hero(4u),
-        py::arg("construct_options") = PySpectrum::empty(),
+        py::arg("construct_options") = PyConstruction::empty(),
         py::arg("clamp_normal") = 0.f
     );
     m.def("destroy", &destroy);

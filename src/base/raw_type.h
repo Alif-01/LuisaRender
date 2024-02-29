@@ -189,12 +189,10 @@ struct RawShapeInfo {
     [[nodiscard]] StringArr get_type() const noexcept;
 
     void build_spheres(
-        FloatArr centers, float radius, uint subdivision,
-        bool construction, float voxel_scale, float smooth_scale
+        FloatArr centers, float radius, uint subdivision
     ) noexcept {
         spheres_info = luisa::make_unique<RawSpheresInfo>(
-            std::move(centers), radius, subdivision,
-            construction, voxel_scale, smooth_scale
+            std::move(centers), radius, subdivision
         );
     }
     void build_mesh(
@@ -228,18 +226,13 @@ struct RawShapeInfo {
 struct RawSpheresInfo {
     [[nodiscard]] StringArr get_info() const noexcept {
         return luisa::format(
-            "centers={}, subdiv={}, construction={}, voxel_scale={}, smooth_scale={}",
-            centers.size(), subdivision, construction, voxel_scale, smooth_scale
+            "centers={}, subdiv={}", centers.size(), subdivision
         );
     }
 
     FloatArr centers;
     float radius;
     uint subdivision;
-    MeshConstructor* constructor;
-    // bool construction;
-    // float voxel_scale;
-    // float smooth_scale;
 };
 
 struct RawMeshInfo {
@@ -408,10 +401,10 @@ struct RawSpectrumInfo {
 };
 
 struct RawConstructionInfo {
-    RawConstructionInfo(
-        float particle_radius, float voxel_scale, float isovalue
-    ) noexcept:
-        particle_radius{particle_radius}, voxel_scale{voxel_scale},
+    RawConstructionInfo() noexcept = default;
+    RawConstructionInfo(float particle_radius, float voxel_scale, float isovalue) noexcept:
+        particle_radius{particle_radius},
+        voxel_scale{voxel_scale},
         isovalue{isovalue} {}
 
     void build_OpenVDB(float adapt) noexcept {
@@ -428,7 +421,7 @@ struct RawConstructionInfo {
     float voxel_scale;
     float isovalue;
     float adaptivity;
-}
+};
 
 struct RawSceneInfo {
     RawIntegratorInfo integrator_info;

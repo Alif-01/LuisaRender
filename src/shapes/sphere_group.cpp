@@ -30,9 +30,7 @@ private:
             std::scoped_lock lock{mutex};
 
             auto future = global_thread_pool().async([&] {
-                return constructor->reconstruct(
-                    centers, radius, voxel_scale, smooth_scale, isovalue
-                );
+                return constructor->construct(centers);
             });
             auto recon_mesh = future.get();
 

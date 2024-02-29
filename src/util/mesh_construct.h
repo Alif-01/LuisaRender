@@ -19,7 +19,7 @@ struct ConstructMesh {
 };
 
 class MeshConstructor {
-private:
+protected:
     float _particle_radius;
     float _voxel_scale;
     float _isovalue;
@@ -29,9 +29,7 @@ public:
         float particle_radius, float voxel_scale, float isovalue
     ) noexcept
         : _particle_radius{particle_radius}, _voxel_scale{voxel_scale}, _isovalue{isovalue} {}
-    [[nodiscard]] virtual ConstructMesh construct(
-        const luisa::vector<float> &positions
-    ) noexcept = 0;
+    [[nodiscard]] virtual ConstructMesh construct(const luisa::vector<float> &positions) noexcept = 0;
 };
 
 
@@ -74,7 +72,7 @@ class OpenVDBMeshConstructor : public MeshConstructor {
         }
     };
 
-private:
+protected:
     float _adaptivity;
 
 public:
@@ -82,14 +80,11 @@ public:
         float particle_radius, float voxel_scale = 2.f,
         float isovalue = 0.f, float adaptivity = 0.01f
     ) noexcept;
-    [[nodiscard]] ConstructMesh construct(
-        const luisa::vector<float> &positions //, float particle_radius,
-        // float voxel_scale, float smooth_scale, float isovalue
-    ) noexcept override;
+    [[nodiscard]] ConstructMesh construct(const luisa::vector<float> &positions) noexcept override;
 };
 #endif
 
-luisa::unique_ptr<MeshReconstructor> get_mesh_constructor(
+luisa::unique_ptr<MeshConstructor> get_mesh_constructor(
     std::string_view type, float particle_radius, float voxel_scale,
     float isovalue = 0.f, float adaptivity = 0.f
 ) noexcept;
