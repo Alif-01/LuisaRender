@@ -22,7 +22,7 @@ add_library(luisa-render-util SHARED
         polymorphic_closure.h
         command_buffer.cpp command_buffer.h
         thread_pool.cpp thread_pool.h
-        mesh_reconstruct.cpp mesh_reconstruct.h)
+        mesh_construct.cpp mesh_construct.h)
 
 if(DEFINED OPENVDB_MODULE_PATH)
     list(APPEND CMAKE_MODULE_PATH ${OPENVDB_MODULE_PATH})

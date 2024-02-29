@@ -7,7 +7,7 @@
 #include <base/shape.h>
 #include <shapes/sphere_base.h>
 #include <util/loop_subdiv.h>
-#include <util/mesh_reconstruct.h>
+#include <util/mesh_construct.h>
 
 namespace luisa::render {
 
@@ -16,20 +16,29 @@ class SphereGroup : public Shape {
 private:
     luisa::vector<Vertex> _vertices;
     luisa::vector<Triangle> _triangles;
+    uint _properties{};
 
 private:
     void _build_mesh(
-        const luisa::vector<float> &centers, float radius, uint subdiv,
-        bool reconstruction, float voxel_scale, float smooth_scale
+        const luisa::vector<float> &centers, float radius,
+        uint subdiv, MeshConstructor* constructor
+        // bool construction, float voxel_scale, float smooth_scale, float isovalue
     ) noexcept {
-        if (reconstruction) {
-            static auto constructor = getConstructor();
+        if (constructor == nullptr) {
+            // static auto constructor = getConstructor();
+            static std::mutex mutex;
+            std::scoped_lock lock{mutex};
+
             auto future = global_thread_pool().async([&] {
-                return constructor->reconstruct(centers, radius, voxel_scale, smoothing_scale);
+                return constructor->reconstruct(
+                    centers, radius, voxel_scale, smooth_scale, isovalue
+                );
             });
             auto recon_mesh = future.get();
+
             _vertices = std::move(recon_mesh.vertices);
             _triangles = std::move(recon_mesh.triangles);
+            _properties = 0u;
         } else {
             auto sphere_mesh = SphereGeometry::create(subdiv).get().mesh();
             uint32_t vertex_count = sphere_mesh.vertices.size();
@@ -60,6 +69,8 @@ private:
                     _triangles.emplace_back(std::move(triangle));
                 }
             }
+            _properties = Shape::property_flag_has_vertex_normal |
+                          Shape::property_flag_has_vertex_uv;
         }
     }
 
@@ -76,8 +87,8 @@ public:
             LUISA_ERROR_WITH_LOCATION("Invalid spheres info!");
         auto spheres_info = shape_info.spheres_info.get();
         _build_mesh(
-            spheres_info->centers, spheres_info->radius, spheres_info->subdivision,
-            spheres_info->reconstruction, spheres_info->voxel_scale, spheres_info->smoothing_scale
+            spheres_info->centers, spheres_info->radius,
+            spheres_info->subdivision, scene->mesh_constructor()
         );
     }
 
@@ -88,17 +99,14 @@ public:
             LUISA_ERROR_WITH_LOCATION("Invalid spheres info!");
         auto spheres_info = shape_info.spheres_info.get();
         _build_mesh(
-            spheres_info->centers, spheres_info->radius, spheres_info->subdivision,
-            spheres_info->reconstruction, spheres_info->voxel_scale, spheres_info->smoothing_scale
+            spheres_info->centers, spheres_info->radius,
+            spheres_info->subdivision, scene->mesh_constructor()
         );
     }
 
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] MeshView mesh() const noexcept override { return MeshView{_vertices, _triangles}; }
-    [[nodiscard]] uint vertex_properties() const noexcept override {
-        return Shape::property_flag_has_vertex_normal |
-               Shape::property_flag_has_vertex_uv;
-    }
+    [[nodiscard]] uint vertex_properties() const noexcept override { return _properties; }
 };
 
 using SphereGroupWrapper = VisibilityShapeWrapper<ShadingShapeWrapper<SphereGroup>>;

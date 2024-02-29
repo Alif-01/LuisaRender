@@ -1,6 +1,5 @@
 #pragma once
 
-#include <chrono>
 #include <luisa/core/stl.h>
 #include <luisa/runtime/rtx/triangle.h>
 #include <util/vertex.h>
@@ -14,20 +13,24 @@
 namespace luisa::render {
 
 using compute::Triangle;
-struct ReconstructMesh {
+struct ConstructMesh {
     luisa::vector<Vertex> vertices;
     luisa::vector<Triangle> triangles;
 };
 
-class MeshReconstructor {
+class MeshConstructor {
 private:
-    [[nodiscard]] _start_time() noexcept { return ; }
+    float _particle_radius;
+    float _voxel_scale;
+    float _isovalue;
 
 public:
-    MeshReconstructor() noexcept = default;
-    [[nodiscard]] virtual ReconstructMesh reconstruct(
-        const luisa::vector<float> &positions, float particle_radius,
-        float voxel_scale, float smooth_scale
+    MeshConstructor(
+        float particle_radius, float voxel_scale, float isovalue
+    ) noexcept
+        : _particle_radius{particle_radius}, _voxel_scale{voxel_scale}, _isovalue{isovalue} {}
+    [[nodiscard]] virtual ConstructMesh construct(
+        const luisa::vector<float> &positions
     ) noexcept = 0;
 };
 
@@ -36,7 +39,7 @@ public:
 using openvdb::Real;
 using openvdb::Vec3R;
 
-class OpenVDBMeshReconstructor : public MeshReconstructor {
+class OpenVDBMeshConstructor : public MeshConstructor {
 
     class OpenVDBParticleList {
 
@@ -71,15 +74,24 @@ class OpenVDBMeshReconstructor : public MeshReconstructor {
         }
     };
 
+private:
+    float _adaptivity;
+
 public:
-    OpenVDBMeshReconstructor() noexcept;
-    [[nodiscard]] ReconstructMesh reconstruct(
-        const luisa::vector<float> &positions, float particle_radius,
-        float voxel_scale, float smooth_scale
+    OpenVDBMeshConstructor(
+        float particle_radius, float voxel_scale = 2.f,
+        float isovalue = 0.f, float adaptivity = 0.01f
+    ) noexcept;
+    [[nodiscard]] ConstructMesh construct(
+        const luisa::vector<float> &positions //, float particle_radius,
+        // float voxel_scale, float smooth_scale, float isovalue
     ) noexcept override;
 };
 #endif
 
-luisa::unique_ptr<MeshReconstructor> getConstructor() noexcept;
+luisa::unique_ptr<MeshReconstructor> get_mesh_constructor(
+    std::string_view type, float particle_radius, float voxel_scale,
+    float isovalue = 0.f, float adaptivity = 0.f
+) noexcept;
 
 }  // namespace luisa::render

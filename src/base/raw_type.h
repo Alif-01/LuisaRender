@@ -160,7 +160,6 @@ struct RawCameraInfo {
         return luisa::format("Camera {} <pos={}, fov={}, spp={}, res={}x{}>",
             name, pose.get_info(), fov, spp, resolution[0], resolution[1]
         );
-        // append_pose.get_info(),
     }
 
     StringArr name;
@@ -191,11 +190,11 @@ struct RawShapeInfo {
 
     void build_spheres(
         FloatArr centers, float radius, uint subdivision,
-        bool reconstruction, float voxel_scale, float smooth_scale
+        bool construction, float voxel_scale, float smooth_scale
     ) noexcept {
         spheres_info = luisa::make_unique<RawSpheresInfo>(
             std::move(centers), radius, subdivision,
-            reconstruction, voxel_scale, smooth_scale
+            construction, voxel_scale, smooth_scale
         );
     }
     void build_mesh(
@@ -229,17 +228,18 @@ struct RawShapeInfo {
 struct RawSpheresInfo {
     [[nodiscard]] StringArr get_info() const noexcept {
         return luisa::format(
-            "centers={}, subdiv={}, reconstruction={}, voxel_scale={}, smooth_scale={}",
-            centers.size(), subdivision, reconstruction, voxel_scale, smooth_scale
+            "centers={}, subdiv={}, construction={}, voxel_scale={}, smooth_scale={}",
+            centers.size(), subdivision, construction, voxel_scale, smooth_scale
         );
     }
 
     FloatArr centers;
     float radius;
     uint subdivision;
-    bool reconstruction;
-    float voxel_scale;
-    float smooth_scale;
+    MeshConstructor* constructor;
+    // bool construction;
+    // float voxel_scale;
+    // float smooth_scale;
 };
 
 struct RawMeshInfo {
@@ -407,9 +407,33 @@ struct RawSpectrumInfo {
     uint dimension{0u};
 };
 
+struct RawConstructionInfo {
+    RawConstructionInfo(
+        float particle_radius, float voxel_scale, float isovalue
+    ) noexcept:
+        particle_radius{particle_radius}, voxel_scale{voxel_scale},
+        isovalue{isovalue} {}
+
+    void build_OpenVDB(float adapt) noexcept {
+        construction_index = 1u;
+        adaptivity = adapt;
+    }
+
+    [[nodiscard]] StringArr get_type() const noexcept {
+        return construction_index == 1u ? "OpenVDB" : "None";
+    }
+
+    float construction_index{0u};
+    float particle_radius;
+    float voxel_scale;
+    float isovalue;
+    float adaptivity;
+}
+
 struct RawSceneInfo {
     RawIntegratorInfo integrator_info;
     RawSpectrumInfo spectrum_info;
+    RawConstructionInfo construction_info;
     float clamp_normal;
 };
 

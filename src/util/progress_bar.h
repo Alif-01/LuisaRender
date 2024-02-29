@@ -4,7 +4,6 @@
 
 #pragma once
 
-// #include <chrono>
 #include <luisa/core/clock.h>
 
 namespace luisa::render {
@@ -22,7 +21,6 @@ private:
     double _progress;
     uint32_t _width;
     Clock _clock;
-    // clock_type::time_point _start;
     bool _silent;
 
 public:

@@ -13,6 +13,7 @@
 #include <luisa/core/basic_types.h>
 #include <luisa/runtime/context.h>
 #include <base/scene_node.h>
+#include <util/mesh_construct.h>
 
 namespace luisa::render {
 
@@ -62,6 +63,7 @@ public:
 private:
     const Context &_context;
     luisa::unique_ptr<Config> _config;
+    luisa::unique_ptr<MeshConstructor> _mesh_constructor;
     std::recursive_mutex _mutex;
 
 public:
@@ -102,7 +104,6 @@ public:
     [[nodiscard]] Film *update_film(luisa::string_view name, const uint2 &resolution) noexcept;
     [[nodiscard]] Sampler *add_sampler(const RawSamplerInfo &sampler_info) noexcept;
     [[nodiscard]] Filter *add_filter(luisa::string_view name, const float &radius) noexcept;
-
     [[nodiscard]] Spectrum *add_spectrum(const RawSpectrumInfo &spectrum_info) noexcept;
     [[nodiscard]] Integrator *add_integrator(const RawIntegratorInfo &integrator_info) noexcept;
     [[nodiscard]] Environment *add_environment(const RawEnvironmentInfo &environment_info) noexcept;
@@ -129,6 +130,7 @@ public:
     [[nodiscard]] float shadow_terminator_factor() const noexcept;
     [[nodiscard]] float intersection_offset_factor() const noexcept;
     [[nodiscard]] float clamp_normal_factor() const noexcept;
+    [[nodiscard]] MeshConstructor *mesh_constructor() const noexcept;
 
     [[nodiscard]] bool shapes_updated() const noexcept;
     [[nodiscard]] bool cameras_updated() const noexcept;

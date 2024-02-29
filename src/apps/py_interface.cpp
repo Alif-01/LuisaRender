@@ -39,7 +39,7 @@ luisa::string context_storage;
 void init(
     std::string_view context_path, uint cuda_device, LogLevel log_level,
     const PyIntegrator &integrator_options, const PySpectrum &spectrum_options,
-    float clamp_normal
+    const PyConstruction &construct_options, float clamp_normal
 ) noexcept {
     /* add device */
     context_storage = context_path;
@@ -53,7 +53,7 @@ void init(
     luisa::string backend = "CUDA";
     compute::DeviceConfig config;
     config.device_index = cuda_device;
-    /* Please make sure that cuda:cuda_device has enough space */
+    /* Please ensure that cuda:cuda_device has enough space */
     device = luisa::make_unique<Device>(context->create_device(backend, &config));
 
     /* build denoiser */
@@ -65,13 +65,14 @@ void init(
     auto scene_info = RawSceneInfo {
         integrator_options.integrator_info,
         spectrum_options.spectrum_info,
+        construct_options.construction_info,
         clamp_normal
     };
     scene = Scene::create(*context, scene_info);
     LUISA_INFO("Scene created!");
 
     pipeline = Pipeline::create(*device, *stream, *scene);
-    LUISA_INFO("Pipeline created!");
+    LUISA_INFO("Pipeline created!");   
 }
 
 void add_environment(
@@ -269,9 +270,9 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
             py::arg("name"),
             py::arg("radius"),
             py::arg("subdivision") = 0u,
-            py::arg("reconstruction") = false,
-            py::arg("voxel_scale") = 2.f,
-            py::arg("smooth_scale") = 4.f,
+            // py::arg("construction") = false,
+            // py::arg("voxel_scale") = 2.f,
+            // py::arg("smooth_scale") = 4.f,
             py::arg("surface") = "",
             py::arg("emission") = ""
         )
@@ -306,6 +307,13 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
     py::class_<PySpectrum>(m, "Spectrum")
         .def_static("srgb", &PySpectrum::srgb)
         .def_static("hero", &PySpectrum::hero, py::arg("dimension") = 4u);
+    py::class_<PyConstruction>(m, "MeshConstructor")
+        .def_static("OpenVDB", &PyConstruction::OpenVDB,
+            py::arg("particle_radius"),
+            py::arg("voxel_scale") = 2.f,
+            py::arg("isovalue") = 0.f,
+            py::arg("adaptivity") = 0.f
+        );
 
     m.def("init", &init,
         py::arg("context_path"),
@@ -315,6 +323,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
             LogLevel::WARNING, 2u, 32u, 512u * 512u * 32u
         ),
         py::arg("spectrum_options") = PySpectrum::hero(4u),
+        py::arg("construct_options") = PySpectrum::empty(),
         py::arg("clamp_normal") = 0.f
     );
     m.def("destroy", &destroy);

@@ -56,6 +56,9 @@ luisa::span<const Camera *const> Scene::cameras() const noexcept { return _confi
 float Scene::shadow_terminator_factor() const noexcept { return _config->shadow_terminator; }
 float Scene::intersection_offset_factor() const noexcept { return _config->intersection_offset; }
 float Scene::clamp_normal_factor() const noexcept { return _config->clamp_normal; }
+MeshConstructor *mesh_constructor() const noexcept {
+    return _mesh_constructor == nullptr ? nullptr : _mesh_constructor.get();
+}
 
 bool Scene::environment_updated() const noexcept { return _config->environment_updated; }
 bool Scene::shapes_updated() const noexcept { return _config->shapes_updated; }
@@ -418,11 +421,22 @@ luisa::unique_ptr<Scene> Scene::create(const Context &ctx, const SceneDesc *desc
     scene->_config->intersection_offset = desc->root()->property_float_or_default("intersection_offset", 0.f);
     scene->_config->clamp_normal = desc->root()->property_float_or_default("clamp_normal", -1.f);
 
-    scene->_config->spectrum = scene->load_spectrum(desc->root()->property_node_or_default(
-        "spectrum", SceneNodeDesc::shared_default_spectrum("sRGB")));
+    scene->_config->spectrum = scene->load_spectrum(
+        desc->root()->property_node_or_default(
+            "spectrum", SceneNodeDesc::shared_default_spectrum("sRGB")
+        ));
     scene->_config->integrator = scene->load_integrator(desc->root()->property_node("integrator"));
     scene->_config->environment = scene->load_environment(desc->root()->property_node_or_default("environment"));
     scene->_config->environment_medium = scene->load_medium(desc->root()->property_node_or_default("environment_medium"));
+
+    auto constructor = desc->root()->property_node_or_default("mesh_constructor");
+    scene->_mesh_constructor = get_constructor(
+        constructor->property_string_or_default("type", "None"),
+        constructor->property_float_or_default("particle_radius", 0.01f),
+        constructor->property_float_or_default("voxel_scale", 2.f),
+        constructor->property_float_or_default("isovalue", 0.f),
+        constructor->property_float_or_default("adaptivity", 0.f)
+    );
 
     auto cameras = desc->root()->property_node_list_or_default("cameras");
     auto shapes = desc->root()->property_node_list_or_default("shapes");
@@ -452,6 +466,14 @@ luisa::unique_ptr<Scene> Scene::create(const Context &ctx, const RawSceneInfo &s
     scene->_config->integrator = scene->add_integrator(scene_info.integrator_info);
     scene->_config->environment = nullptr;
     scene->_config->environment_medium = nullptr;
+
+    RawConstructionInfo &construction_info = scene_info.construction_info;
+    scene->_mesh_constructor = get_constructor(
+        construction_info.get_type(),
+        construction_info.particle_radius, construction_info.voxel_scale,
+        construction_info.isovalue, construction_info.adaptivity
+    );
+
     global_thread_pool().synchronize();
     return scene;
 }
