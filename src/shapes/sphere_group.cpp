@@ -22,10 +22,8 @@ private:
     void _build_mesh(
         const luisa::vector<float> &centers, float radius,
         uint subdiv, MeshConstructor* constructor
-        // bool construction, float voxel_scale, float smooth_scale, float isovalue
     ) noexcept {
-        if (constructor == nullptr) {
-            // static auto constructor = getConstructor();
+        if (constructor != nullptr) {
             static std::mutex mutex;
             std::scoped_lock lock{mutex};
 
@@ -85,8 +83,8 @@ public:
             LUISA_ERROR_WITH_LOCATION("Invalid spheres info!");
         auto spheres_info = shape_info.spheres_info.get();
         _build_mesh(
-            spheres_info->centers, spheres_info->radius,
-            spheres_info->subdivision, scene->mesh_constructor()
+            spheres_info->centers, spheres_info->radius, spheres_info->subdivision,
+            spheres_info->mesh_construction ? scene->mesh_constructor() : nullptr
         );
     }
 
@@ -97,8 +95,8 @@ public:
             LUISA_ERROR_WITH_LOCATION("Invalid spheres info!");
         auto spheres_info = shape_info.spheres_info.get();
         _build_mesh(
-            spheres_info->centers, spheres_info->radius,
-            spheres_info->subdivision, scene->mesh_constructor()
+            spheres_info->centers, spheres_info->radius, spheres_info->subdivision,
+            spheres_info->mesh_construction ? scene->mesh_constructor() : nullptr
         );
     }
 

@@ -50,12 +50,12 @@ ConstructMesh OpenVDBMeshConstructor::construct(
     p2ls.setRmax(index_sep * 2);
     p2ls.rasterizeSpheres(pa, particle_sep);
     pruneLevelSet(sdf->tree());
-    LUISA_INFO(
-        "P2LS: voxel_size = {}, half_width = {}, rmin = {}, rmax = {}, "
-        "min_count = {}, max_count = {}, grain_size = {}",
-        p2ls.getVoxelSize(), p2ls.getHalfWidth(), p2ls.getRmin(), p2ls.getRmax(),
-        p2ls.getMinCount(), p2ls.getMaxCount(), p2ls.getGrainSize()
-    );
+    // LUISA_INFO(
+    //     "P2LS: voxel_size = {}, half_width = {}, rmin = {}, rmax = {}, "
+    //     "min_count = {}, max_count = {}, grain_size = {}",
+    //     p2ls.getVoxelSize(), p2ls.getHalfWidth(), p2ls.getRmin(), p2ls.getRmax(),
+    //     p2ls.getMinCount(), p2ls.getMaxCount(), p2ls.getGrainSize()
+    // );
     LUISA_INFO("To SDF in {} ms: ", clock.toc());
 
     std::vector<Vec3s> points;

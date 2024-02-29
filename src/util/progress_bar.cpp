@@ -14,7 +14,6 @@ ProgressBar::ProgressBar(bool silent, uint32_t width) noexcept
 
 void ProgressBar::reset() noexcept {
     _clock.tic();
-    // clock_type::now();
     _progress = 0.0f;
 }
 
@@ -42,12 +41,12 @@ void ProgressBar::update(double progress) noexcept {
     }
     if (_progress != 0.0 && _progress != 1.0) [[likely]] {
         auto prompt = luisa::format(
-            "({:.1f}s | {:.1f}% | ETA {:.1f}s)",
+            "({:.4f}s | {:.1f}% | ETA {:.4f}s)",
             dt, _progress * 100, (1.f - _progress) / _progress * dt);
         std::cout << "] " << prompt;
     } else {
         auto prompt = luisa::format(
-            "({:.1f}s | {:.1f}%)", dt, _progress * 100);
+            "({:.4f}s | {:.1f}%)", dt, _progress * 100);
         std::cout << "] " << prompt;
     }
     std::cout.flush();

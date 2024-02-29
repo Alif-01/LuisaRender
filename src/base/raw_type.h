@@ -189,10 +189,10 @@ struct RawShapeInfo {
     [[nodiscard]] StringArr get_type() const noexcept;
 
     void build_spheres(
-        FloatArr centers, float radius, uint subdivision
+        FloatArr centers, float radius, uint subdivision, bool mesh_construction
     ) noexcept {
         spheres_info = luisa::make_unique<RawSpheresInfo>(
-            std::move(centers), radius, subdivision
+            std::move(centers), radius, subdivision, mesh_construction
         );
     }
     void build_mesh(
@@ -226,13 +226,15 @@ struct RawShapeInfo {
 struct RawSpheresInfo {
     [[nodiscard]] StringArr get_info() const noexcept {
         return luisa::format(
-            "centers={}, subdiv={}", centers.size(), subdivision
+            "centers={}, radius={}, subdiv={}, mesh_construction={}",
+            centers.size(), radius, subdivision, mesh_construction
         );
     }
 
     FloatArr centers;
     float radius;
     uint subdivision;
+    bool mesh_construction;
 };
 
 struct RawMeshInfo {

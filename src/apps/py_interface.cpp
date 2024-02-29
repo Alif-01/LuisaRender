@@ -270,6 +270,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
             py::arg("name"),
             py::arg("radius"),
             py::arg("subdivision") = 0u,
+            py::arg("mesh_construction") = false,
             py::arg("surface") = "",
             py::arg("emission") = ""
         )

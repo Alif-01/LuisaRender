@@ -113,8 +113,6 @@ struct PyTexture {
             if (image_data.ndim() == 2) channel = 1;
             else if (image_data.ndim() == 3) channel = image_data.shape(2);
             else LUISA_ERROR_WITH_LOCATION("Invalid image dim!");
-            // if (scale.shape(0) != channel)
-            //     LUISA_ERROR_WITH_LOCATION("Channels of scale and image do not match!");
             texture.texture_info.build_image(
                 luisa::string(image), 
                 pyarray_to_vector<float>(scale),
@@ -271,8 +269,7 @@ struct PyShape {
     }
 
     static PyShape particles(
-        std::string_view name, float radius, uint subdivision,
-        // , bool construction, float voxel_scale, float smooth_scale,
+        std::string_view name, float radius, uint subdivision, bool mesh_construction,
         std::string_view surface, std::string_view emission
     ) noexcept {
         PyShape shape(
@@ -280,7 +277,7 @@ struct PyShape {
             luisa::string(surface), luisa::string(emission), "", -1.f
         );
         shape.shape_info.build_spheres(
-            luisa::vector<float>(), std::move(radius), subdivision
+            luisa::vector<float>(), std::move(radius), subdivision, mesh_construction
         );
         return shape;
     }
