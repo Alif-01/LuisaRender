@@ -65,6 +65,7 @@ private:
 public:
     ImageTexture(Scene *scene, const SceneNodeDesc *desc) noexcept
         : Texture{scene, desc} {
+            
         auto filter = desc->property_string_or_default("filter", "bilinear");
         auto address = desc->property_string_or_default("address", "repeat");
         for (auto &c : filter) { c = static_cast<char>(tolower(c)); }
@@ -123,6 +124,7 @@ public:
                 return make_float4(desc->property_float_or_default("scale", 1.0f));
             })
         );
+
         _mipmaps = desc->property_uint_or_default(
             "mipmaps", filter_mode == TextureSampler::Filter::ANISOTROPIC ? 0u : 1u);
         if (filter_mode == TextureSampler::Filter::POINT) { _mipmaps = 1u; }

@@ -430,13 +430,15 @@ luisa::unique_ptr<Scene> Scene::create(const Context &ctx, const SceneDesc *desc
     scene->_config->environment_medium = scene->load_medium(desc->root()->property_node_or_default("environment_medium"));
 
     auto constructor = desc->root()->property_node_or_default("mesh_constructor");
-    scene->_mesh_constructor = get_mesh_constructor(
-        constructor->property_string_or_default("type", "None"),
-        constructor->property_float_or_default("particle_radius", 0.01f),
-        constructor->property_float_or_default("voxel_scale", 2.f),
-        constructor->property_float_or_default("isovalue", 0.f),
-        constructor->property_float_or_default("adaptivity", 0.f)
-    );
+    if (constructor != nullptr) {
+        scene->_mesh_constructor = get_mesh_constructor(
+            constructor->property_string_or_default("type", "None"),
+            constructor->property_float_or_default("particle_radius", 0.01f),
+            constructor->property_float_or_default("voxel_scale", 2.f),
+            constructor->property_float_or_default("isovalue", 0.f),
+            constructor->property_float_or_default("adaptivity", 0.f)
+        );
+    }
 
     auto cameras = desc->root()->property_node_list_or_default("cameras");
     auto shapes = desc->root()->property_node_list_or_default("shapes");
