@@ -14,7 +14,8 @@ using openvdb::createLevelSet;
 using openvdb::initialize;
 
 OpenVDBMeshConstructor::OpenVDBMeshConstructor(
-    float particle_radius, float voxel_scale, float isovalue, float adaptivity
+    float particle_radius, float voxel_scale, float isovalue, float adaptivity,
+    bool generate_foams, float 
 ) noexcept : 
     MeshConstructor{particle_radius, voxel_scale, isovalue},
     _adaptivity{adaptivity} {
@@ -22,14 +23,16 @@ OpenVDBMeshConstructor::OpenVDBMeshConstructor(
 }
 
 ConstructMesh OpenVDBMeshConstructor::construct(
-    const luisa::vector<float> &positions
+    const luisa::vector<float> &positions,
+    const luisa::vector<float> &velocities
 ) noexcept {
     if (positions.size() % 3u != 0u)
         LUISA_ERROR_WITH_LOCATION("Invalid particle count.");
 
     Clock clock;
 
-    OpenVDBParticleList pa(_particle_radius);
+    // OpenVDBParticleList pa(_particle_radius);
+    OpenVDBParticleList pa;
     auto particle_count = positions.size() / 3u;
     for (auto i = 0; i < particle_count; i++) {
         pa.addPos(Vec3R(positions[i * 3u + 0u], positions[i * 3u + 1u], positions[i * 3u + 2u]));
@@ -42,12 +45,12 @@ ConstructMesh OpenVDBMeshConstructor::construct(
 
     float voxel_size = _particle_radius * _voxel_scale;
     float particle_sep = _particle_radius * 2;
-    float index_sep = particle_sep / voxel_size;
+    float index_sep = particle_sep / voxel_size;        // must in voxel unit
 
     auto sdf = createLevelSet<FloatGrid>(voxel_size);
     ParticlesToLevelSet<FloatGrid> p2ls(*sdf);
-    p2ls.setRmin(index_sep / 1.1);
-    p2ls.setRmax(index_sep * 2);
+    p2ls.setRmin(index_sep * 0.9);          // Rmin < R(voxel unit) < Rmax
+    p2ls.setRmax(index_sep * 1.1);
     p2ls.rasterizeSpheres(pa, particle_sep);
     pruneLevelSet(sdf->tree());
     // LUISA_INFO(
@@ -56,13 +59,13 @@ ConstructMesh OpenVDBMeshConstructor::construct(
     //     p2ls.getVoxelSize(), p2ls.getHalfWidth(), p2ls.getRmin(), p2ls.getRmax(),
     //     p2ls.getMinCount(), p2ls.getMaxCount(), p2ls.getGrainSize()
     // );
-    LUISA_INFO("To SDF in {} ms: ", clock.toc());
+    LUISA_INFO("Particles to SDF in {} ms: ", clock.toc());
 
     std::vector<Vec3s> points;
     std::vector<Vec3I> tris;
     std::vector<Vec4I> quads;
     volumeToMesh(*sdf, points, tris, quads, _isovalue, _adaptivity, true);
-    LUISA_INFO("To Mesh in {} ms: ", clock.toc());
+    LUISA_INFO("SDF to Mesh in {} ms: ", clock.toc());
 
     ConstructMesh mesh;
     mesh.vertices.resize(points.size());

@@ -23,6 +23,7 @@ protected:
     float _particle_radius;
     float _voxel_scale;
     float _isovalue;
+    bool _generate_foams;
 
 public:
     MeshConstructor(
@@ -42,21 +43,22 @@ class OpenVDBMeshConstructor : public MeshConstructor {
     class OpenVDBParticleList {
 
     private:
-        Real _radius;
+        // Real _radius;
         luisa::vector<Vec3R> _particle_list;
 
     public:
         typedef Vec3R PosType;
-        OpenVDBParticleList(Real r) noexcept: _radius{r} {}
+        // OpenVDBParticleList(Real r) noexcept: _radius{r} {}
+        OpenVDBParticleList() noexcept: {}
         [[nodiscard]] size_t size() const noexcept {
             return _particle_list.size();
         }
         [[nodiscard]] Vec3R getPos(int n) const noexcept {
             return _particle_list[n];
         }
-        [[nodiscard]] Real getRadius(int n) const noexcept {
-            return _radius;
-        }
+        // [[nodiscard]] Real getRadius(int n) const noexcept {
+        //     return _radius;
+        // }
         void clear() noexcept {
             _particle_list.clear();
         }
@@ -66,10 +68,10 @@ class OpenVDBMeshConstructor : public MeshConstructor {
         void getPos(size_t n, Vec3R &pos) const noexcept {
             pos = _particle_list[n];
         }
-        void getPosRad(size_t n, Vec3R &pos, Real &rad) const noexcept {
-            pos = _particle_list[n];
-            rad = _radius;
-        }
+        // void getPosRad(size_t n, Vec3R &pos, Real &rad) const noexcept {
+        //     pos = _particle_list[n];
+        //     rad = _radius;
+        // }
     };
 
 protected:
@@ -80,7 +82,9 @@ public:
         float particle_radius, float voxel_scale = 2.f,
         float isovalue = 0.f, float adaptivity = 0.01f
     ) noexcept;
-    [[nodiscard]] ConstructMesh construct(const luisa::vector<float> &positions) noexcept override;
+    [[nodiscard]] ConstructMesh construct(
+        const luisa::vector<float> &positions
+    ) noexcept override;
 };
 #endif
 
