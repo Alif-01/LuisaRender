@@ -13,7 +13,6 @@
 #include <luisa/core/basic_types.h>
 #include <luisa/runtime/context.h>
 #include <base/scene_node.h>
-#include <util/mesh_construct.h>
 
 namespace luisa::render {
 
@@ -63,7 +62,7 @@ public:
 private:
     const Context &_context;
     luisa::unique_ptr<Config> _config;
-    luisa::unique_ptr<MeshConstructor> _mesh_constructor;
+    // luisa::unique_ptr<MeshConstructor> _mesh_constructor;
     std::recursive_mutex _mutex;
 
 public:
@@ -118,9 +117,6 @@ public:
 public:
     [[nodiscard]] static luisa::unique_ptr<Scene> create(const Context &ctx, const SceneDesc *desc) noexcept;
     [[nodiscard]] static luisa::unique_ptr<Scene> create(const Context &ctx, const RawSceneInfo &scene_info) noexcept;
-    //     const RawIntegratorInfo &integrator_options,
-    //     const RawSpectrumInfo &spectrum_options
-    // ) noexcept;
     [[nodiscard]] const Integrator *integrator() const noexcept;
     [[nodiscard]] const Environment *environment() const noexcept;
     [[nodiscard]] const Medium *environment_medium() const noexcept;
@@ -130,7 +126,7 @@ public:
     [[nodiscard]] float shadow_terminator_factor() const noexcept;
     [[nodiscard]] float intersection_offset_factor() const noexcept;
     [[nodiscard]] float clamp_normal_factor() const noexcept;
-    [[nodiscard]] MeshConstructor *mesh_constructor() const noexcept;
+    // [[nodiscard]] MeshConstructor *mesh_constructor() const noexcept;
 
     [[nodiscard]] bool shapes_updated() const noexcept;
     [[nodiscard]] bool cameras_updated() const noexcept;

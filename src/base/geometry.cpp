@@ -25,7 +25,7 @@ void Geometry::build(
         _world_max[i] = -std::numeric_limits<float>::max();
         _world_min[i] = std::numeric_limits<float>::max();
     }
-    for (auto shape : shapes) { _process_shape(command_buffer, shape, init_time, nullptr); }
+    for (auto shape : shapes) { _process_shape(command_buffer, shape, init_time); }
     _instance_buffer = _pipeline.device().create_buffer<uint4>(_instances.size());
     command_buffer << _instance_buffer.copy_from(_instances.data())
                    << _accel.build();
@@ -33,15 +33,22 @@ void Geometry::build(
 
 void Geometry::_process_shape(
     CommandBuffer &command_buffer, const Shape *shape, float init_time,
-    const Surface *overridden_surface,
-    const Light *overridden_light,
-    const Medium *overridden_medium,
-    bool overridden_visible) noexcept {
+    // const Surface *overridden_surface,
+    // const Light *overridden_light,
+    // const Medium *overridden_medium,
+    const Surface *default_surface,
+    const Light *default_light,
+    const Medium *default_medium,
+    bool default_visible) noexcept {
 
-    auto surface = overridden_surface == nullptr ? shape->surface() : overridden_surface;
-    auto light = overridden_light == nullptr ? shape->light() : overridden_light;
-    auto medium = overridden_medium == nullptr ? shape->medium() : overridden_medium;
-    auto visible = overridden_visible && shape->visible();
+    // auto surface = overridden_surface == nullptr ? shape->surface() : overridden_surface;
+    // auto light = overridden_light == nullptr ? shape->light() : overridden_light;
+    // auto medium = overridden_medium == nullptr ? shape->medium() : overridden_medium;
+    // auto visible = overridden_visible && shape->visible();
+    auto surface = shape->surface() == nullptr ? default_surface : shape->surface();
+    auto light = shape->light() == nullptr ? default_light : shape->light();
+    auto medium = shape->medium() == nullptr ? default_medium : shape->medium();
+    auto visible = default_visible && shape->visible();
 
     if (shape->is_mesh()) {
         auto mesh = [&] {
@@ -93,9 +100,7 @@ void Geometry::_process_shape(
                 _mesh_cache.emplace(hash, geom);
                 return geom;
             }();
-            // auto encode_fixed_point = [](float x) noexcept {
-            //     return static_cast<uint16_t>(std::clamp(std::round(x * 65535.f), 0.f, 65535.f));
-            // };
+            
             // assign mesh data
             MeshData mesh_data{
                 .resource = mesh_geom.resource,

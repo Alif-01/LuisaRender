@@ -47,15 +47,16 @@ public:
         }
     }
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
+    [[nodiscard]] bool is_mesh() const noexcept override { return true; }
     [[nodiscard]] MeshView mesh() const noexcept override {
         return _geometry.valid() ?
-                   MeshView{_geometry.get().first, _geometry.get().second} :
-                   _mesh->mesh();
+               MeshView{_geometry.get().first, _geometry.get().second} :
+               _mesh->mesh();
     }
     [[nodiscard]] uint vertex_properties() const noexcept override {
         return _geometry.valid() ?
-                   Shape::property_flag_has_vertex_normal :
-                   _mesh->vertex_properties();
+               Shape::property_flag_has_vertex_normal :
+               _mesh->vertex_properties();
     }
     [[nodiscard]] AccelOption build_option() const noexcept override { return _mesh->build_option(); }
 };

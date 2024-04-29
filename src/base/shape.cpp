@@ -57,7 +57,6 @@ bool Shape::is_mesh() const noexcept { return false; }
 uint Shape::vertex_properties() const noexcept { return 0u; }
 MeshView Shape::mesh() const noexcept { return {}; }
 luisa::span<const Shape *const> Shape::children() const noexcept { return {}; }
-bool Shape::deformable() const noexcept { return false; }
 
 uint Shape::Handle::encode_fixed_point(float x, uint mask) noexcept {
     // constexpr auto fixed_point_mask = (1u << fixed_point_bits) - 1u;

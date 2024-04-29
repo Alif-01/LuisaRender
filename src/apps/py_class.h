@@ -269,7 +269,7 @@ struct PyShape {
     }
 
     static PyShape particles(
-        std::string_view name, float radius, uint subdivision, bool mesh_construction,
+        std::string_view name, float radius, uint subdivision, //bool mesh_construction,
         std::string_view surface, std::string_view emission
     ) noexcept {
         PyShape shape(
@@ -277,7 +277,8 @@ struct PyShape {
             luisa::string(surface), luisa::string(emission), "", -1.f
         );
         shape.shape_info.build_spheres(
-            luisa::vector<float>(), std::move(radius), subdivision, mesh_construction
+            luisa::vector<float>(), std::move(radius), subdivision
+            // mesh_construction
         );
         return shape;
     }
@@ -332,23 +333,23 @@ struct PyShape {
     RawShapeInfo shape_info;
 };
 
-struct PyConstruction {
-    PyConstruction() noexcept = default;
-    PyConstruction(float particle_radius, float voxel_scale, float isovalue) noexcept:
-        construction_info{particle_radius, voxel_scale, isovalue} {}
+// struct PyConstruction {
+//     PyConstruction() noexcept = default;
+//     PyConstruction(float particle_radius, float voxel_scale, float isovalue) noexcept:
+//         construction_info{particle_radius, voxel_scale, isovalue} {}
 
-    static PyConstruction empty() noexcept {
-        return PyConstruction();
-    }
+//     static PyConstruction empty() noexcept {
+//         return PyConstruction();
+//     }
 
-    static PyConstruction OpenVDB(
-        float particle_radius, float voxel_scale,
-        float isovalue, float adaptivity
-    ) noexcept {
-        PyConstruction constructor(particle_radius, voxel_scale, isovalue);
-        constructor.construction_info.build_OpenVDB(adaptivity);
-        return constructor;
-    }
+//     static PyConstruction OpenVDB(
+//         float particle_radius, float voxel_scale,
+//         float isovalue, float adaptivity
+//     ) noexcept {
+//         PyConstruction constructor(particle_radius, voxel_scale, isovalue);
+//         constructor.construction_info.build_OpenVDB(adaptivity);
+//         return constructor;
+//     }
 
-    RawConstructionInfo construction_info;
-};
+//     RawConstructionInfo construction_info;
+// };

@@ -50,15 +50,15 @@ public:
             auto p2 = positions[i * 3u + 2u];
             auto p = make_float3(p0, p1, p2);
             auto n = normals.empty() ?
-                         make_float3(0.f, 0.f, 1.f) :
-                         make_float3(normals[i * 3u + 0u], normals[i * 3u + 1u], normals[i * 3u + 2u]);
+                     make_float3(0.f, 0.f, 1.f) :
+                     make_float3(normals[i * 3u + 0u], normals[i * 3u + 1u], normals[i * 3u + 2u]);
             auto uv = uvs.empty() ? make_float2(0.f) : make_float2(uvs[i * 2u + 0u], uvs[i * 2u + 1u]);
             _vertices[i] = Vertex::encode(p, n, uv);
         }
     }
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
+    [[nodiscard]] bool is_mesh() const noexcept override { return true; }
     [[nodiscard]] MeshView mesh() const noexcept override { return {_vertices, _triangles}; }
-    [[nodiscard]] bool deformable() const noexcept override { return false; }
     [[nodiscard]] uint vertex_properties() const noexcept override { return _properties; }
 };
 

@@ -5,7 +5,7 @@
 #include <future>
 
 #include <base/shape.h>
-#include <shapes/sphere_base.h>
+#include <util/mesh_base.h>
 
 namespace luisa::render {
 
@@ -19,15 +19,14 @@ public:
         : Shape{scene, desc},
           _geometry{SphereGeometry::create(
               std::min(desc->property_uint_or_default("subdivision", 0u),
-                  sphere_max_subdivision_level))} {}
-    
-    // Sphere(Scene *scene, const RawSphereInfo &sphere_info) noexcept
-    //     : Shape{scene, sphere_info.shape_info},
-    //       _geometry{SphereGeometry::create(0u)} {}
+                       SphereGeometry::max_subdivision_level))} {}
 
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
-    // [[nodiscard]] bool is_mesh() const noexcept override { return true; }
-    [[nodiscard]] MeshView mesh() const noexcept override { return _geometry.get().mesh(); }
+    [[nodiscard]] bool is_mesh() const noexcept override { return true; }
+    [[nodiscard]] MeshView mesh() const noexcept override {
+        const SphereGeometry &g = _geometry.get();
+        return { g.vertices(), g.triangles() };
+    }
     [[nodiscard]] uint vertex_properties() const noexcept override {
         return Shape::property_flag_has_vertex_normal |
                Shape::property_flag_has_vertex_uv;

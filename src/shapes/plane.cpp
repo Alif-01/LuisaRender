@@ -1,7 +1,7 @@
 #include <future>
 
 #include <base/shape.h>
-#include <shapes/plane_base.h>
+#include <util/mesh_base.h>
 
 namespace luisa::render {
 
@@ -15,21 +15,21 @@ public:
         : Shape{scene, desc},
           _geometry{PlaneGeometry::create(
               std::min(desc->property_uint_or_default("subdivision", 0u),
-                       plane_max_subdivision_level))} {}
+                       PlaneGeometry::max_subdivision_level))} {}
     
     Plane(Scene *scene, const RawShapeInfo &shape_info) noexcept
         : Shape{scene, shape_info} {
-
-        if (shape_info.plane_info == nullptr) [[unlikely]]
-            LUISA_ERROR_WITH_LOCATION("Invalid plane info!");
+        LUISA_ASSERT(shape_info.plane_info != nullptr, "Invalid plane info!");
         auto plane_info = shape_info.plane_info.get();
         _geometry = PlaneGeometry::create(plane_info->subdivision);
-        _geometry.wait();
     }
 
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
-    // [[nodiscard]] bool is_mesh() const noexcept override { return true; }
-    [[nodiscard]] MeshView mesh() const noexcept override { return _geometry.get().mesh(); }
+    [[nodiscard]] bool is_mesh() const noexcept override { return true; }
+    [[nodiscard]] MeshView mesh() const noexcept override {
+        const PlaneGeometry &g = _geometry.get();
+        return { g.vertices(), g.triangles() };
+    }
     [[nodiscard]] uint vertex_properties() const noexcept override {
         return Shape::property_flag_has_vertex_normal |
                Shape::property_flag_has_vertex_uv;
