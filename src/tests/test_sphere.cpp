@@ -8,12 +8,13 @@
 #include <shapes/sphere.cpp>
 #include <luisa/core/clock.h>
 #include <util/thread_pool.h>
+#include <util/mesh_base.h>
 
 using namespace luisa;
 using namespace luisa::compute;
 using namespace luisa::render;
 
-void dump_obj(MeshView m, uint level) noexcept {
+void dump_obj(const SphereGeometry &m, uint level) noexcept {
     auto path = format("sphere-{}.obj", level);
     std::ofstream out{path.c_str()};
     auto dump_vertex = [&out](auto v, auto t) noexcept {
@@ -23,10 +24,10 @@ void dump_obj(MeshView m, uint level) noexcept {
             out << luisa::format("{} {} {} {}\n", t, v[0], v[1], v[2]);
         }
     };
-    for (auto v : m.vertices) { dump_vertex(v.position(), "v"); }
-    for (auto v : m.vertices) { dump_vertex(v.normal(), "vn"); }
-    for (auto v : m.vertices) { dump_vertex(v.uv(), "vt"); }
-    for (auto [a, b, c] : m.triangles) {
+    for (auto v : m.vertices()) { dump_vertex(v.position(), "v"); }
+    for (auto v : m.vertices()) { dump_vertex(v.normal(), "vn"); }
+    for (auto v : m.vertices()) { dump_vertex(v.uv(), "vt"); }
+    for (auto [a, b, c] : m.triangles()) {
         out << luisa::format("f {}/{}/{} {}/{}/{} {}/{}/{}\n",
                              a + 1u, a + 1u, a + 1u,
                              b + 1u, b + 1u, b + 1u,
@@ -36,13 +37,13 @@ void dump_obj(MeshView m, uint level) noexcept {
 
 int main() {
     static_cast<void>(global_thread_pool());
-    for (auto i = 0u; i <= sphere_max_subdivision_level; i++) {
+    for (auto i = 0u; i <= SphereGeometry::max_subdivision_level; i++) {
         Clock clk;
         auto future = SphereGeometry::create(i);
-        auto m = future.get().mesh();
+        auto m = future.get();
         LUISA_INFO("Computed sphere at subdivision level {} "
                    "with {} vertices and {} triangles in {} ms.",
-                   i, m.vertices.size(), m.triangles.size(), clk.toc());
+                   i, m.vertices().size(), m.triangles().size(), clk.toc());
         dump_obj(m, i);
     }
 }

@@ -47,7 +47,7 @@ public:
 
 public:
     PlaneGeometry(uint subdiv) noexcept;
-    [[nodiscard]] static auto create(uint subdiv) noexcept;
+    [[nodiscard]] static std::shared_future<PlaneGeometry> create(uint subdiv) noexcept;
 };
 
 
@@ -109,7 +109,7 @@ public:
 
 public:
     SphereGeometry(uint subdiv) noexcept;
-    [[nodiscard]] static auto create(uint subdiv) noexcept;
+    [[nodiscard]] static std::shared_future<SphereGeometry> create(uint subdiv) noexcept;
 };
 
 
@@ -120,7 +120,7 @@ public:
         const luisa::vector<float> &centers,
         float radius, uint subdiv
     ) noexcept;
-    [[nodiscard]] static auto create(
+    [[nodiscard]] static std::shared_future<SphereGroupGeometry> create(
         const luisa::vector<float> &centers,
         float radius, uint subdiv
     ) noexcept;
@@ -139,7 +139,7 @@ public:
         const luisa::vector<float> &normals,
         const luisa::vector<float> &uvs
     ) noexcept;
-    [[nodiscard]] static auto create(
+    [[nodiscard]] static std::shared_future<MeshGeometry> create(
         const luisa::vector<float> &positions,
         const luisa::vector<uint> &triangles,
         const luisa::vector<float> &normals,
@@ -150,7 +150,7 @@ public:
         std::filesystem::path path, uint subdiv,
         bool flip_uv, bool drop_normal, bool drop_uv
     ) noexcept;
-    [[nodiscard]] static auto create(
+    [[nodiscard]] static std::shared_future<MeshGeometry> create(
         std::filesystem::path path, uint subdiv,
         bool flip_uv, bool drop_normal, bool drop_uv
     ) noexcept;

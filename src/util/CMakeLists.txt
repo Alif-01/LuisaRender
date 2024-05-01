@@ -24,13 +24,6 @@ add_library(luisa-render-util SHARED
         thread_pool.cpp thread_pool.h
         mesh_base.cpp mesh_base.h)
 
-# if(DEFINED OPENVDB_MODULE_PATH)
-#     list(APPEND CMAKE_MODULE_PATH ${OPENVDB_MODULE_PATH})
-#     find_package(OpenVDB REQUIRED)
-#     target_link_libraries(luisa-render-util PUBLIC OpenVDB::openvdb)
-#     add_definitions(-DUSE_OPENVDB)
-# endif()
-
 target_link_libraries(luisa-render-util PUBLIC
         luisa::compute
         luisa-render-include

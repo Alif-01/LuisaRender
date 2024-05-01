@@ -1,5 +1,3 @@
-// Modified from cli.cpp
-
 #include <span>
 #include <iostream>
 #include <vector>
@@ -21,7 +19,7 @@ using namespace luisa::render;
 namespace py = pybind11;
 using namespace py::literals;
 using PyFloatArr = py::array_t<float>;
-using PyIntArr = py::array_t<int>;
+using PyUIntArr = py::array_t<uint>;
 
 template <typename T>
 luisa::vector<T> pyarray_to_vector(const py::array_t<T> &array) noexcept {
@@ -232,7 +230,7 @@ struct PyShape {
 
     static PyShape rigid_from_mesh(
         std::string_view name,
-        const PyFloatArr &vertices, const PyIntArr &triangles,
+        const PyFloatArr &vertices, const PyUIntArr &triangles,
         const PyFloatArr &normals, const PyFloatArr &uvs,
         std::string_view surface, std::string_view emission, float clamp_normal
     ) noexcept {
@@ -269,7 +267,7 @@ struct PyShape {
     }
 
     static PyShape particles(
-        std::string_view name, float radius, uint subdivision, //bool mesh_construction,
+        std::string_view name, float radius, uint subdivision,
         std::string_view surface, std::string_view emission
     ) noexcept {
         PyShape shape(
@@ -278,7 +276,6 @@ struct PyShape {
         );
         shape.shape_info.build_spheres(
             luisa::vector<float>(), std::move(radius), subdivision
-            // mesh_construction
         );
         return shape;
     }
@@ -309,7 +306,7 @@ struct PyShape {
     }
 
     void update_deformable(
-        const PyFloatArr &vertices, const PyIntArr &triangles,
+        const PyFloatArr &vertices, const PyUIntArr &triangles,
         const PyFloatArr &normals, const PyFloatArr &uvs
     ) noexcept {
         if (shape_info.get_type() != "deformablemesh") 
@@ -332,24 +329,3 @@ struct PyShape {
 
     RawShapeInfo shape_info;
 };
-
-// struct PyConstruction {
-//     PyConstruction() noexcept = default;
-//     PyConstruction(float particle_radius, float voxel_scale, float isovalue) noexcept:
-//         construction_info{particle_radius, voxel_scale, isovalue} {}
-
-//     static PyConstruction empty() noexcept {
-//         return PyConstruction();
-//     }
-
-//     static PyConstruction OpenVDB(
-//         float particle_radius, float voxel_scale,
-//         float isovalue, float adaptivity
-//     ) noexcept {
-//         PyConstruction constructor(particle_radius, voxel_scale, isovalue);
-//         constructor.construction_info.build_OpenVDB(adaptivity);
-//         return constructor;
-//     }
-
-//     RawConstructionInfo construction_info;
-// };

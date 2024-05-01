@@ -33,22 +33,15 @@ void Geometry::build(
 
 void Geometry::_process_shape(
     CommandBuffer &command_buffer, const Shape *shape, float init_time,
-    // const Surface *overridden_surface,
-    // const Light *overridden_light,
-    // const Medium *overridden_medium,
-    const Surface *default_surface,
-    const Light *default_light,
-    const Medium *default_medium,
-    bool default_visible) noexcept {
+    const Surface *overridden_surface,
+    const Light *overridden_light,
+    const Medium *overridden_medium,
+    bool overridden_visible) noexcept {
 
-    // auto surface = overridden_surface == nullptr ? shape->surface() : overridden_surface;
-    // auto light = overridden_light == nullptr ? shape->light() : overridden_light;
-    // auto medium = overridden_medium == nullptr ? shape->medium() : overridden_medium;
-    // auto visible = overridden_visible && shape->visible();
-    auto surface = shape->surface() == nullptr ? default_surface : shape->surface();
-    auto light = shape->light() == nullptr ? default_light : shape->light();
-    auto medium = shape->medium() == nullptr ? default_medium : shape->medium();
-    auto visible = default_visible && shape->visible();
+    auto surface = overridden_surface == nullptr ? shape->surface() : overridden_surface;
+    auto light = overridden_light == nullptr ? shape->light() : overridden_light;
+    auto medium = overridden_medium == nullptr ? shape->medium() : overridden_medium;
+    auto visible = overridden_visible && shape->visible();
 
     if (shape->is_mesh()) {
         auto mesh = [&] {

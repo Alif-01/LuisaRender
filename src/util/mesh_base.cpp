@@ -1,14 +1,13 @@
 //
 // Created by Mike Smith on 2022/11/8.
 //
-#pragma once
-
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <assimp/mesh.h>
 #include <assimp/scene.h>
 #include <assimp/Subdivision.h>
 
+#include <luisa/core/logging.h>
 #include <luisa/core/clock.h>
 #include <util/loop_subdiv.h>
 #include <util/thread_pool.h>
@@ -33,7 +32,7 @@ PlaneGeometry::PlaneGeometry(uint subdiv) noexcept {
     }
 }
 
-auto PlaneGeometry::create(uint subdiv) noexcept {
+std::shared_future<PlaneGeometry> PlaneGeometry::create(uint subdiv) noexcept {
     if (subdiv > PlaneGeometry::max_subdivision_level) [[unlikely]]
         LUISA_ERROR_WITH_LOCATION("Plane subdivision level {} is too high.", subdiv);
 
@@ -62,14 +61,14 @@ SphereGeometry::SphereGeometry(uint subdiv) noexcept {
     auto result = loop_subdivide(base_vertices, SphereGeometry::base_triangles, subdiv);
     _vertices = result.vertices;
     _triangles = result.triangles;
-    for (auto &v : vertices) {
+    for (auto &v : _vertices) {
         auto p = normalize(v.position());
         auto uv = direction_to_uv(v.position());
         v = Vertex::encode(p, p, uv);
     }
 }
 
-auto SphereGeometry::create(uint subdiv) noexcept {
+std::shared_future<SphereGeometry> SphereGeometry::create(uint subdiv) noexcept {
     if (subdiv > SphereGeometry::max_subdivision_level) [[unlikely]]
         LUISA_ERROR_WITH_LOCATION("Sphere subdivision level {} is too high.", subdiv);
 
@@ -122,7 +121,7 @@ SphereGroupGeometry::SphereGroupGeometry(
     }
 }
 
-auto SphereGroupGeometry::create(
+std::shared_future<SphereGroupGeometry> SphereGroupGeometry::create(
     const luisa::vector<float> &centers, float radius, uint subdiv
 ) noexcept {
     return global_thread_pool().async(
@@ -178,12 +177,12 @@ MeshGeometry::MeshGeometry(
     LUISA_ASSERT(model->mNumMeshes == 1u, "Only single mesh is supported.");
     auto mesh = model->mMeshes[0];
     if (subdiv > 0u) {
-        auto subdiv = Assimp::Subdivider::Create(Assimp::Subdivider::CATMULL_CLARKE);
+        auto subdivider = Assimp::Subdivider::Create(Assimp::Subdivider::CATMULL_CLARKE);
         aiMesh *subdiv_mesh = nullptr;
-        subdiv->Subdivide(mesh, subdiv_mesh, subdiv, true);
+        subdivider->Subdivide(mesh, subdiv_mesh, subdiv, true);
         model->mMeshes[0] = nullptr;
         mesh = subdiv_mesh;
-        delete subdiv;
+        delete subdivider;
     }
 
     if (mesh->mTextureCoords[0] == nullptr ||
@@ -232,7 +231,7 @@ MeshGeometry::MeshGeometry(
 }
 
 // Load the mesh from a file.
-auto MeshGeometry::create(
+std::shared_future<MeshGeometry> MeshGeometry::create(
     std::filesystem::path path, uint subdiv,
     bool flip_uv, bool drop_normal, bool drop_uv
 ) noexcept {
@@ -294,7 +293,7 @@ MeshGeometry::MeshGeometry(
     }
 }
 
-auto MeshGeometry::create(
+std::shared_future<MeshGeometry> MeshGeometry::create(
     const luisa::vector<float> &positions,
     const luisa::vector<uint> &triangles,
     const luisa::vector<float> &normals,

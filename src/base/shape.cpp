@@ -89,8 +89,6 @@ uint4 Shape::Handle::encode(
         (encode_fixed_point(shadow_terminator, shadow_term_mask) << shadow_term_offset) |
         (encode_fixed_point(intersection_offset, inter_offset_mask) << inter_offset_offset) |
         (encode_fixed_point(clamp_normal * 0.5f + 0.5f, clamp_normal_mask) << clamp_normal_offset);
-    // auto shadow_term_and_intersection_offset = (encode_fixed_point(shadow_terminator) << 16u) |
-    //                                             encode_fixed_point(intersection_offset);
     return make_uint4(buffer_base_and_properties, tags, tri_count, shadow_inter_clamp);
 }
 

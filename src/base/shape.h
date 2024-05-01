@@ -62,7 +62,6 @@ public:
     [[nodiscard]] bool has_vertex_uv() const noexcept;
     [[nodiscard]] virtual MeshView mesh() const noexcept;                           // empty if the shape is not a mesh
     [[nodiscard]] virtual luisa::span<const Shape *const> children() const noexcept;// empty if the shape is a mesh
-    // [[nodiscard]] virtual bool deformable() const noexcept;                         // true if the shape will not deform
     [[nodiscard]] virtual AccelOption build_option() const noexcept;                // accel struct build quality, only considered for meshes
 };
 

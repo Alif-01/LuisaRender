@@ -7,23 +7,18 @@
 #include <base/shape.h>
 #include <util/mesh_base.h>
 #include <util/loop_subdiv.h>
-// #include <util/mesh_construct.h>
 
 namespace luisa::render {
 
 class SphereGroup : public Shape {
 
 private:
-    // luisa::vector<const Shape *> _children;
-    // std::shared_future<ConstructMesh> _reconstruct;
     std::shared_future<SphereGroupGeometry> _geometry;
-    // uint _properties{};
 
 private:
     void _build_mesh(
         const luisa::vector<float> &centers,
         float radius, uint subdiv
-        // MeshConstructor* constructor
     ) noexcept {
         static std::mutex mutex;
         std::scoped_lock lock{mutex};
@@ -46,7 +41,6 @@ public:
         auto spheres_info = shape_info.spheres_info.get();
         _build_mesh(
             spheres_info->centers, spheres_info->radius, spheres_info->subdivision
-            // spheres_info->mesh_construction ? scene->mesh_constructor() : nullptr
         );
     }
 
@@ -56,22 +50,14 @@ public:
         auto spheres_info = shape_info.spheres_info.get();
         _build_mesh(
             spheres_info->centers, spheres_info->radius, spheres_info->subdivision
-            // spheres_info->mesh_construction ? scene->mesh_constructor() : nullptr
         );
     }
 
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] bool is_mesh() const noexcept override { return true; }
     [[nodiscard]] MeshView mesh() const noexcept override {
-        // if (_reconstruct.valid()) {
-        //     const ConstructMesh &g = _reconstruct.get();
-        //     return { g.vertices(), g.triangles() };
-        // } else if (_geometry.valid()) {
         const SphereGroupGeometry &g = _geometry.get();
         return { g.vertices(), g.triangles() };
-        // } else {
-        //     LUISA_ERROR_WITH_LOCATION("Invalid spheres type.");
-        // }
     }
     [[nodiscard]] uint vertex_properties() const noexcept override { 
         return Shape::property_flag_has_vertex_normal |

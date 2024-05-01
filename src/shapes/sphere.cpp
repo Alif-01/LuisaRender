@@ -15,11 +15,11 @@ private:
     std::shared_future<SphereGeometry> _geometry;
 
 public:
-    Sphere(Scene *scene, const SceneNodeDesc *desc) noexcept
-        : Shape{scene, desc},
-          _geometry{SphereGeometry::create(
-              std::min(desc->property_uint_or_default("subdivision", 0u),
-                       SphereGeometry::max_subdivision_level))} {}
+    Sphere(Scene *scene, const SceneNodeDesc *desc) noexcept :
+        Shape{scene, desc},
+        _geometry{SphereGeometry::create(
+            std::min(desc->property_uint_or_default("subdivision", 0u),
+            SphereGeometry::max_subdivision_level))} {}
 
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] bool is_mesh() const noexcept override { return true; }

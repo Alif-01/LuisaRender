@@ -56,9 +56,6 @@ luisa::span<const Camera *const> Scene::cameras() const noexcept { return _confi
 float Scene::shadow_terminator_factor() const noexcept { return _config->shadow_terminator; }
 float Scene::intersection_offset_factor() const noexcept { return _config->intersection_offset; }
 float Scene::clamp_normal_factor() const noexcept { return _config->clamp_normal; }
-// MeshConstructor *Scene::mesh_constructor() const noexcept {
-//     return _mesh_constructor == nullptr ? nullptr : _mesh_constructor.get();
-// }
 
 bool Scene::environment_updated() const noexcept { return _config->environment_updated; }
 bool Scene::shapes_updated() const noexcept { return _config->shapes_updated; }
@@ -374,7 +371,6 @@ Camera *Scene::update_camera(const RawCameraInfo &camera_info) noexcept {
         _config->cameras_updated = true;
     } else {
         _config->cameras_updated |= camera->update_camera(this, camera_info);
-        // LUISA_ERROR_WITH_LOCATION("Camera {} has been defined.", camera_info.name);
     }
     return camera;
 }
@@ -429,17 +425,6 @@ luisa::unique_ptr<Scene> Scene::create(const Context &ctx, const SceneDesc *desc
     scene->_config->environment = scene->load_environment(desc->root()->property_node_or_default("environment"));
     scene->_config->environment_medium = scene->load_medium(desc->root()->property_node_or_default("environment_medium"));
 
-    // auto constructor = desc->root()->property_node_or_default("mesh_constructor");
-    // if (constructor != nullptr) {
-    //     scene->_mesh_constructor = get_mesh_constructor(
-    //         constructor->property_string_or_default("type", "None"),
-    //         constructor->property_float_or_default("particle_radius", 0.01f),
-    //         constructor->property_float_or_default("voxel_scale", 2.f),
-    //         constructor->property_float_or_default("isovalue", 0.f),
-    //         constructor->property_float_or_default("adaptivity", 0.f)
-    //     );
-    // }
-
     auto cameras = desc->root()->property_node_list_or_default("cameras");
     auto shapes = desc->root()->property_node_list_or_default("shapes");
     scene->_config->cameras.reserve(cameras.size());
@@ -468,13 +453,6 @@ luisa::unique_ptr<Scene> Scene::create(const Context &ctx, const RawSceneInfo &s
     scene->_config->integrator = scene->add_integrator(scene_info.integrator_info);
     scene->_config->environment = nullptr;
     scene->_config->environment_medium = nullptr;
-
-    // auto &construction_info = scene_info.construction_info;
-    // scene->_mesh_constructor = get_mesh_constructor(
-    //     construction_info.get_type(),
-    //     construction_info.particle_radius, construction_info.voxel_scale,
-    //     construction_info.isovalue, construction_info.adaptivity
-    // );
 
     global_thread_pool().synchronize();
     return scene;

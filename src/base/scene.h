@@ -62,7 +62,6 @@ public:
 private:
     const Context &_context;
     luisa::unique_ptr<Config> _config;
-    // luisa::unique_ptr<MeshConstructor> _mesh_constructor;
     std::recursive_mutex _mutex;
 
 public:
@@ -126,7 +125,6 @@ public:
     [[nodiscard]] float shadow_terminator_factor() const noexcept;
     [[nodiscard]] float intersection_offset_factor() const noexcept;
     [[nodiscard]] float clamp_normal_factor() const noexcept;
-    // [[nodiscard]] MeshConstructor *mesh_constructor() const noexcept;
 
     [[nodiscard]] bool shapes_updated() const noexcept;
     [[nodiscard]] bool cameras_updated() const noexcept;
