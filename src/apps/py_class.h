@@ -275,7 +275,7 @@ struct PyShape {
             luisa::string(surface), luisa::string(emission), "", -1.f
         );
         shape.shape_info.build_spheres(
-            luisa::vector<float>(), std::move(radius), subdivision
+            luisa::vector<float>(), radius, subdivision
         );
         return shape;
     }

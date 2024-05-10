@@ -125,7 +125,9 @@ std::shared_future<SphereGroupGeometry> SphereGroupGeometry::create(
     const luisa::vector<float> &centers, float radius, uint subdiv
 ) noexcept {
     return global_thread_pool().async(
-        [&] { return SphereGroupGeometry(centers, radius, subdiv); }
+        [&centers, radius, subdiv] { 
+            return SphereGroupGeometry(centers, radius, subdiv);
+        }
     );
 }
 
