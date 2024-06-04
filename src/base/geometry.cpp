@@ -43,11 +43,11 @@ void Geometry::_process_shape(
     auto medium = overridden_medium == nullptr ? shape->medium() : overridden_medium;
     auto visible = overridden_visible && shape->visible();
 
-    if (shape->is_mesh()) {
+    if (shape->is_mesh() && !shape->empty()) {
         auto mesh = [&] {
             auto mesh_geom = [&] {
                 auto [vertices, triangles] = shape->mesh();
-                LUISA_ASSERT(!vertices.empty() && !triangles.empty(), "Empty mesh.");
+                // LUISA_ASSERT(!vertices.empty() && !triangles.empty(), "Empty mesh.");
                 auto hash = luisa::hash64(vertices.data(), vertices.size_bytes(), luisa::hash64_default_seed);
                 hash = luisa::hash64(triangles.data(), triangles.size_bytes(), hash);
                 if (auto mesh_iter = _mesh_cache.find(hash);

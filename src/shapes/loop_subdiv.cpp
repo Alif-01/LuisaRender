@@ -48,6 +48,11 @@ public:
     }
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] bool is_mesh() const noexcept override { return true; }
+    [[nodiscard]] bool empty() const noexcept override { 
+        return _geometry.valid() ?
+               (_geometry.get().first.empty() || _geometry.get().second.empty()) :
+               _mesh->empty();
+    }
     [[nodiscard]] MeshView mesh() const noexcept override {
         return _geometry.valid() ?
                MeshView{_geometry.get().first, _geometry.get().second} :

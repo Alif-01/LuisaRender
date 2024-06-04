@@ -57,6 +57,7 @@ public:
     [[nodiscard]] virtual float intersection_offset_factor() const noexcept;
     [[nodiscard]] virtual float clamp_normal_factor() const noexcept;
     [[nodiscard]] virtual bool is_mesh() const noexcept;
+    [[nodiscard]] virtual bool empty() const noexcept;
     [[nodiscard]] virtual uint vertex_properties() const noexcept;
     [[nodiscard]] bool has_vertex_normal() const noexcept;
     [[nodiscard]] bool has_vertex_uv() const noexcept;

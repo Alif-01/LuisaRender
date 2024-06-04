@@ -50,6 +50,10 @@ public:
     
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] bool is_mesh() const noexcept override { return true; }
+    [[nodiscard]] bool empty() const noexcept override { 
+        const MeshGeometry &g = _geometry.get();
+        return g.vertices().empty() || g.triangles().empty();
+    }
     [[nodiscard]] MeshView mesh() const noexcept override {
         const MeshGeometry &g = _geometry.get();
         return { g.vertices(), g.triangles() }; 
