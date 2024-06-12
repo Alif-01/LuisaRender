@@ -31,9 +31,14 @@ StringArr RawShapeInfo::get_type_info() const noexcept {
 
 StringArr RawShapeInfo::get_type() const noexcept {
     return spheres_info != nullptr ? "spheregroup" :
-            mesh_info != nullptr ? mesh_info->get_type() : 
-            file_info != nullptr ? "mesh" :
-            plane_info != nullptr ? "plane" : "None";
+           mesh_info != nullptr ? mesh_info->get_type() : 
+           file_info != nullptr ? "mesh" :
+           plane_info != nullptr ? "plane" : "None";
+}
+
+StringArr RawCameraInfo::get_type_info() const noexcept {
+    return pinhole_info != nullptr ? pinhole_info->get_info() :
+           thinlens_info != nullptr ? thinlens_info->get_info() : "";
 }
 
 } // namespace luisa::render

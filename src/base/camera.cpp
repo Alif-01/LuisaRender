@@ -25,15 +25,19 @@ Camera::Camera(Scene *scene, const SceneNodeDesc *desc) noexcept
                   "shutter_span", 0.0f));
           }))},
       _shutter_samples{desc->property_uint_or_default("shutter_samples", 0u)},// 0 means default
-      _spp{desc->property_uint_or_default("spp", 1024u)} {
+      _spp{desc->property_uint_or_default("spp", 1024u)},
+      _file{desc->property_path_or_default(
+          "file", std::filesystem::canonical(
+                  desc->source_location() ?
+                  desc->source_location().file()->parent_path() :
+                  std::filesystem::current_path()) / "render.exr"
+      )} {
 
     // For compatibility with older scene description versions
     static constexpr auto default_position = make_float3(0.f, 0.f, 0.f);
     static constexpr auto default_front = make_float3(0.f, 0.f, -1.f);
     static constexpr auto default_up = make_float3(0.f, 1.f, 0.f);
     
-    // auto append_transform = scene->load_transform(desc->property_node_or_default("transform"));
-    // auto append_matrix = append_transform == nullptr ? make_float4x4(1.f) : append_transform->matrix(0.f);
     if (_transform == nullptr) {
         auto position = desc->property_float3_or_default("position", default_position);
         auto front = desc->property_float3_or_default(
@@ -47,10 +51,6 @@ Camera::Camera(Scene *scene, const SceneNodeDesc *desc) noexcept
         auto pose_info = RawTransformInfo::view(std::move(position), std::move(front), std::move(up));
         _transform = scene->update_transform(pose_name, pose_info);
     }
-    // auto matrix = append_matrix * _base_transform->matrix(0.f);
-    // auto new_name = luisa::format("{}_transform", name);
-    // _transform = scene->update_transform(new_name, RawTransformInfo::matrix(std::move(matrix)));
-    // _build_transform(scene, ), desc->source_location(), position, front, up, append_matrix);
 
     if (_shutter_span.y < _shutter_span.x) [[unlikely]] {
         LUISA_ERROR(
@@ -132,53 +132,33 @@ Camera::Camera(Scene *scene, const SceneNodeDesc *desc) noexcept
     }
 
     // render file
-    _file = desc->property_path_or_default(
-        "file", std::filesystem::canonical(
-                desc->source_location() ?
-                desc->source_location().file()->parent_path() :
-                std::filesystem::current_path()) / "render.exr");
     if (auto folder = _file.parent_path();
         !std::filesystem::exists(folder)) {
         std::filesystem::create_directories(folder);
     }
 }
 
-Camera::Camera(Scene *scene, const RawCameraInfo &camera_info) noexcept
-    : SceneNode{scene, SceneNodeTag::CAMERA},
-      _film{scene->update_film(
+Camera::Camera(Scene *scene, const RawCameraInfo &camera_info) noexcept:
+    SceneNode{scene, SceneNodeTag::CAMERA},
+    _film{scene->update_film(
         luisa::format("{}_film", camera_info.name),
         camera_info.resolution
-      )},
-      _filter{scene->add_filter("filter_gaussian", camera_info.radius)},
-      _shutter_span{make_float2(0.0f)},
-      _shutter_samples{0u},                     // 0 means default
-      _spp{camera_info.spp} {
+    )},
+    _filter{scene->add_filter("filter_gaussian", camera_info.radius)},
+    _shutter_span{make_float2(0.0f)},
+    _shutter_samples{0u},                     // 0 means default
+    _spp{camera_info.spp},
+    _file{std::filesystem::current_path() / luisa::format("render_{}.exr", camera_info.name)} {
 
     // build transform
     auto pose_name = luisa::format("{}_pose", camera_info.name);
     _transform = scene->update_transform(pose_name, camera_info.pose);
-    if (_transform == nullptr) {
+    if (_transform == nullptr) [[unlikely]] {
         LUISA_ERROR("No camera base pose!");
     }
-
-    // auto append_name = luisa::format("{}_append_transform", camera_info.name);
-    // auto append_transform = scene->update_transform(append_name, camera_info.append_pose);
-
-    // auto new_name = luisa::format("{}_transform", camera_info.name);
-    // auto matrix = _base_transform->matrix(0.f);
-    // if (append_transform != nullptr) {
-    //     matrix = append_transform->matrix(0.f) * matrix;
-    // }
-    // _transform = scene->update_transform(new_name, RawTransformInfo::matrix(std::move(matrix)));
-    
-    // render file
-    _file = std::filesystem::current_path() / luisa::format("render_{}.exr", camera_info.name);
 }
 
 bool Camera::update_camera(Scene *scene, const RawCameraInfo &camera_info) noexcept {
-    // if (append_info.get_type() == "None") return false;
-    // auto append_name = luisa::format("{}_append_transform", camera_info.name);
-    // auto append_transform = scene->update_transform(append_name, camera_info.append_pose);
     bool updated = false;
 
     auto pose_name = luisa::format("{}_pose", camera_info.name);
@@ -190,25 +170,14 @@ bool Camera::update_camera(Scene *scene, const RawCameraInfo &camera_info) noexc
         }
     }
 
-    auto file_name = luisa::format("{}_film", camera_info.name);
-    auto new_film = scene->update_film(file_name, camera_info.resolution);
+    auto film_name = luisa::format("{}_film", camera_info.name);
+    auto new_film = scene->update_film(film_name, camera_info.resolution);
     if (_film != new_film) {
         _film = new_film;
         updated = true;
     }
     return updated;
 }
-
-// void Camera::_build_transform(
-//     Scene *scene, luisa::string_view name, SceneNodeDesc::SourceLocation l,
-//     float3 position, float3 front, float3 up, const float4x4 &append_matrix
-// ) noexcept {
-//     // SceneNodeDesc d{, SceneNodeTag::TRANSFORM};
-//     // d.define(SceneNodeTag::TRANSFORM, "View", l);
-//     // d.add_property("position", SceneNodeDesc::number_list{position.x, position.y, position.z});
-//     // d.add_property("front", SceneNodeDesc::number_list{front.x, front.y, front.z});
-//     // d.add_property("up", SceneNodeDesc::number_list{up.x, up.y, up.z});
-// }
 
 auto Camera::shutter_weight(float time) const noexcept -> float {
     if (time < _shutter_span.x || time > _shutter_span.y) { return 0.0f; }

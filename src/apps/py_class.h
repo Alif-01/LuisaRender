@@ -169,6 +169,61 @@ struct PySurface {
     RawSurfaceInfo surface_info;
 };
 
+struct PyCamera {
+    PyCamera(
+        luisa::string name, RawTransformInfo pose, uint spp,
+        uint2 resolution, float filter_radius
+    ) noexcept :
+        camera_info{name, std::move(pose), spp, std::move(resolution), filter_radius} {
+    }
+
+    static PyCamera pinhole(    
+        std::string_view name, uint spp, const PyUIntArr &resolution
+    ) noexcept {
+        PyCamera camera(
+            luisa::string(name), RawTransformInfo(), spp,
+            pyarray_to_pack<uint, 2>(resolution), 1.0
+        );
+        camera.camera_info.build_pinhole(0.0);
+        return camera;
+    }
+
+    static PyCamera thinlens(
+        std::string_view name, uint spp, const PyUIntArr &resolution
+    ) noexcept {
+        PyCamera camera(
+            luisa::string(name), RawTransformInfo(), spp,
+            pyarray_to_pack<uint, 2>(resolution), 1.0
+        );
+        camera.camera_info.build_thinlens(0.0, 0.0, 0.0);            
+        return camera;
+    }
+
+    void update_pinhole(
+        PyTransform &pose, float fov
+    ) noexcept {
+        LUISA_ASSERT(camera_info.get_type() == "pinhole", "This object is not a pinhole camera.");
+        camera_info.pose = std::move(pose.transform_info);
+        auto pinhole_info = camera_info.pinhole_info.get();
+        pinhole_info->fov = fov;
+    }
+
+    void update_thinlens(
+        PyTransform &pose, float aperture, float focal_length, float focus_distance
+        const PyFloatArr &vertices, const PyUIntArr &triangles,
+        const PyFloatArr &normals, const PyFloatArr &uvs
+    ) noexcept {
+        LUISA_ASSERT(camera_info.get_type() == "thinlens", "This object is not a thinlens camera.");
+        camera_info.pose = std::move(pose.transform_info);
+        auto thinlens_info = camera_info.thinlens_info.get();
+        thinlens_info->aperture = aperture;
+        thinlens_info->focal_length = focal_length;
+        thinlens_info->focus_distance = focus_distance;
+    }
+
+    RawCameraInfo camera_info;
+};
+
 struct PyIntegrator {
     static PyIntegrator wave_path(
         LogLevel log_level, uint wave_path_version,
@@ -208,11 +263,11 @@ struct PySpectrum {
 
 struct PyShape {
     PyShape(
-        luisa::string name, PyTransform transform,
+        luisa::string name, RawTransformInfo transform_info,
         luisa::string surface, luisa::string emission, luisa::string medium,
         float clamp_normal
     ) noexcept : shape_info{
-        name, std::move(transform.transform_info), clamp_normal,
+        name, std::move(transform_info), clamp_normal,
         surface, emission, medium
     } {}
 
@@ -221,7 +276,7 @@ struct PyShape {
         std::string_view surface, std::string_view emission, float clamp_normal
     ) noexcept {
         PyShape shape(
-            luisa::string(name), PyTransform::empty(),
+            luisa::string(name), RawTransformInfo(),
             luisa::string(surface), luisa::string(emission), "", clamp_normal
         );
         shape.shape_info.build_file(luisa::string(obj_path));
@@ -235,7 +290,7 @@ struct PyShape {
         std::string_view surface, std::string_view emission, float clamp_normal
     ) noexcept {
         PyShape shape(
-            luisa::string(name), PyTransform::empty(),
+            luisa::string(name), RawTransformInfo(),
             luisa::string(surface), luisa::string(emission), "", clamp_normal
         );
         shape.shape_info.build_mesh(
@@ -253,7 +308,7 @@ struct PyShape {
         std::string_view surface, std::string_view emission, float clamp_normal
     ) noexcept {
         PyShape shape(
-            luisa::string(name), PyTransform::empty(),
+            luisa::string(name), RawTransformInfo(),
             luisa::string(surface), luisa::string(emission), "", clamp_normal
         );
         shape.shape_info.build_mesh(
@@ -271,7 +326,7 @@ struct PyShape {
         std::string_view surface, std::string_view emission
     ) noexcept {
         PyShape shape(
-            luisa::string(name), PyTransform::empty(),
+            luisa::string(name), RawTransformInfo(),
             luisa::string(surface), luisa::string(emission), "", -1.f
         );
         shape.shape_info.build_spheres(
@@ -288,11 +343,12 @@ struct PyShape {
         static auto z = make_float3(0.f, 0.f, 1.f);
         auto up = normalize(pyarray_to_pack<float, 3>(up_direction));
         PyShape shape(
-            luisa::string(name), PyTransform(RawTransformInfo::srt(
+            luisa::string(name),
+            RawTransformInfo::srt(
                 height * up,
                 make_float4(cross(z, up), degrees(acos(dot(z, up)))),
                 make_float3(range)
-            )),
+            ),
             luisa::string(surface), luisa::string(emission), "", -1.f
         );
         shape.shape_info.build_plane(subdivision);
@@ -300,7 +356,7 @@ struct PyShape {
     }
 
     void update_rigid(PyTransform &transform) noexcept {
-        if (shape_info.get_type() != "mesh") 
+        if (shape_info.get_type() != "mesh") [[unlikely]]
             LUISA_ERROR_WITH_LOCATION("This object is not a rigid mesh!");
         shape_info.transform_info = std::move(transform.transform_info);
     }
@@ -309,7 +365,7 @@ struct PyShape {
         const PyFloatArr &vertices, const PyUIntArr &triangles,
         const PyFloatArr &normals, const PyFloatArr &uvs
     ) noexcept {
-        if (shape_info.get_type() != "deformablemesh") 
+        if (shape_info.get_type() != "deformablemesh") [[unlikely]]
             LUISA_ERROR_WITH_LOCATION("This object is not a deformable mesh!");
         auto mesh_info = shape_info.mesh_info.get();
         mesh_info->vertices = pyarray_to_vector<float>(vertices);
@@ -321,7 +377,7 @@ struct PyShape {
     void update_particles(
         const PyFloatArr &vertices
     ) noexcept {
-        if (shape_info.get_type() != "spheregroup") 
+        if (shape_info.get_type() != "spheregroup") [[unlikely]]
             LUISA_ERROR_WITH_LOCATION("This object is not particles!");
         auto spheres_info = shape_info.spheres_info.get();
         spheres_info->centers = pyarray_to_vector<float>(vertices);

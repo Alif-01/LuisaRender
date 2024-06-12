@@ -37,7 +37,6 @@ luisa::string context_storage;
 void init(
     std::string_view context_path, uint cuda_device, LogLevel log_level,
     const PyIntegrator &integrator_options, const PySpectrum &spectrum_options,
-    // const PyConstruction &construct_options, 
     float clamp_normal
 ) noexcept {
     /* add device */
@@ -64,7 +63,6 @@ void init(
     auto scene_info = RawSceneInfo {
         integrator_options.integrator_info,
         spectrum_options.spectrum_info,
-        // construct_options.construction_info,
         clamp_normal
     };
     scene = Scene::create(*context, scene_info);
@@ -100,19 +98,8 @@ void add_surface(const PySurface &surface) noexcept {
     auto surface_node = scene->add_surface(surface.surface_info);
 }
 
-void update_camera(
-    std::string_view name, PyTransform &pose,
-    float fov, uint spp, const PyUIntArr &resolution
-) noexcept {
-    auto camera_info = RawCameraInfo{
-        luisa::string(name),
-        std::move(pose.transform_info),
-        fov, uint(spp),
-        pyarray_to_pack<uint, 2>(resolution),
-        1.0
-    };
-
-    LUISA_INFO("Update: {}", camera_info.get_info());
+void update_camera(const PyCamera &camera) noexcept {
+    LUISA_INFO("Update: {}", camera.camera_info.get_info());
     uint camera_id = scene->cameras().size();
     auto camera = scene->update_camera(camera_info);
     if (auto it = camera_storage.find(camera_info.name); it == camera_storage.end()) {
@@ -120,6 +107,27 @@ void update_camera(
         camera_storage[camera_info.name] = luisa::make_unique<CameraStorage>(camera_id, device.get(), pixel_count);
     }
 }
+
+// void update_camera(
+//     std::string_view name, PyTransform &pose,
+//     float fov, uint spp, const PyUIntArr &resolution
+// ) noexcept {
+//     auto camera_info = RawCameraInfo{
+//         luisa::string(name),
+//         std::move(pose.transform_info),
+//         fov, uint(spp),
+//         pyarray_to_pack<uint, 2>(resolution),
+//         1.0
+//     };
+
+//     LUISA_INFO("Update: {}", camera_info.get_info());
+//     uint camera_id = scene->cameras().size();
+//     auto camera = scene->update_camera(camera_info);
+//     if (auto it = camera_storage.find(camera_info.name); it == camera_storage.end()) {
+//         uint pixel_count = camera_info.resolution.x * camera_info.resolution.y * 4;
+//         camera_storage[camera_info.name] = luisa::make_unique<CameraStorage>(camera_id, device.get(), pixel_count);
+//     }
+// }
 
 void update_shape(const PyShape &shape) noexcept {
     LUISA_INFO("Update: {}", shape.shape_info.get_info());
@@ -293,6 +301,23 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
         .def("update_particles", &PyShape::update_particles,
             py::arg("vertices")
         );
+    py::class_<PyCamera>(m, "Camera")
+        .def_static("pinhole", &PyCamera::pinhole,
+            py::arg("name"), py::arg("spp"), py::arg("resolution")
+        )
+        .def_static("thinlens", &PyCamera::thinlens,
+            py::arg("name"), py::arg("spp"), py::arg("resolution"),
+        )
+        .def("update_pinhole", &PyCamera::update_pinhole,
+            py::arg("pose"),
+            py::arg("fov")
+        )
+        .def("update_thinlens", &PyCamera::update_thinlens,
+            py::arg("pose"),
+            py::arg("aperture"),
+            py::arg("focal_length"),
+            py::arg("focus_distance")
+        );
     py::class_<PyIntegrator>(m, "Integrator")
         .def_static("wave_path", &PyIntegrator::wave_path,
             py::arg("log_level"), 
@@ -329,11 +354,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
         py::arg("surface")
     );
     m.def("update_camera", &update_camera,
-        py::arg("name"),
-        py::arg("pose"),
-        py::arg("fov"),
-        py::arg("spp"),
-        py::arg("resolution")
+        py::arg("camera")
     );
     m.def("update_shape", &update_shape,
         py::arg("shape")

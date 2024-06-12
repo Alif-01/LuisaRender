@@ -37,11 +37,11 @@ public:
           _fov{radians(std::clamp(desc->property_float_or_default("fov", 35.0f), 1e-3f, 180.f - 1e-3f))} {}
     PinholeCamera(Scene *scene, const RawCameraInfo &camera_info) noexcept
         : Camera{scene, camera_info},
-          _fov{radians(std::clamp(camera_info.fov, 1e-3f, 180.f - 1e-3f))} {}
+          _fov{radians(std::clamp(camera_info.pinhole_info->fov, 1e-3f, 180.f - 1e-3f))} {}
     
     [[nodiscard]] bool update_camera(Scene *scene, const RawCameraInfo &camera_info) noexcept {
         bool updated = Camera::update_camera(scene, camera_info);
-        auto new_fov = radians(std::clamp(camera_info.fov, 1e-3f, 180.f - 1e-3f));
+        auto new_fov = radians(std::clamp(camera_info.pinhole_info->fov, 1e-3f, 180.f - 1e-3f));
         if (_fov != new_fov) {
             _fov = new_fov;
             updated = true;

@@ -10,9 +10,9 @@ class ViewTransform final : public Transform {
 
 private:
     float3 _origin;
-    float3 _u;// right
-    float3 _v;// up
-    float3 _w;// back
+    float3 _u;      // right
+    float3 _v;      // up
+    float3 _w;      // back
 
 public:
     ViewTransform(Scene *scene, const SceneNodeDesc *desc) noexcept

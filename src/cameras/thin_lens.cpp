@@ -32,6 +32,25 @@ public:
               }))} {
         _focus_distance = std::max(std::abs(_focus_distance), 1e-4f);
     }
+
+    ThinLensCamera(Scene *scene, const RawCameraInfo &camera_info) noexcept
+        : Camera{scene, camera_info},
+          _aperture{camera_info.thinlens_info->aperture},
+          _focal_length{camera_info.thinlens_info->focal_length},
+          _focus_distance{std::max(camera_info.thinlens_info->focus_distance, 1e-4f)} {
+    }
+
+    [[nodiscard]] bool update_camera(Scene *scene, const RawCameraInfo &camera_info) noexcept {
+        bool updated = Camera::update_camera(scene, camera_info);
+        auto new_aperture = camera_info.thinlens_info->aperture;
+        auto new_focal_length = camera_info.thinlens_info->focal_length;
+        auto new_focus_distance = std::max(camera_info.thinlens_info->focus_distance, 1e-4f);
+        
+        if (new_aperture != _aperture) { _aperture = new_aperture; updated = true; }
+        if (new_focal_length != _focal_length) { _focal_length = new_focal_length; updated = true; }
+        if (new_focus_distance != _focus_distance) { _focus_distance = new_focus_distance; updated = true; }
+        return updated;
+    }
     [[nodiscard]] luisa::unique_ptr<Camera::Instance> build(
         Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept override;
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
@@ -113,3 +132,9 @@ using ClipPlaneThinLensCamera = ClipPlaneCameraWrapper<
 }// namespace luisa::render
 
 LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::ClipPlaneThinLensCamera)
+
+LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
+    luisa::render::Scene *scene,
+    const luisa::render::RawCameraInfo &camera_info) LUISA_NOEXCEPT {
+    return luisa::new_with_allocator<luisa::render::ClipPlaneThinLensCamera>(scene, camera_info);
+}

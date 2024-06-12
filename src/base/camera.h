@@ -91,7 +91,6 @@ private:
     const Film *_film;
     const Filter *_filter;
     const Transform *_transform;
-    // const Transform *_base_transform;
     float2 _shutter_span;
     uint _shutter_samples;
     uint _spp;

@@ -361,8 +361,11 @@ Transform *Scene::update_transform(luisa::string_view name, const RawTransformIn
 }
 
 Camera *Scene::update_camera(const RawCameraInfo &camera_info) noexcept {
+    luisa::string impl_type = camera_info.get_type();
+    if (impl_type == "None") return nullptr;
+
     using NodeCreater = SceneNode *(Scene *, const RawCameraInfo &);
-    auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::CAMERA, "pinhole", "create_raw");
+    auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::CAMERA, impl_type, "create_raw");
     auto [node, first_def] = load_from_nodes(camera_info.name, handle_creater, this, camera_info);
     Camera *camera = dynamic_cast<Camera *>(node);
 

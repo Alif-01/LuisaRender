@@ -155,19 +155,58 @@ struct RawEnvironmentInfo {
     RawTransformInfo transform_info;
 };
 
+struct RawPinholeInfo;
+struct RawThinlensInfo;
+
 struct RawCameraInfo {
+    RawCameraInfo(StringArr name, RawTransformInfo pose, uint spp,
+                  uint2 resolution, float filter_radius) noexcept:
+        name{std::move(name)}, pose{std::move(pose)}, spp{spp},
+        resolution{std::move(resolution)}, filter_radius{filter_radius} {}
+
     [[nodiscard]] StringArr get_info() const noexcept {
-        return luisa::format("Camera {} <pos={}, fov={}, spp={}, res={}x{}>",
-            name, pose.get_info(), fov, spp, resolution[0], resolution[1]
+        return luisa::format("Camera {} <pos={}, spp={}, res={}x{}>",
+            name, pose.get_info(), spp, resolution[0], resolution[1]
         );
     }
-
+    [[nodiscard]] StringArr get_type_info() const noexcept;
+    [[nodiscard]] StringArr get_type() const noexcept {
+        return pinhole_info != nullptr ? "pinhole" :
+               thinlens_info != nullptr ? "thinlens" : "None";
+    }
+    void build_pinhole(float fov) noexcept {
+        pinhole_info = luisa::make_unique<RawPinholeInfo>(fov);
+    }
+    void build_thinlens(float aperture, float focal_length, float focus_distance) noexcept {
+        thinlens_info = luisa::make_unique<RawThinlensInfo>(aperture, focal_length, focus_distance);
+    }
+    
     StringArr name;
     RawTransformInfo pose;
-    float fov;
     uint spp;
     uint2 resolution;
-    float radius;
+    float filter_radius;
+    UniquePtr<RawPinholeInfo> pinhole_info;
+    UniquePtr<RawThinlensInfo> thinlens_info;
+};
+
+struct RawPinholeInfo {
+    [[nodiscard]] StringArr get_info() const noexcept {
+        return luisa::format("Pinhole <fov={}>", fov);
+    }
+
+    float fov;
+};
+
+struct RawThinlensInfo {
+    [[nodiscard]] StringArr get_info() const noexcept {
+        return luisa::format("ThinLens <aperture={}, focal_length={}, focus_distance={}>",
+            aperture, focal_length, focus_distance);
+    }
+
+    float aperture;
+    float focal_length;
+    float focus_distance;
 };
 
 struct RawSpheresInfo;
