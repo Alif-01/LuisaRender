@@ -144,7 +144,7 @@ Camera::Camera(Scene *scene, const RawCameraInfo &camera_info) noexcept:
         luisa::format("{}_film", camera_info.name),
         camera_info.resolution
     )},
-    _filter{scene->add_filter("filter_gaussian", camera_info.radius)},
+    _filter{scene->add_filter("filter_gaussian", camera_info.filter_radius)},
     _shutter_span{make_float2(0.0f)},
     _shutter_samples{0u},                     // 0 means default
     _spp{camera_info.spp},

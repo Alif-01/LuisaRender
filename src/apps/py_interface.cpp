@@ -99,9 +99,10 @@ void add_surface(const PySurface &surface) noexcept {
 }
 
 void update_camera(const PyCamera &camera) noexcept {
-    LUISA_INFO("Update: {}", camera.camera_info.get_info());
+    const auto &camera_info = camera.camera_info;
+    LUISA_INFO("Update: {}", camera_info.get_info());
     uint camera_id = scene->cameras().size();
-    auto camera = scene->update_camera(camera_info);
+    auto camera_node = scene->update_camera(camera_info);
     if (auto it = camera_storage.find(camera_info.name); it == camera_storage.end()) {
         uint pixel_count = camera_info.resolution.x * camera_info.resolution.y * 4;
         camera_storage[camera_info.name] = luisa::make_unique<CameraStorage>(camera_id, device.get(), pixel_count);
@@ -306,7 +307,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
             py::arg("name"), py::arg("spp"), py::arg("resolution")
         )
         .def_static("thinlens", &PyCamera::thinlens,
-            py::arg("name"), py::arg("spp"), py::arg("resolution"),
+            py::arg("name"), py::arg("spp"), py::arg("resolution")
         )
         .def("update_pinhole", &PyCamera::update_pinhole,
             py::arg("pose"),

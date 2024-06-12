@@ -210,8 +210,6 @@ struct PyCamera {
 
     void update_thinlens(
         PyTransform &pose, float aperture, float focal_length, float focus_distance
-        const PyFloatArr &vertices, const PyUIntArr &triangles,
-        const PyFloatArr &normals, const PyFloatArr &uvs
     ) noexcept {
         LUISA_ASSERT(camera_info.get_type() == "thinlens", "This object is not a thinlens camera.");
         camera_info.pose = std::move(pose.transform_info);
