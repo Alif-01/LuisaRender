@@ -8,32 +8,32 @@
 namespace luisa::render {
 
 Film::Film(Scene *scene, const SceneNodeDesc *desc) noexcept
-    : SceneNode{scene, desc, SceneNodeTag::FILM},
-      _resolution{desc->property_uint2_or_default(
-          "resolution", lazy_construct([desc] {
-              return make_uint2(desc->property_uint_or_default("resolution", 1024u));
-          }))} {}
-Film::Film(Scene *scene, const uint2 &resolution) noexcept
-    : SceneNode{scene, SceneNodeTag::FILM},
-      _resolution{resolution} {}
+    : SceneNode{scene, desc, SceneNodeTag::FILM} {}
 
-bool Film::update_film(Scene *scene, const uint2 &resolution) noexcept {
-    if (any(_resolution != resolution)) {
-        _resolution = resolution;
-        return true;
-    }
-    return false;
-}
+Film::Film(Scene *scene, const uint2 &resolution) noexcept
+    : SceneNode{scene, SceneNodeTag::FILM} {}
+//       _resolution{resolution} {}
+
+// bool Film::update_film(Scene *scene, const uint2 &resolution) noexcept {
+//     if (any(_resolution != resolution)) {
+//         _resolution = resolution;
+//         return true;
+//     }
+//     return false;
+// }
+    
 
 void Film::Instance::accumulate(Expr<uint2> pixel, Expr<float3> rgb,
                                 Expr<float> effective_spp) const noexcept {
+    $outline {
 #ifndef NDEBUG
-    $if(all(pixel >= 0u && pixel < node()->resolution())) {
+        $if(all(pixel >= 0u && pixel < node()->resolution())) {
 #endif
-        _accumulate(pixel, rgb, effective_spp);
+            _accumulate(pixel, rgb, effective_spp);
 #ifndef NDEBUG
+        };
+#endif
     };
-#endif
 }
 
 }// namespace luisa::render

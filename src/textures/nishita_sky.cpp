@@ -12,7 +12,7 @@ namespace luisa::render {
 class NishitaSky final : public Texture {
 
 public:
-    static constexpr auto resolution = make_uint2(2048u);
+    static constexpr auto RESOLUTION = make_uint2(2048u);
     static constexpr auto height_per_thread = 16u;
 
 private:
@@ -46,12 +46,12 @@ public:
                             .air_density = _air_density,
                             .dust_density = _dust_density,
                             .ozone_density = _ozone_density};
-        _image = LoadedImage::create(resolution, PixelStorage::FLOAT4);
+        _image = LoadedImage::create(RESOLUTION, PixelStorage::FLOAT4);
         global_thread_pool().parallel(
-            resolution.y / height_per_thread, [data, this](uint32_t y) noexcept {
+            RESOLUTION.y / height_per_thread, [data, this](uint32_t y) noexcept {
                 SKY_nishita_skymodel_precompute_texture(
                     data, static_cast<float4 *>(_image.pixels()),
-                    resolution, make_uint2(y * height_per_thread, (y + 1u) * height_per_thread));
+                    RESOLUTION, make_uint2(y * height_per_thread, (y + 1u) * height_per_thread));
                 _image_counter.fetch_add(1u);
             });
         if (desc->property_bool_or_default("sun_disc", true)) {
@@ -67,7 +67,7 @@ public:
     [[nodiscard]] auto sun_intensity() const noexcept { return _sun_intensity; }
     [[nodiscard]] auto scale() const noexcept { return _scale; }
     [[nodiscard]] auto &image() const noexcept {
-        while (_image_counter.load() < resolution.y / height_per_thread) {
+        while (_image_counter.load() < RESOLUTION.y / height_per_thread) {
             LUISA_WARNING_WITH_LOCATION(
                 "NishitaSky texture is still being precomputed.");
             std::this_thread::sleep_for(std::chrono::milliseconds{1});
@@ -78,6 +78,7 @@ public:
     [[nodiscard]] bool is_black() const noexcept override { return _scale == 0.f; }
     [[nodiscard]] uint channels() const noexcept override { return 3u; }
     [[nodiscard]] bool is_constant() const noexcept override { return false; }
+    [[nodiscard]] uint2 resolution() const noexcept override { return NishitaSky::RESOLUTION; }
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] luisa::unique_ptr<Instance> build(
         Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept override;
@@ -94,7 +95,7 @@ public:
                        CommandBuffer &command_buffer) noexcept
         : Texture::Instance{pipeline, node} {
         auto texture = pipeline.create<Image<float>>(
-            PixelStorage::FLOAT4, NishitaSky::resolution);
+            PixelStorage::FLOAT4, NishitaSky::RESOLUTION);
         _texture_id = pipeline.register_bindless(
             *texture, TextureSampler::linear_point_mirror());
         auto &&image = node->image();
@@ -163,7 +164,6 @@ public:
         };
     }
     [[nodiscard]] Float4 evaluate(const Interaction &it,
-                                  const SampledWavelengths &swl,
                                   Expr<float> time) const noexcept override {
         if (_impl == nullptr) {
             _impl = luisa::make_unique<Callable<float3(float2)>>(_eval_impl());

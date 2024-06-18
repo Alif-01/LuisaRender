@@ -483,42 +483,46 @@ private:
                                                       TransportMode mode) const noexcept {
         SampledSpectrum f{_ctx.color.dimension(), 0.f};
         auto pdf = def(0.f);
-        $if(same_hemisphere(wo_local, wi_local)) {// reflection
-            if (_diffuse) {
-                $if(_sampling_weights[diffuse_like_technique_index] > 0.f) {
-                    f += _diffuse->evaluate(wo_local, wi_local, mode);
-                    f += _retro->evaluate(wo_local, wi_local, mode);
-                    if (_fake_ss) { f += _fake_ss->evaluate(wo_local, wi_local, mode); }
-                    if (_sheen) { f += _sheen->evaluate(wo_local, wi_local, mode); }
-                    pdf += _sampling_weights[diffuse_like_technique_index] *
-                           _diffuse->pdf(wo_local, wi_local, mode);
-                };
+        SampledSpectrum f_diffuse{_ctx.color.dimension(), 0.f};
+        auto pdf_diffuse = def(0.f);
+        $outline {
+            $if(same_hemisphere(wo_local, wi_local)) {// reflection
+                if (_diffuse) {
+                    $if(_sampling_weights[diffuse_like_technique_index] > 0.f) {
+                        f += _diffuse->evaluate(wo_local, wi_local, mode);
+                        f += _retro->evaluate(wo_local, wi_local, mode);
+                        if (_fake_ss) { f += _fake_ss->evaluate(wo_local, wi_local, mode); }
+                        if (_sheen) { f += _sheen->evaluate(wo_local, wi_local, mode); }
+                        pdf += _sampling_weights[diffuse_like_technique_index] *
+                               _diffuse->pdf(wo_local, wi_local, mode);
+                    };
+                }
+                if (_specular) {
+                    $if(_sampling_weights[specular_technique_index] > 0.f) {
+                        f += _specular->evaluate(wo_local, wi_local, mode);
+                        pdf += _sampling_weights[specular_technique_index] *
+                               _specular->pdf(wo_local, wi_local, mode);
+                    };
+                }
+                if (_clearcoat) {
+                    $if(_sampling_weights[clearcoat_technique_index] > 0.f) {
+                        f += _clearcoat->evaluate(wo_local, wi_local);
+                        pdf += _sampling_weights[clearcoat_technique_index] *
+                               _clearcoat->pdf(wo_local, wi_local);
+                    };
+                }
             }
-            if (_specular) {
-                $if(_sampling_weights[specular_technique_index] > 0.f) {
-                    f += _specular->evaluate(wo_local, wi_local, mode);
-                    pdf += _sampling_weights[specular_technique_index] *
-                           _specular->pdf(wo_local, wi_local, mode);
-                };
-            }
-            if (_clearcoat) {
-                $if(_sampling_weights[clearcoat_technique_index] > 0.f) {
-                    f += _clearcoat->evaluate(wo_local, wi_local);
-                    pdf += _sampling_weights[clearcoat_technique_index] *
-                           _clearcoat->pdf(wo_local, wi_local);
-                };
-            }
-        }
-        $else {// transmission
-            if (_spec_trans) {
-                $if(_sampling_weights[spec_trans_technique_index] > 0.f) {
-                    f += _spec_trans->evaluate(wo_local, wi_local, mode);
-                    pdf += _sampling_weights[spec_trans_technique_index] *
-                           _spec_trans->pdf(wo_local, wi_local, mode);
-                };
-            }
+            $else {// transmission
+                if (_spec_trans) {
+                    $if(_sampling_weights[spec_trans_technique_index] > 0.f) {
+                        f += _spec_trans->evaluate(wo_local, wi_local, mode);
+                        pdf += _sampling_weights[spec_trans_technique_index] *
+                               _spec_trans->pdf(wo_local, wi_local, mode);
+                    };
+                }
+            };
         };
-        return {.f = f * abs_cos_theta(wi_local), .pdf = pdf};
+        return {.f = f * abs_cos_theta(wi_local), .pdf = pdf, .f_diffuse = f_diffuse * abs_cos_theta(wi_local), .pdf_diffuse = pdf_diffuse};
     }
 
 public:
@@ -550,30 +554,31 @@ public:
         // sample
         auto wo_local = _ctx.it.shading().world_to_local(wo);
         auto event = def(Surface::event_reflect);
-        BxDF::SampledDirection wi_sample;
-        $switch(sampling_tech) {
-            if (_diffuse) {
-                $case(diffuse_like_technique_index) {
-                    wi_sample = _diffuse->sample_wi(wo_local, u, mode);
-                };
-            }
-            if (_specular) {
-                $case(specular_technique_index) {
-                    wi_sample = _specular->sample_wi(wo_local, u, mode);
-                };
-            }
-            if (_clearcoat) {
-                $case(clearcoat_technique_index) {
-                    wi_sample = _clearcoat->sample_wi(wo_local, u);
-                };
-            }
-            if (_spec_trans) {
-                $case(spec_trans_technique_index) {
-                    wi_sample = _spec_trans->sample_wi(wo_local, u, mode);
-                    event = ite(cos_theta(wo_local) > 0.f, Surface::event_enter, Surface::event_exit);
-                };
-            }
-            $default { unreachable(); };
+        BxDF::SampledDirection wi_sample{.valid = false};
+        $outline {
+            $switch(sampling_tech) {
+                if (_diffuse) {
+                    $case(diffuse_like_technique_index) {
+                        wi_sample = _diffuse->sample_wi(wo_local, u, mode);
+                    };
+                }
+                if (_specular) {
+                    $case(specular_technique_index) {
+                        wi_sample = _specular->sample_wi(wo_local, u, mode);
+                    };
+                }
+                if (_clearcoat) {
+                    $case(clearcoat_technique_index) {
+                        wi_sample = _clearcoat->sample_wi(wo_local, u);
+                    };
+                }
+                if (_spec_trans) {
+                    $case(spec_trans_technique_index) {
+                        wi_sample = _spec_trans->sample_wi(wo_local, u, mode);
+                        event = ite(cos_theta(wo_local) > 0.f, Surface::event_enter, Surface::event_exit);
+                    };
+                }
+            };
         };
         auto eval = Surface::Evaluation::zero(_ctx.color.dimension());
         auto wi = _ctx.it.shading().local_to_world(wi_sample.wi);
@@ -726,15 +731,22 @@ private:
                                                       TransportMode mode) const noexcept {
         SampledSpectrum f{_ctx.color.dimension(), 0.f};
         auto pdf = def(0.f);
+        SampledSpectrum f_diffuse{_ctx.color.dimension(), 0.f};
+        auto pdf_diffuse = def(0.f);
         $if(same_hemisphere(wo_local, wi_local)) {// reflection
             if (_diffuse) {
                 $if(_sampling_weights[diffuse_like_technique_index] > 0.f) {
-                    f += _diffuse->evaluate(wo_local, wi_local, mode);
-                    f += _retro->evaluate(wo_local, wi_local, mode);
-                    if (_fake_ss) { f += _fake_ss->evaluate(wo_local, wi_local, mode); }
-                    if (_sheen) { f += _sheen->evaluate(wo_local, wi_local, mode); }
-                    pdf += _sampling_weights[diffuse_like_technique_index] *
-                           _diffuse->pdf(wo_local, wi_local, mode);
+                    SampledSpectrum delta_f{_ctx.color.dimension(), 0.f};
+                    delta_f += _diffuse->evaluate(wo_local, wi_local, mode);
+                    delta_f += _retro->evaluate(wo_local, wi_local, mode);
+                    if (_fake_ss) { delta_f += _fake_ss->evaluate(wo_local, wi_local, mode); }
+                    if (_sheen) { delta_f += _sheen->evaluate(wo_local, wi_local, mode); }
+                    f += delta_f;
+                    f_diffuse += delta_f;
+                    auto delta_pdf = _sampling_weights[diffuse_like_technique_index] *
+                                     _diffuse->pdf(wo_local, wi_local, mode);
+                    pdf += delta_pdf;
+                    pdf_diffuse += delta_pdf;
                 };
             }
             if (_specular) {
@@ -762,13 +774,17 @@ private:
             }
             if (_diff_trans) {
                 $if(_sampling_weights[diff_trans_technique_index] > 0.f) {
-                    f += _diff_trans->evaluate(wo_local, wi_local, mode);
-                    pdf += _sampling_weights[diff_trans_technique_index] *
-                           _diff_trans->pdf(wo_local, wi_local, mode);
+                    auto delta_f = _diff_trans->evaluate(wo_local, wi_local, mode);
+                    auto delta_pdf = _sampling_weights[diff_trans_technique_index] *
+                                     _diff_trans->pdf(wo_local, wi_local, mode);
+                    f += delta_f;
+                    f_diffuse += delta_f;
+                    pdf += delta_pdf;
+                    pdf_diffuse += delta_pdf;
                 };
             }
         };
-        return {.f = f * abs_cos_theta(wi_local), .pdf = pdf};
+        return {.f = f * abs_cos_theta(wi_local), .pdf = pdf, .f_diffuse = f_diffuse * abs_cos_theta(wi_local), .pdf_diffuse = pdf_diffuse};
     }
 
 public:
@@ -798,7 +814,7 @@ public:
         // sample
         auto wo_local = _ctx.it.shading().world_to_local(wo);
         auto event = def(Surface::event_reflect);
-        BxDF::SampledDirection wi_sample;
+        BxDF::SampledDirection wi_sample{.valid = false};
         $switch(sampling_tech) {
             if (_diffuse) {
                 $case(diffuse_like_technique_index) {
@@ -827,7 +843,6 @@ public:
                     event = Surface::event_through;
                 };
             }
-            $default { unreachable(); };
         };
         auto eval = Surface::Evaluation::zero(_ctx.color.dimension());
         auto wi = _ctx.it.shading().local_to_world(wi_sample.wi);
@@ -933,21 +948,21 @@ public:
         auto time = closure->time();
         auto color_decode = _color ? _color->evaluate_albedo_spectrum(it, swl, time) :
                                      Spectrum::Decode::one(swl.dimension());
-        auto metallic = _metallic ? _metallic->evaluate(it, swl, time).x : 0.f;
-        auto eta = _eta ? _eta->evaluate(it, swl, time).x : 1.5f;
-        auto roughness = _roughness ? _roughness->evaluate(it, swl, time).x : .5f;
+        auto metallic = _metallic ? _metallic->evaluate(it, time).x : 0.f;
+        auto eta = _eta ? _eta->evaluate(it, time).x : 1.5f;
+        auto roughness = _roughness ? _roughness->evaluate(it, time).x : .5f;
         if (node<DisneySurface>()->remap_roughness()) {
             roughness = DisneyMicrofacetDistribution::roughness_to_alpha(roughness);
         }
-        auto specular_tint = _specular_tint ? _specular_tint->evaluate(it, swl, time).x : 0.f;
-        auto anisotropic = _anisotropic ? _anisotropic->evaluate(it, swl, time).x : 0.f;
-        auto sheen = _sheen ? _sheen->evaluate(it, swl, time).x : 0.f;
-        auto sheen_tint = _sheen_tint ? _sheen_tint->evaluate(it, swl, time).x : 0.f;
-        auto clearcoat = _clearcoat ? _clearcoat->evaluate(it, swl, time).x : 0.f;
-        auto clearcoat_gloss = _clearcoat_gloss ? _clearcoat_gloss->evaluate(it, swl, time).x : 1.f;
-        auto specular_trans = _specular_trans ? _specular_trans->evaluate(it, swl, time).x : 0.f;
-        auto flatness = _flatness ? _flatness->evaluate(it, swl, time).x : 0.f;
-        auto diffuse_trans = _diffuse_trans ? _diffuse_trans->evaluate(it, swl, time).x : 0.f;
+        auto specular_tint = _specular_tint ? _specular_tint->evaluate(it, time).x : 0.f;
+        auto anisotropic = _anisotropic ? _anisotropic->evaluate(it, time).x : 0.f;
+        auto sheen = _sheen ? _sheen->evaluate(it, time).x : 0.f;
+        auto sheen_tint = _sheen_tint ? _sheen_tint->evaluate(it, time).x : 0.f;
+        auto clearcoat = _clearcoat ? _clearcoat->evaluate(it, time).x : 0.f;
+        auto clearcoat_gloss = _clearcoat_gloss ? _clearcoat_gloss->evaluate(it, time).x : 1.f;
+        auto specular_trans = _specular_trans ? _specular_trans->evaluate(it, time).x : 0.f;
+        auto flatness = _flatness ? _flatness->evaluate(it, time).x : 0.f;
+        auto diffuse_trans = _diffuse_trans ? _diffuse_trans->evaluate(it, time).x : 0.f;
 
         DisneyContext ctx{
             .it = it,

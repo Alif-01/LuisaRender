@@ -176,6 +176,10 @@ public:
     }
     [[nodiscard]] luisa::unique_ptr<Surface::Closure> create_closure(const SampledWavelengths &swl, Expr<float> time) const noexcept override;
     void populate_closure(Surface::Closure *closure, const Interaction &it, Expr<float3> wo, Expr<float> eta_i) const noexcept override;
+
+    [[nodiscard]] bool maybe_non_opaque() const noexcept override {
+        return _top->maybe_non_opaque() || _bottom->maybe_non_opaque();
+    }
 };
 
 luisa::unique_ptr<Surface::Instance> LayeredSurface::_build(Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept {
@@ -246,12 +250,6 @@ public:
         return *top_dispersive | *bottom_dispersive;
     }
     [[nodiscard]] luisa::optional<Float> eta() const noexcept override { return _bottom->eta(); }
-    [[nodiscard]] luisa::optional<Float> opacity() const noexcept override {
-        auto top_opacity = _top->opacity();
-        auto bottom_opacity = _bottom->opacity();
-        return 1.f - ((1.f - top_opacity.value_or(1.f)) *
-                      (1.f - bottom_opacity.value_or(1.f)));
-    }
 
 private:
     [[nodiscard]] Surface::Evaluation _evaluate(Expr<float3> wo, Expr<float3> wi,
@@ -394,7 +392,9 @@ private:
             };
         };
         return {.f = f / Float(ctx.samples),
-                .pdf = lerp(1.f / (4.f * pi), pdf_sum / Float(ctx.samples), 0.9f)};
+                .pdf = lerp(1.f / (4.f * pi), pdf_sum / Float(ctx.samples), 0.9f),
+                .f_diffuse = SampledSpectrum{swl().dimension()},// TODO: not the true diffuse pdf
+                .pdf_diffuse = 0.f};
     }
     [[nodiscard]] Surface::Sample _sample(Expr<float3> wo, Expr<float> u_lobe, Expr<float2> u,
                                           TransportMode mode) const noexcept override {
@@ -459,7 +459,7 @@ private:
                     w_local = it.shading().world_to_local(w);
                     $if((bs.event & Surface::event_transmit) != 0u) {
                         s = Surface::Sample{
-                            .eval = {.f = f, .pdf = pdf},
+                            .eval = {.f = f, .pdf = pdf, .f_diffuse = SampledSpectrum{swl().dimension()}, .pdf_diffuse = 0.f},// TODO: not the true diffuse
                             .wi = w,
                             .event = ite(same_hemisphere(w_local, wo_local),
                                          Surface::event_reflect,
@@ -484,8 +484,8 @@ void LayeredSurfaceInstance::populate_closure(Surface::Closure *closure_in, cons
     auto closure = static_cast<LayeredSurfaceClosure *>(closure_in);
     auto &swl = closure->swl();
     auto time = closure->time();
-    auto thickness = _thickness ? max(_thickness->evaluate(it, swl, time).x, std::numeric_limits<float>::min()) : 1e-2f;
-    auto g = _g ? _g->evaluate(it, swl, time).x : 0.f;
+    auto thickness = _thickness ? max(_thickness->evaluate(it, time).x, std::numeric_limits<float>::min()) : 1e-2f;
+    auto g = _g ? _g->evaluate(it, time).x : 0.f;
     auto [albedo, _] = _albedo ? _albedo->evaluate_albedo_spectrum(it, swl, time) : Spectrum::Decode::one(swl.dimension());
     auto max_depth = node<LayeredSurface>()->max_depth();
     auto samples = node<LayeredSurface>()->samples();

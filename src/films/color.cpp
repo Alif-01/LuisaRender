@@ -3,7 +3,9 @@
 //
 
 #include <limits>
-#include <luisa/luisa-compute.h>
+#include <future>
+
+#include <luisa-compute.h>
 
 #include <base/film.h>
 #include <base/pipeline.h>
@@ -17,6 +19,8 @@ using namespace luisa::compute;
 class ColorFilm final : public Film {
 
 private:
+    uint2 _resolution{};
+    float3 _exposure;
     float _scale[3]{};
     float _clamp{};
     bool _warn_nan{};
@@ -24,15 +28,19 @@ private:
 public:
     ColorFilm(Scene *scene, const SceneNodeDesc *desc) noexcept
         : Film{scene, desc},
+          _resolution{desc->property_uint2_or_default(
+              "resolution", lazy_construct([desc] {
+                  return make_uint2(desc->property_uint_or_default("resolution", 1024u));
+              }))},
           _warn_nan{desc->property_bool_or_default("warn_nan", false)} {
-        auto exposure = desc->property_float3_or_default(
+        _exposure = desc->property_float3_or_default(
             "exposure", lazy_construct([desc] {
                 return make_float3(desc->property_float_or_default(
                     "exposure", 0.0f));
             }));
-        _scale[0] = std::pow(2.0f, exposure.x);
-        _scale[1] = std::pow(2.0f, exposure.y);
-        _scale[2] = std::pow(2.0f, exposure.z);
+        _scale[0] = std::pow(2.0f, _exposure.x);
+        _scale[1] = std::pow(2.0f, _exposure.y);
+        _scale[2] = std::pow(2.0f, _exposure.z);
         _clamp = std::max(1.f, desc->property_float_or_default("clamp", 256.f));
     }
     ColorFilm(Scene *scene, const uint2 &resolution) noexcept
@@ -40,6 +48,8 @@ public:
           _scale{1.0f, 1.0f, 1.0f}, _clamp{256.f}, _warn_nan{false} {}
     [[nodiscard]] auto scale() const noexcept { return make_float3(_scale[0], _scale[1], _scale[2]); }
     [[nodiscard]] float clamp() const noexcept override { return _clamp; }
+    [[nodiscard]] uint2 resolution() const noexcept override { return _resolution; }
+    [[nodiscard]] float3 exposure() const noexcept override { return _exposure; }
     [[nodiscard]] auto warn_nan() const noexcept { return _warn_nan; }
     [[nodiscard]] luisa::unique_ptr<Instance> build(
         Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept override;
@@ -64,7 +74,7 @@ public:
     void prepare(CommandBuffer &command_buffer) noexcept override;
     void download(CommandBuffer &command_buffer, float4 *framebuffer) const noexcept override;
     [[nodiscard]] Film::Accumulation read(Expr<uint2> pixel) const noexcept override;
-    void release() const noexcept override;
+    void release() noexcept override;
     void clear(CommandBuffer &command_buffer) noexcept override;
 
 protected:
@@ -106,12 +116,17 @@ void ColorFilmInstance::_accumulate(Expr<uint2> pixel, Expr<float3> rgb, Expr<fl
     auto pixel_id = pixel.y * node()->resolution().x + pixel.x;
     $if(!any(isnan(rgb) || isinf(rgb))) {
         auto threshold = node<ColorFilm>()->clamp() * max(effective_spp, 1.f);
-        auto strength = max(max(max(rgb.x, rgb.y), rgb.z), 0.f);
+        auto abs_rgb = abs(rgb);
+        auto strength = max(max(max(abs_rgb.x, abs_rgb.y), abs_rgb.z), 0.f);
         auto c = rgb * (threshold / max(strength, threshold));
-        _image->atomic(pixel_id).x.fetch_add(c.x);
-        _image->atomic(pixel_id).y.fetch_add(c.y);
-        _image->atomic(pixel_id).z.fetch_add(c.z);
-        _image->atomic(pixel_id).w.fetch_add(effective_spp);
+        $if(any(c != 0.f)) {
+            _image->atomic(pixel_id).x.fetch_add(c.x);
+            _image->atomic(pixel_id).y.fetch_add(c.y);
+            _image->atomic(pixel_id).z.fetch_add(c.z);
+        };
+        $if(effective_spp != 0.f) {
+            _image->atomic(pixel_id).w.fetch_add(effective_spp);
+        };
     }
     $else {
         if (node<ColorFilm>()->warn_nan()) {
@@ -145,7 +160,7 @@ Film::Accumulation ColorFilmInstance::read(Expr<uint2> pixel) const noexcept {
     return {.average = scale * c.xyz(), .sample_count = c.w};
 }
 
-void ColorFilmInstance::release() const noexcept {
+void ColorFilmInstance::release() noexcept {
     _image = {};
     _converted = {};
 }

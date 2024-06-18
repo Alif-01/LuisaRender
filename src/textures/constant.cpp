@@ -18,27 +18,6 @@ private:
     bool _black{false};
     bool _should_inline;
 
-// void _build_constant(
-//     SceneNodeDesc::SourceLocation l, float scale, const luisa::vector<float> &ov
-// ) noexcept {
-//     luisa::vector<float> v(ov.begin(), ov.end());
-//     if (v.empty()) [[unlikely]] {
-//         LUISA_WARNING(
-//             "No value for ConstantTexture. Fallback to single-channel zero. [{}]",
-//             l.string());
-//         v.emplace_back(0.f);
-//     } else if (v.size() > 4u) [[unlikely]] {
-//         LUISA_WARNING(
-//             "Too many values (count = {}) for ConstantTexture. "
-//             "Additional values will be discarded. [{}]",
-//             v.size(), l.string());
-//         v.resize(4u);
-//     }
-//     _channels = v.size();
-//     for (auto i = 0u; i < v.size(); i++) { _v[i] = scale * v[i]; }
-//     _black = all(_v == 0.f);
-// }
-
 public:
     ConstantTexture(Scene *scene, const SceneNodeDesc *desc) noexcept
         : Texture{scene, desc},
@@ -58,7 +37,8 @@ public:
             LUISA_ERROR_WITH_LOCATION("Invalid color info!");
         auto constant_info = texture_info.constant_info.get();
 
-        _v = build_constant(constant_info->constant);
+        luisa::vector<float> v(constant_info->constant);
+        _v = build_constant(v);
         _black = all(_v == 0.f);
         _channels = constant_info->constant.size();
     }
@@ -67,6 +47,7 @@ public:
     [[nodiscard]] bool is_black() const noexcept override { return _black; }
     [[nodiscard]] bool is_constant() const noexcept override { return true; }
     [[nodiscard]] bool should_inline() const noexcept { return _should_inline; }
+    [[nodiscard]] uint2 resolution() const noexcept override { return make_uint2(1u); }
     [[nodiscard]] optional<float4> evaluate_static() const noexcept override {
         return _should_inline ? luisa::make_optional(_v) : luisa::nullopt;
     }
@@ -94,7 +75,6 @@ public:
         }
     }
     [[nodiscard]] Float4 evaluate(const Interaction &it,
-                                  const SampledWavelengths &swl,
                                   Expr<float> time) const noexcept override {
         if (auto texture = node<ConstantTexture>();
             texture->should_inline()) { return texture->v(); }

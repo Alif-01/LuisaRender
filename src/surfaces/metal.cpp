@@ -56,6 +56,9 @@ public:
           _roughness{scene->load_texture(desc->property_node_or_default("roughness"))},
           _kd{scene->load_texture(desc->property_node_or_default("Kd"))},
           _remap_roughness{desc->property_bool_or_default("remap_roughness", true)} {
+        LUISA_ASSERT(_roughness->channels() == 1u || _roughness->channels() == 2u,
+            "Invalid roughness texture channel count: {}.",
+            _roughness->channels());
         if (auto eta_name = desc->property_string_or_default("eta"); !eta_name.empty()) {
             _get_eta_from_name(eta_name);
         } else {
@@ -153,6 +156,8 @@ private:
             _ior = _register_eta_k("__internal_ior_VN", ior::VN);
         } else if (eta_name == "li" || eta_name == "lithium") {
             _ior = _register_eta_k("__internal_ior_Li", ior::Li);
+        } else if (eta_name == "cr" || eta_name == "chromium") {
+            _ior = register_eta_k("__internal_ior_Cr", ior::Cr);
         } else [[unlikely]] {
             LUISA_WARNING_WITH_LOCATION(
                 "Unknown metal '{}'. Fallback to Aluminium", eta_name);
@@ -259,7 +264,7 @@ private:
         auto f = lobe.evaluate(wo_local, wi_local, mode);
         f *= ctx.refl;
         auto pdf = lobe.pdf(wo_local, wi_local, mode);
-        return {.f = f * abs_cos_theta(wi_local), .pdf = pdf};
+        return {.f = f * abs_cos_theta(wi_local), .pdf = pdf, .f_diffuse = SampledSpectrum{swl().dimension()}, .pdf_diffuse = 0.f};
     }
     [[nodiscard]] Surface::Sample _sample(Expr<float3> wo, Expr<float>, Expr<float2> u,
                                           TransportMode mode) const noexcept override {
@@ -276,7 +281,7 @@ private:
                              u, std::addressof(pdf), mode);
         f *= ctx.refl;
         auto wi = it.shading().local_to_world(wi_local);
-        return {.eval = {.f = f * abs_cos_theta(wi_local), .pdf = pdf},
+        return {.eval = {.f = f * abs_cos_theta(wi_local), .pdf = pdf, .f_diffuse = SampledSpectrum{swl().dimension()}, .pdf_diffuse = 0.f},
                 .wi = wi,
                 .event = Surface::event_reflect};
     }
@@ -293,7 +298,7 @@ void MetalInstance::populate_closure(Surface::Closure *closure, const Interactio
     auto time = closure->time();
     auto alpha = def(make_float2(.5f));
     if (_roughness != nullptr) {
-        auto r = _roughness->evaluate(it, swl, time);
+        auto r = _roughness->evaluate(it, time);
         auto remap = node<MetalSurface>()->remap_roughness();
         auto r2a = [](auto &&x) noexcept { return TrowbridgeReitzDistribution::roughness_to_alpha(x); };
         alpha = _roughness->node()->channels() == 1u ?

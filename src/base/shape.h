@@ -4,8 +4,7 @@
 
 #pragma once
 
-#include <luisa/runtime/rtx/mesh.h>
-#include <util/half.h>
+#include <runtime/rtx/mesh.h>
 #include <util/vertex.h>
 #include <base/scene_node.h>
 #include <base/raw_type.h>
@@ -37,6 +36,7 @@ public:
     static constexpr auto property_flag_has_surface = 1u << 2u;
     static constexpr auto property_flag_has_light = 1u << 3u;
     static constexpr auto property_flag_has_medium = 1u << 4u;
+    static constexpr auto property_flag_maybe_non_opaque = 1u << 5u;
 
 private:
     const Surface *_surface;
@@ -205,6 +205,7 @@ public:
     [[nodiscard]] auto has_light() const noexcept { return test_property_flag(luisa::render::Shape::property_flag_has_light); }
     [[nodiscard]] auto has_surface() const noexcept { return test_property_flag(luisa::render::Shape::property_flag_has_surface); }
     [[nodiscard]] auto has_medium() const noexcept { return test_property_flag(luisa::render::Shape::property_flag_has_medium); }
+    [[nodiscard]] auto maybe_non_opaque() const noexcept { return test_property_flag(luisa::render::Shape::property_flag_maybe_non_opaque); }
     [[nodiscard]] auto shadow_terminator_factor() const noexcept { return _shadow_terminator; }
     [[nodiscard]] auto intersection_offset_factor() const noexcept { return _intersection_offset; }
     [[nodiscard]] auto clamp_normal_factor() const noexcept { return _clamp_normal; }

@@ -72,6 +72,7 @@ public:
     }
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] uint channels() const noexcept override { return _swizzle >> 16u; }
+    [[nodiscard]] uint2 resolution() const noexcept override { return _base->resolution(); }
     [[nodiscard]] luisa::unique_ptr<Instance> build(
         Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept override;
 };
@@ -86,9 +87,8 @@ public:
                            const Texture::Instance *base) noexcept
         : Texture::Instance{pipeline, node}, _base{base} {}
     [[nodiscard]] Float4 evaluate(const Interaction &it,
-                                  const SampledWavelengths &swl,
                                   Expr<float> time) const noexcept override {
-        auto v = _base->evaluate(it, swl, time);
+        auto v = _base->evaluate(it, time);
         switch (auto n = node<SwizzleTexture>(); n->channels()) {
             case 1u: return make_float4(v[n->swizzle(0u)]);
             case 2u: return make_float4(v[n->swizzle(0u)], v[n->swizzle(1u)], 0.0f, 1.0f);

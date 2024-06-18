@@ -38,29 +38,35 @@ luisa::string Surface::Instance::closure_identifier() const noexcept {
 static auto validate_surface_sides(Expr<float3> ng, Expr<float3> ns,
                                    Expr<float3> wo, Expr<float3> wi) noexcept {
     static Callable is_valid = [](Float3 ng, Float3 ns, Float3 wo, Float3 wi) noexcept {
-        auto gs = dot(wo, ng) * dot(wi, ng) > 0.f;
-        auto ss = dot(wo, ns) * dot(wi, ns) > 0.f;
-        return gs == ss;
+        auto flip = sign(dot(ng, ns));
+        return sign(flip * dot(wo, ns)) == sign(dot(wo, ng)) &
+               sign(flip * dot(wi, ns)) == sign(dot(wi, ng));
     };
     return is_valid(ng, ns, wo, wi);
 }
 
 Surface::Evaluation Surface::Closure::evaluate(
     Expr<float3> wo, Expr<float3> wi, TransportMode mode) const noexcept {
-    auto eval = _evaluate(wo, wi, mode);
-    auto valid = validate_surface_sides(it().ng(), it().shading().n(), wo, wi);
-    eval.f = ite(valid, eval.f, 0.f);
-    eval.pdf = ite(valid, eval.pdf, 0.f);
+    auto eval = Surface::Evaluation::zero(swl().dimension());
+    $outline {
+        eval = _evaluate(wo, wi, mode);
+        auto valid = validate_surface_sides(it().ng(), it().shading().n(), wo, wi);
+        eval.f = ite(valid, eval.f, 0.f);
+        eval.pdf = ite(valid, eval.pdf, 0.f);
+    };
     return eval;
 }
 
 Surface::Sample Surface::Closure::sample(Expr<float3> wo,
                                          Expr<float> u_lobe, Expr<float2> u,
                                          TransportMode mode) const noexcept {
-    auto s = _sample(wo, u_lobe, u, mode);
-    auto valid = validate_surface_sides(it().ng(), it().shading().n(), wo, s.wi);
-    s.eval.f = ite(valid, s.eval.f, 0.f);
-    s.eval.pdf = ite(valid, s.eval.pdf, 0.f);
+    auto s = Surface::Sample::zero(swl().dimension());
+    $outline {
+        s = _sample(wo, u_lobe, u, mode);
+        auto valid = validate_surface_sides(it().ng(), it().shading().n(), wo, s.wi);
+        s.eval.f = ite(valid, s.eval.f, 0.f);
+        s.eval.pdf = ite(valid, s.eval.pdf, 0.f);
+    };
     return s;
 }
 

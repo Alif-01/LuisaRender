@@ -2,6 +2,7 @@
 // Created by ChenXin on 2023/3/30.
 //
 
+#include <dsl/rtx/ray.h>
 #include <util/sampling.h>
 #include <base/pipeline.h>
 #include <base/integrator.h>
@@ -60,15 +61,15 @@ protected:
                 "No lights in scene. Rendering aborted.");
             return;
         }
-//        pipeline().printer().set_level_warning();
-//        pipeline().printer().set_log_dispatch_id(make_uint2(430, 350));
+        //        pipeline().printer().set_level_warning();
+        //        pipeline().printer().set_log_dispatch_id(make_uint2(430, 350));
         Instance::_render_one_camera(command_buffer, camera);
     }
 
     [[nodiscard]] UInt _event(const SampledWavelengths &swl, luisa::shared_ptr<Interaction> it, Expr<float> time,
                               Expr<float3> wo, Expr<float3> wi) const noexcept {
         Float3 wo_local, wi_local;
-        $if(it->shape().has_surface()) {
+        $if (it->shape().has_surface()) {
             PolymorphicCall<Surface::Closure> call;
             pipeline().surfaces().dispatch(it->shape().surface_tag(), [&](auto surface) noexcept {
                 surface->closure(call, *it, swl, wo, 1.f, time);
@@ -104,11 +105,11 @@ protected:
         transmittance.pdf = 0.f;
 
         // trace shadow ray
-        $while(any(transmittance.f > 0.f)) {
+        $while (any(transmittance.f > 0.f)) {
             auto it = pipeline().geometry()->intersect(ray);
 
             // end tracing
-            $if(!it->valid()) { $break; };
+            $if (!it->valid()) { $break; };
 
             auto t2surface = length(it->p() - ray->origin());
             auto has_medium = it->shape().has_medium();
@@ -119,7 +120,7 @@ protected:
             auto surface_event = _event(swl, it, time, wo, wi);
 
             // transmittance through medium
-            $if(!medium_tracker.vacuum()) {
+            $if (!medium_tracker.vacuum()) {
                 pipeline().media().dispatch(medium_tracker.current().medium_tag, [&](auto medium) {
                     medium_priority = medium->priority();
                     auto closure = medium->closure(ray, swl, time);
@@ -130,12 +131,12 @@ protected:
             };
 
             // update medium tracker
-            $if(has_medium) {
+            $if (has_medium) {
                 pipeline().media().dispatch(medium_tag, [&](auto medium) {
                     medium_priority = medium->priority();
                 });
                 auto medium_info = make_medium_info(medium_priority, medium_tag);
-                $if(surface_event == Surface::event_exit) {
+                $if (surface_event == Surface::event_exit) {
                     medium_tracker.exit(medium_priority, medium_info);
                 }
                 $else {
@@ -144,32 +145,22 @@ protected:
             };
 
             // hit solid/transmissive surface
-            $if(it->shape().has_surface()) {
+            $if (it->shape().has_surface()) {
                 auto surface_tag = it->shape().surface_tag();
                 PolymorphicCall<Surface::Closure> call;
                 pipeline().surfaces().dispatch(surface_tag, [&](auto surface) noexcept {
                     surface->closure(call, *it, swl, wo, 1.f, time);
                 });
                 call.execute([&](auto closure) noexcept {
-                    // alpha skip
-                    if (auto o = closure->opacity()) {
-                        auto opacity = saturate(*o);
-                        auto completely_opaque = opacity == 1.f;
-                        transmittance.f = ite(completely_opaque, 0.f, transmittance.f);
-                        transmittance.pdf = ite(completely_opaque, 1e16f, transmittance.pdf + 1.f / (1.f - opacity));
-                    }
-                    // surface transmit
-                    else {
-                        auto surface_evaluation = closure->evaluate(wo, wi);
-                        transmittance.f *= surface_evaluation.f;
-                        transmittance.pdf += surface_evaluation.pdf;
-                    }
+                    auto surface_evaluation = closure->evaluate(wo, wi);
+                    transmittance.f *= surface_evaluation.f;
+                    transmittance.pdf += surface_evaluation.pdf;
                 });
             };
 
             ray = it->spawn_ray_to(light_p);
 
-            pipeline().printer().verbose_with_location(
+            device_log(
                 "transmittance: f=({}, {}, {}), pdf={}",
                 transmittance.f[0u], transmittance.f[1u], transmittance.f[2u], transmittance.pdf);
         };
@@ -188,10 +179,11 @@ protected:
         SampledSpectrum beta{swl.dimension(), camera_weight};
         SampledSpectrum Li{swl.dimension(), 0.f};
         auto rr_depth = node<MegakernelVolumePathTracingNaive>()->rr_depth();
-        auto medium_tracker = MediumTracker(pipeline().printer());
+        MediumTracker medium_tracker;
 
         // Initialize RNG for sampling the majorant transmittance
-        PCG32 rng(U64(as<UInt2>(sampler()->generate_2d())));
+        auto u = as<uint2>(sampler()->generate_2d());
+        PCG32 rng{(cast<ulong>(u.x) << 32ull) | cast<ulong>(u.y)};
 
         // initialize medium tracker
         auto env_medium_tag = pipeline().environment_medium_tag();
@@ -203,13 +195,13 @@ protected:
 #ifdef VPT_NAIVE_ENABLE_MEDIUM_STACK_INIT
         // TODO: bug in initialization of medium tracker where the angle between shared edge is small
         auto depth_track = def<uint>(0u);
-        $while(true) {
+        $while (true) {
             auto it = pipeline().geometry()->intersect(ray);
-            $if(!it->valid()) { $break; };
+            $if (!it->valid()) { $break; };
 
-            pipeline().printer().verbose_with_location("depth={}", depth_track);
+            device_log("depth={}", depth_track);
 
-            $if(it->shape().has_medium()) {
+            $if (it->shape().has_medium()) {
                 auto surface_tag = it->shape().surface_tag();
                 auto medium_tag = it->shape().medium_tag();
 
@@ -222,67 +214,66 @@ protected:
                 // deal with medium tracker
                 auto surface_event = _event(swl, it, time, -ray->direction(), ray->direction());
                 pipeline().surfaces().dispatch(surface_tag, [&](auto surface) {
-                    pipeline().printer().verbose_with_location("surface event={}", surface_event);
+                    device_log("surface event={}", surface_event);
                     // update medium tracker
-                    $switch(surface_event) {
-                        $case(Surface::event_enter) {
+                    $switch (surface_event) {
+                        $case (Surface::event_enter) {
                             medium_tracker.enter(medium_priority, medium_info);
-                            pipeline().printer().verbose_with_location("enter: priority={}, medium_tag={}", medium_priority, medium_tag);
+                            device_log("enter: priority={}, medium_tag={}", medium_priority, medium_tag);
                         };
-                        $case(Surface::event_exit) {
-                            $if(medium_tracker.exist(medium_priority, medium_info)) {
+                        $case (Surface::event_exit) {
+                            $if (medium_tracker.exist(medium_priority, medium_info)) {
                                 medium_tracker.exit(medium_priority, medium_info);
-                                pipeline().printer().verbose_with_location("exit exist: priority={}, medium_tag={}", medium_priority, medium_tag);
+                                device_log("exit exist: priority={}, medium_tag={}", medium_priority, medium_tag);
                             }
                             $else {
                                 medium_tracker.enter(medium_priority, medium_info);
-                                pipeline().printer().verbose_with_location("exit nonexistent: priority={}, medium_tag={}", medium_priority, medium_tag);
+                                device_log("exit nonexistent: priority={}, medium_tag={}", medium_priority, medium_tag);
                             };
                         };
                     };
                 });
             };
-            pipeline().printer().verbose_with_location("medium tracker size={}", medium_tracker.size());
+            device_log("medium tracker size={}", medium_tracker.size());
             auto dir = ray->direction();
             auto origin = ray->origin();
-            pipeline().printer().verbose_with_location("ray->origin()=({}, {}, {})", origin.x, origin.y, origin.z);
-            pipeline().printer().verbose_with_location("ray->direction()=({}, {}, {})", dir.x, dir.y, dir.z);
-            pipeline().printer().verbose_with_location("it->p()=({}, {}, {})", it->p().x, it->p().y, it->p().z);
-            pipeline().printer().verbose_with_location("it->shape().has_medium()={}", it->shape().has_medium());
+            device_log("ray->origin()=({}, {}, {})", origin.x, origin.y, origin.z);
+            device_log("ray->direction()=({}, {}, {})", dir.x, dir.y, dir.z);
+            device_log("it->p()=({}, {}, {})", it->p().x, it->p().y, it->p().z);
+            device_log("it->shape().has_medium()={}", it->shape().has_medium());
             pipeline().printer().verbose("");
             ray = it->spawn_ray(ray->direction());
             depth_track += 1u;
         };
 #endif
-        pipeline().printer().verbose_with_location("Final medium tracker size={}", medium_tracker.size());
-        pipeline().printer().verbose("");
+        device_log("Final medium tracker size={}", medium_tracker.size());
 
         ray = camera_ray;
         auto pdf_bsdf = def(1e16f);
         auto eta_scale = def(1.f);
         auto max_depth = node<MegakernelVolumePathTracingNaive>()->max_depth();
-        $for(depth, max_depth) {
+        $for (depth, max_depth) {
             auto eta = def(1.f);
             auto u_rr = def(0.f);
-            $if(depth + 1u >= rr_depth) { u_rr = sampler()->generate_1d(); };
+            $if (depth + 1u >= rr_depth) { u_rr = sampler()->generate_1d(); };
 
             // trace
             auto it = pipeline().geometry()->intersect(ray);
             auto has_medium = it->shape().has_medium();
             auto t_max = ite(it->valid(), length(it->p() - ray->origin()), Interaction::default_t_max);
 
-            pipeline().printer().verbose_with_location("depth={}", depth);
-            pipeline().printer().verbose_with_location("before: medium tracker size={}, priority={}, tag={}",
-                                                       medium_tracker.size(), medium_tracker.current().priority, medium_tracker.current().medium_tag);
-            pipeline().printer().verbose_with_location(
+            device_log("depth={}", depth);
+            device_log("before: medium tracker size={}, priority={}, tag={}",
+                       medium_tracker.size(), medium_tracker.current().priority, medium_tracker.current().medium_tag);
+            device_log(
                 "ray=({}, {}, {}) + t * ({}, {}, {})",
                 ray->origin().x, ray->origin().y, ray->origin().z,
                 ray->direction().x, ray->direction().y, ray->direction().z);
-            pipeline().printer().verbose_with_location("it->p()=({}, {}, {})", it->p().x, it->p().y, it->p().z);
+            device_log("it->p()=({}, {}, {})", it->p().x, it->p().y, it->p().z);
 
             auto medium_sample = Medium::Sample::zero(swl.dimension());
             // sample the participating medium
-            $if(!medium_tracker.vacuum()) {
+            $if (!medium_tracker.vacuum()) {
 #ifdef VPT_NAIVE_ENABLE_DIRECT_LIGHTING
                 // direct light
                 // generate uniform samples
@@ -296,7 +287,7 @@ protected:
 
                 // trace shadow ray
                 auto transmittance_evaluation = _transmittance(frame_index, pixel_id, time, swl, rng, medium_tracker, light_sample.shadow_ray);
-                $if(transmittance_evaluation.pdf > 0.f) {
+                $if (transmittance_evaluation.pdf > 0.f) {
                     auto w = 1.f / (pdf_bsdf + transmittance_evaluation.pdf + light_sample.eval.pdf);
                     Li += w * beta * transmittance_evaluation.f * light_sample.eval.L;
                 };
@@ -320,9 +311,9 @@ protected:
             };
 
             // sample the surface
-            $if((medium_sample.medium_event == Medium::event_invalid) | (medium_sample.medium_event == Medium::event_hit_surface)) {
+            $if ((medium_sample.medium_event == Medium::event_invalid) | (medium_sample.medium_event == Medium::event_hit_surface)) {
                 // miss, environment light
-                $if(!it->valid()) {
+                $if (!it->valid()) {
                     if (pipeline().environment()) {
                         auto eval = light_sampler()->evaluate_miss(ray->direction(), swl, time);
                         Li += beta * eval.L * balance_heuristic(pdf_bsdf, eval.pdf);
@@ -332,10 +323,10 @@ protected:
 
                 // hit light
                 if (!pipeline().lights().empty()) {
-                    $if(it->shape().has_light()) {
+                    $if (it->shape().has_light()) {
                         auto eval = light_sampler()->evaluate_hit(*it, ray->origin(), swl, time);
                         Li += beta * eval.L * balance_heuristic(pdf_bsdf, eval.pdf);
-                        pipeline().printer().verbose_with_location(
+                        device_log(
                             "hit light: "
                             "pdf_bsdf={},"
                             "eval.pdf={}, "
@@ -351,7 +342,7 @@ protected:
                 }
 
                 // hit ordinary surface
-                $if(!it->shape().has_surface()) { $break; };
+                $if (!it->shape().has_surface()) { $break; };
 
                 // generate uniform samples
                 auto u_light_selection = sampler()->generate_1d();
@@ -373,12 +364,12 @@ protected:
                 auto medium_tag = it->shape().medium_tag();
                 auto medium_priority = def(Medium::VACUUM_PRIORITY);
                 auto eta_next = def(1.f);
-                $if(has_medium) {
+                $if (has_medium) {
                     pipeline().media().dispatch(medium_tag, [&](auto medium) {
                         auto closure = medium->closure(ray, swl, time);
                         medium_priority = medium->priority();
                         eta_next = closure->eta();
-                        pipeline().printer().verbose_with_location("eta_next={}", eta_next);
+                        device_log("eta_next={}", eta_next);
                     });
                 };
                 auto medium_info = make_medium_info(medium_priority, medium_tag);
@@ -393,30 +384,22 @@ protected:
                     surface->closure(call, *it, swl, wo, eta, time);
                 });
                 call.execute([&](auto closure) noexcept {
-                    // apply opacity map
-                    auto alpha_skip = def(false);
-                    if (auto o = closure->opacity()) {
-                        auto opacity = saturate(*o);
-                        alpha_skip = u_lobe >= opacity;
-                        u_lobe = ite(alpha_skip, (u_lobe - opacity) / (1.f - opacity), u_lobe / opacity);
-                    }
-
                     UInt surface_event;
-                    $if(alpha_skip | !medium_tracker.true_hit(medium_info.medium_tag)) {
+                    $if (!medium_tracker.true_hit(medium_info.medium_tag)) {
                         surface_event = surface_event_skip;
                         ray = it->spawn_ray(ray->direction());
                         pdf_bsdf = 1e16f;
                     }
                     $else {
                         if (auto dispersive = closure->is_dispersive()) {
-                            $if(*dispersive) { swl.terminate_secondary(); };
+                            $if (*dispersive) { swl.terminate_secondary(); };
                         }
 
                         // direct lighting
 #ifdef VPT_NAIVE_ENABLE_DIRECT_LIGHTING
-                        $if(light_sample.eval.pdf > 0.0f) {
+                        $if (light_sample.eval.pdf > 0.0f) {
 #else
-                        $if(light_sample.eval.pdf > 0.0f & !occluded) {
+                        $if (light_sample.eval.pdf > 0.0f & !occluded) {
 #endif
                             auto wi = light_sample.shadow_ray->direction();
                             auto eval = closure->evaluate(wo, wi);
@@ -427,7 +410,7 @@ protected:
                             auto w = 1.f / (light_sample.eval.pdf + eval.pdf);
                             Li += w * beta * eval.f * light_sample.eval.L;
 #endif
-                            pipeline().printer().verbose_with_location(
+                            device_log(
                                 "direct lighting: "
                                 "eval.f=({}, {}, {}), "
                                 "eval.pdf={}, "
@@ -451,53 +434,52 @@ protected:
                         beta *= w * surface_sample.eval.f;
 
                         // apply eta scale & update medium tracker
-                        $if(has_medium) {
-                            $switch(surface_event) {
-                                $case(Surface::event_enter) {
+                        $if (has_medium) {
+                            $switch (surface_event) {
+                                $case (Surface::event_enter) {
                                     eta_scale = sqr(eta_next / eta);
                                 };
-                                $case(Surface::event_exit) {
+                                $case (Surface::event_exit) {
                                     eta_scale = sqr(eta / eta_next);
                                 };
                             };
                         };
                     };
 
-                    $if(has_medium) {
-                        $switch(surface_event) {
-                            $case(Surface::event_enter) {
+                    $if (has_medium) {
+                        $switch (surface_event) {
+                            $case (Surface::event_enter) {
                                 medium_tracker.enter(medium_priority, medium_info);
                             };
-                            $case(Surface::event_exit) {
+                            $case (Surface::event_exit) {
                                 medium_tracker.exit(medium_priority, medium_info);
                             };
                         };
                     };
 
-                    pipeline().printer().verbose_with_location(
+                    device_log(
                         "surface event={}, priority={}, tag={}",
                         surface_event, medium_priority, medium_tag);
                 });
             };
 
-            pipeline().printer().verbose_with_location(
+            device_log(
                 "medium event={}, beta=({}, {}, {}), pdf_bsdf={}, Li=({}, {}, {})",
                 medium_sample.medium_event, beta[0u], beta[1u], beta[2u], pdf_bsdf, Li[0u], Li[1u], Li[2u]);
 
             beta = zero_if_any_nan(beta);
-            $if(all(beta <= 0.f)) { $break; };
+            $if (all(beta <= 0.f)) { $break; };
             // rr
             auto rr_threshold = node<MegakernelVolumePathTracingNaive>()->rr_threshold();
             auto q = max(beta.max() * eta_scale, .05f);
-            $if(depth + 1u >= rr_depth) {
-                $if(q < rr_threshold & u_rr >= q) { $break; };
+            $if (depth + 1u >= rr_depth) {
+                $if (q < rr_threshold & u_rr >= q) { $break; };
                 beta *= ite(q < rr_threshold, 1.0f / q, 1.f);
             };
 
-            pipeline().printer().verbose_with_location("beta=({}, {}, {})", beta[0u], beta[1u], beta[2u]);
-            pipeline().printer().verbose_with_location("after: medium tracker size={}, priority={}, tag={}",
-                                                       medium_tracker.size(), medium_tracker.current().priority, medium_tracker.current().medium_tag);
-            pipeline().printer().verbose("");
+            device_log("beta=({}, {}, {})", beta[0u], beta[1u], beta[2u]);
+            device_log("after: medium tracker size={}, priority={}, tag={}",
+                       medium_tracker.size(), medium_tracker.current().priority, medium_tracker.current().medium_tag);
         };
         return spectrum->srgb(swl, Li);
     }

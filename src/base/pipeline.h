@@ -45,7 +45,6 @@ using compute::Image;
 using compute::Mesh;
 using compute::PixelStorage;
 using compute::Polymorphic;
-using compute::Printer;
 using compute::Ray;
 using compute::Resource;
 using compute::Triangle;
@@ -99,9 +98,8 @@ private:
     bool _transforms_updated{false};
 
     // other things
-    luisa::unique_ptr<Printer> _printer;
     float _initial_time{};
-    // float _clamp_normal{};   // cos angle > clamp
+    bool _any_non_opaque_surface{false};
 
 public:
     // for internal use only; use Pipeline::create() instead
@@ -193,7 +191,6 @@ public:
     /* buffer view, resource id, bindless id */
     template<typename T>
     [[nodiscard]] std::tuple<BufferView<T>, uint, uint> bindless_buffer(size_t n) noexcept {
-        // auto view = arena_buffer<T>(n);
         auto [buffer, buffer_index] = create_with_index<Buffer<T>>(n);
         auto view = buffer->view();
         auto buffer_id = register_bindless(view);
@@ -221,7 +218,7 @@ public:
     [[nodiscard]] auto spectrum() const noexcept { return _spectrum.get(); }
     [[nodiscard]] auto geometry() const noexcept { return _geometry.get(); }
     [[nodiscard]] auto has_lighting() const noexcept { return !_lights.empty() || _environment != nullptr; }
-    // [[nodiscard]] auto clamp_normal() const noexcept { return _clamp_normal; }
+    [[nodiscard]] auto has_non_opaque_surfaces() const noexcept { return _any_non_opaque_surface; }
     [[nodiscard]] const Texture::Instance *build_texture(CommandBuffer &command_buffer, const Texture *texture) noexcept;
     [[nodiscard]] const Filter::Instance *build_filter(CommandBuffer &command_buffer, const Filter *filter) noexcept;
     [[nodiscard]] const PhaseFunction::Instance *build_phasefunction(CommandBuffer &command_buffer, const PhaseFunction *phasefunction) noexcept;
@@ -229,8 +226,6 @@ public:
     [[nodiscard]] bool update(CommandBuffer &command_buffer, float time) noexcept;
     void render(Stream &stream) noexcept;
     [[nodiscard]] luisa::unique_ptr<luisa::vector<float4>> render_to_buffer(Stream &stream, uint camera_index) noexcept;
-    [[nodiscard]] auto &printer() noexcept { return *_printer; }
-    [[nodiscard]] auto &printer() const noexcept { return *_printer; }
     [[nodiscard]] uint named_id(luisa::string_view name) const noexcept;
     template<typename T, typename I>
     [[nodiscard]] auto buffer(I &&i) const noexcept { return _bindless_array->buffer<T>(std::forward<I>(i)); }

@@ -58,6 +58,15 @@ public:
         }
         return std::min(on_channels, off_channels);
     }
+    [[nodiscard]] uint2 resolution() const noexcept override {
+        auto res = make_uint2(1u);
+        if (_on != nullptr) {
+            res = max(_on->resolution(), res);
+        } else if (_off != nullptr) {
+            res = max(_off->resolution(), res);
+        }
+        return res;
+    }
     [[nodiscard]] auto scale() const noexcept { return _scale; }
     [[nodiscard]] luisa::unique_ptr<Instance> build(
         Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept override;
@@ -80,14 +89,13 @@ public:
                                 const Texture::Instance *on, const Texture::Instance *off) noexcept
         : Texture::Instance{pipeline, node}, _on{on}, _off{off} {}
     [[nodiscard]] Float4 evaluate(const Interaction &it,
-                                  const SampledWavelengths &swl,
                                   Expr<float> time) const noexcept override {
         auto value = def(make_float4());
         $if(_select(it.uv())) {
-            value = _on == nullptr ? make_float4(1.f) : _on->evaluate(it, swl, time);
+            value = _on == nullptr ? make_float4(1.f) : _on->evaluate(it, time);
         }
         $else {
-            value = _off == nullptr ? make_float4(0.f) : _off->evaluate(it, swl, time);
+            value = _off == nullptr ? make_float4(0.f) : _off->evaluate(it, time);
         };
         return value;
     }

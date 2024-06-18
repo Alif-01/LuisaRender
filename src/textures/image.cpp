@@ -4,10 +4,8 @@
 
 #include <util/thread_pool.h>
 #include <util/imageio.h>
-#include <util/half.h>
 #include <base/texture.h>
 #include <base/pipeline.h>
-#include <base/scene.h>
 #include <textures/constant_base.h>
 
 namespace luisa::render {
@@ -24,7 +22,7 @@ public:
     };
 
 private:
-    std::shared_future<LoadedImage> _image;
+    std::shared_future<LoadedImage> _image;// TODO: release host memory after all builds
     float2 _uv_scale;
     float2 _uv_offset;
     TextureSampler _sampler{};
@@ -36,7 +34,11 @@ private:
 private:
     void _load_image(std::filesystem::path path) noexcept {
         _image = global_thread_pool().async([path = std::move(path)] {
-            return LoadedImage::load(path);
+            auto image = LoadedImage::load(path);
+            LUISA_ASSERT(all(image.size() > 0u),
+                         "Invalid image resolution for '{}'.",
+                         path.string());
+            return image;
         });
     }
     
@@ -140,7 +142,8 @@ public:
             LUISA_ERROR_WITH_LOCATION("Invalid image info!");
         auto image_info = texture_info.image_info.get();
 
-        _scale = build_constant(image_info->scale);
+        luisa::vector<float> s(image_info->scale);
+        _scale = build_constant(s);
         std::filesystem::path path = image_info->image;
         auto encoding = _get_encoding(path);
         for (auto &c : encoding) { c = static_cast<char>(tolower(c)); }
@@ -157,6 +160,7 @@ public:
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] bool is_black() const noexcept override { return all(_scale == 0.f); }
     [[nodiscard]] bool is_constant() const noexcept override { return false; }
+    [[nodiscard]] uint2 resolution() const noexcept override { return _image.get().size(); }
     [[nodiscard]] auto scale() const noexcept { return _scale; }
     [[nodiscard]] auto gamma() const noexcept { return _gamma; }
     [[nodiscard]] auto uv_scale() const noexcept { return _uv_scale; }
@@ -192,8 +196,9 @@ private:
             return scale * linear;
         }
         if (encoding == ImageTexture::Encoding::GAMMA) {
+            auto rgb = rgba.xyz();
             auto gamma = texture->gamma();
-            return scale * pow(rgba, gamma);
+            return make_float4(scale * pow(rgb, gamma), rgba.w);
         }
         return scale * rgba;
     }
@@ -205,7 +210,7 @@ public:
         : Texture::Instance{pipeline, texture},
           _texture_id{texture_id} {}
     [[nodiscard]] Float4 evaluate(
-        const Interaction &it, const SampledWavelengths &swl, Expr<float> time) const noexcept override {
+        const Interaction &it, Expr<float> time) const noexcept override {
         auto uv = _compute_uv(it);
         auto v = pipeline().tex2d(_texture_id).sample(uv);  // TODO: LOD
         return _decode(v);

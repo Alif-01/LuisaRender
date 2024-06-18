@@ -2,8 +2,7 @@
 // Created by Mike Smith on 2022/2/9.
 //
 
-#include <luisa/dsl/sugar.h>
-#include <util/u64.h>
+#include <dsl/sugar.h>
 #include <util/sobolmatrices.h>
 #include <base/sampler.h>
 #include <base/pipeline.h>
@@ -29,15 +28,15 @@ public:
 private:
     uint _log2_spp{};
     luisa::optional<UInt> _dimension{};
-    luisa::optional<U64> _morton_index{};
+    luisa::optional<ULong> _morton_index{};
     luisa::unique_ptr<Constant<uint2>> _sample_hash;
     Buffer<uint> _sobol_matrices;
     Buffer<uint3> _state_buffer;
-    luisa::unique_ptr<Callable<uint2(uint2, uint)>> _get_sample_index_impl;
+    luisa::unique_ptr<Callable<ulong(ulong, uint)>> _get_sample_index_impl;
 
 private:
     [[nodiscard]] auto _get_sample_index() const noexcept {
-        return U64{(*_get_sample_index_impl)(_morton_index->bits(), *_dimension)};
+        return (*_get_sample_index_impl)(*_morton_index, *_dimension);
     }
 
     [[nodiscard]] static auto _fast_owen_scramble(UInt seed, UInt v) noexcept {
@@ -50,20 +49,19 @@ private:
         return reverse(v);
     }
 
-    [[nodiscard]] auto _sobol_sample(U64 a, uint dimension, Expr<uint> hash) const noexcept {
-        static Callable impl = [](UInt2 a_bits, UInt dimension, UInt hash, BufferVar<uint> sobol_matrices) noexcept {
-            auto a = U64{a_bits};
+    [[nodiscard]] auto _sobol_sample(ULong a, uint dimension, Expr<uint> hash) const noexcept {
+        static Callable impl = [](ULong a, UInt dimension, UInt hash, BufferVar<uint> sobol_matrices) noexcept {
             auto v = def(0u);
             auto i = def(dimension * SobolMatrixSize);
-            $while(a != 0u) {
-                v = ite((a & 1u) != 0u, v ^ sobol_matrices.read(i), v);
+            $while (a != 0ull) {
+                v = ite((a & 1ull) != 0ull, v ^ sobol_matrices.read(i), v);
                 a = a >> 1u;
                 i += 1u;
             };
             v = _fast_owen_scramble(hash, v);
             return min(v * 0x1p-32f, one_minus_epsilon);
         };
-        return impl(a.bits(), dimension, hash, _sobol_matrices.view());
+        return impl(a, dimension, hash, _sobol_matrices.view());
     }
 
 public:
@@ -88,7 +86,7 @@ public:
                 "Non power-of-two samples per pixel "
                 "is not optimal for Sobol' sampler.");
         }
-        if (_state_buffer.size() < state_count) {
+        if (!_state_buffer || _state_buffer.size() < state_count) {
             _state_buffer = pipeline().device().create_buffer<uint3>(
                 next_pow2(state_count));
         }
@@ -96,8 +94,8 @@ public:
             return std::bit_width(next_pow2(x)) - 1u;
         };
         _log2_spp = log2(spp);
-        _get_sample_index_impl = luisa::make_unique<Callable<uint2(uint2, uint)>>(
-            [this, resolution](UInt2 morton, UInt dimension) noexcept {
+        _get_sample_index_impl = luisa::make_unique<Callable<ulong(ulong, uint)>>(
+            [this, resolution](ULong morton_index, UInt dimension) noexcept {
                 static Constant<uint4> permutations{std::array{
                     make_uint4(0, 1, 2, 3), make_uint4(0, 1, 3, 2), make_uint4(0, 2, 1, 3), make_uint4(0, 2, 3, 1),
                     make_uint4(0, 3, 2, 1), make_uint4(0, 3, 1, 2), make_uint4(1, 0, 2, 3), make_uint4(1, 0, 3, 2),
@@ -105,63 +103,64 @@ public:
                     make_uint4(2, 1, 0, 3), make_uint4(2, 1, 3, 0), make_uint4(2, 0, 1, 3), make_uint4(2, 0, 3, 1),
                     make_uint4(2, 3, 0, 1), make_uint4(2, 3, 1, 0), make_uint4(3, 1, 2, 0), make_uint4(3, 1, 0, 2),
                     make_uint4(3, 2, 1, 0), make_uint4(3, 2, 0, 1), make_uint4(3, 0, 2, 1), make_uint4(3, 0, 1, 2)}};
-                static constexpr auto mix_bits = [](U64 v) noexcept {
+                static constexpr auto mix_bits = [](ULong v) noexcept {
                     v = v ^ (v >> 31u);
-                    v = v * U64{0x7fb5d329728ea185ull};
+                    v = v * 0x7fb5d329728ea185ull;
                     v = v ^ (v >> 27u);
-                    v = v * U64{0x81dadef4bc2dd44dull};
-                    v = v ^ (v.hi() >> 1u);
+                    v = v * 0x81dadef4bc2dd44dull;
+                    v = v ^ (v >> 33ull);
                     return v;
                 };
-                U64 sample_index;
+                ULong sample_index;
                 auto log4_spp = (_log2_spp + 1u) / 2u;
                 auto pow2_samples = static_cast<bool>(_log2_spp & 1u);
                 auto last_digit = pow2_samples ? 1 : 0;
-                auto morton_index = U64{morton};
                 auto num_base4_digits = log2(std::max(resolution.x, resolution.y)) + log4_spp;
                 for (auto i = static_cast<int>(num_base4_digits) - 1; i >= last_digit; i--) {
-                    auto digit_shift = 2u * i - (pow2_samples ? 1u : 0u);
-                    auto digit = (morton_index >> digit_shift) & 3u;
-                    auto higher_digits = morton_index >> (digit_shift + 2u);
-                    auto p = (mix_bits(higher_digits ^ (dimension * 0x55555555u)) >> 24u) % 24u;
-                    U64 perm_digit{permutations.read(p)[digit]};
-                    sample_index = sample_index | (perm_digit << digit_shift);
+                    auto digit_shift = cast<ulong>(2u * i - (pow2_samples ? 1u : 0u));
+                    auto digit = cast<uint>((morton_index >> digit_shift) & 3ull);
+                    auto higher_digits = morton_index >> (digit_shift + 2ull);
+                    auto p = cast<uint>((mix_bits(higher_digits ^ cast<ulong>(dimension * 0x55555555u)) >> 24ull) % 24ull);
+                    auto perm_digit = permutations.read(p)[digit];
+                    sample_index = sample_index | (cast<ulong>(perm_digit) << cast<ulong>(digit_shift));
                 }
                 if (pow2_samples) {
-                    auto digit = (morton_index & 1u) ^
-                                 (mix_bits((morton_index >> 1u) ^ (dimension * 0x55555555u)) & 1u);
-                    sample_index = sample_index | digit;
+                    auto digit = cast<uint>(morton_index & 1ull);
+                    sample_index |= cast<ulong>(digit ^ (cast<uint>(mix_bits((morton_index >> 1ull) ^ cast<ulong>(0x55555555u * dimension))) & 1u));
                 }
-                return sample_index.bits();
+                return sample_index;
             });
     }
     void start(Expr<uint2> pixel, Expr<uint> sample_index) noexcept override {
         static Callable encode_morton = [](UInt x, UInt y) noexcept {
-            static constexpr auto left_shift2 = [](auto x_in) noexcept {
-                U64 x{x_in};
-                x = (x ^ (x << 16u)) & U64{0x0000ffff0000ffffull};
-                x = (x ^ (x << 8u)) & U64{0x00ff00ff00ff00ffull};
-                x = (x ^ (x << 4u)) & U64{0x0f0f0f0f0f0f0f0full};
-                x = (x ^ (x << 2u)) & U64{0x3333333333333333ull};
-                x = (x ^ (x << 1u)) & U64{0x5555555555555555ull};
+            static constexpr auto left_shift2 = [](auto x) noexcept {
+                x = (x ^ (x << 16ull)) & 0x0000ffff0000ffffull;
+                x = (x ^ (x << 8ull)) & 0x00ff00ff00ff00ffull;
+                x = (x ^ (x << 4ull)) & 0x0f0f0f0f0f0f0f0full;
+                x = (x ^ (x << 2ull)) & 0x3333333333333333ull;
+                x = (x ^ (x << 1ull)) & 0x5555555555555555ull;
                 return x;
             };
-            return ((left_shift2(y) << 1u) | left_shift2(x)).bits();
+            return (left_shift2(cast<ulong>(y)) << 1ull) | left_shift2(cast<ulong>(x));
         };
-        _dimension = luisa::nullopt;
-        _morton_index = luisa::nullopt;
-        _dimension = def(0u);
-        _morton_index = (U64{encode_morton(pixel.x, pixel.y)} << _log2_spp) | sample_index;
+        _dimension.emplace(def<uint>(0u));
+        _morton_index.emplace((encode_morton(pixel.x, pixel.y) << static_cast<ulong>(_log2_spp)) |
+                              cast<ulong>(sample_index));
     }
     void save_state(Expr<uint> state_id) noexcept override {
-        auto state = make_uint3(_morton_index->bits(), *_dimension);
+        auto state = make_uint3(
+            cast<uint>(*_morton_index >> 32ull),
+            cast<uint>(*_morton_index),
+            *_dimension);
         _state_buffer->write(state_id, state);
     }
     void load_state(Expr<uint> state_id) noexcept override {
         _dimension = luisa::nullopt;
         _morton_index = luisa::nullopt;
         auto state = _state_buffer->read(state_id);
-        _morton_index = U64{state.xy()};
+        auto morton_high = cast<ulong>(state.x) << 32ull;
+        auto morton_low = cast<ulong>(state.y);
+        _morton_index = morton_high | morton_low;
         _dimension = state.z;
     }
     [[nodiscard]] Float generate_1d() noexcept override {

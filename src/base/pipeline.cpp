@@ -12,8 +12,7 @@ namespace luisa::render {
 inline Pipeline::Pipeline(Device &device) noexcept
     : _device{device},
       _bindless_array{device.create_bindless_array(bindless_array_capacity)},
-      _general_buffer_arena{luisa::make_unique<BufferArena>(device, 16_M)},
-      _printer{luisa::make_unique<compute::Printer>(device)} {}
+      _general_buffer_arena{luisa::make_unique<BufferArena>(device, 16_M)} {}
 
 Pipeline::~Pipeline() noexcept = default;
 
@@ -42,19 +41,11 @@ uint Pipeline::register_medium(CommandBuffer &command_buffer, const Medium *medi
     return tag;
 }
 
-luisa::unique_ptr<Pipeline> Pipeline::create(
-    Device &device, Stream &stream, Scene &scene) noexcept {
+luisa::unique_ptr<Pipeline> Pipeline::create(Device &device, Stream &stream, Scene &scene) noexcept {
     global_thread_pool().synchronize();
     auto pipeline = luisa::make_unique<Pipeline>(device);
     pipeline->_transform_matrices.resize(transform_matrix_buffer_size);
     pipeline->_transform_matrix_buffer = device.create_buffer<float4x4>(transform_matrix_buffer_size);
-    stream << pipeline->printer().reset();
-    CommandBuffer command_buffer{&stream};
-    auto update_bindless_if_dirty = [&pipeline, &command_buffer] {
-        if (pipeline->_bindless_array.dirty()) {
-            command_buffer << pipeline->_bindless_array.update();
-        }
-    };
 
     auto initial_time = std::numeric_limits<float>::max();
     for (auto c : scene.cameras()) {
@@ -63,7 +54,13 @@ luisa::unique_ptr<Pipeline> Pipeline::create(
         }
     }
     pipeline->_initial_time = initial_time;
-    // pipeline->_clamp_normal = scene.clamp_normal();
+
+    CommandBuffer command_buffer{&stream};
+    auto update_bindless_if_dirty = [&pipeline, &command_buffer] {
+        if (pipeline->_bindless_array.dirty()) {
+            command_buffer << pipeline->_bindless_array.update();
+        }
+    };
 
     pipeline->_spectrum = scene.spectrum()->build(*pipeline, command_buffer);
     update_bindless_if_dirty();
@@ -159,6 +156,7 @@ void Pipeline::scene_update(
     }
 
     if (scene.transforms_updated() || _transforms_updated) {
+
         for (auto i = 0u; i < _transforms.size(); ++i) {
             _transform_matrices[i] = _transforms[i]->matrix(time);
         }
@@ -231,7 +229,6 @@ void Pipeline::register_transform(const Transform *transform) noexcept {
         _transform_to_id.emplace(transform, transform_id);
         _transforms.emplace_back(transform);
         _transforms_updated = true;
-        // _transform_matrices[transform_id] = transform->matrix(_initial_time);
     }
 }
 
@@ -257,7 +254,8 @@ std::pair<BufferView<float4>, uint> Pipeline::allocate_constant_slot() noexcept 
     auto slot = _constant_count++;
     LUISA_ASSERT(slot < constant_buffer_size,
                  "Constant buffer overflows.");
-    return {_constant_buffer.view(static_cast<uint>(slot), 1u), slot};
+    return {_constant_buffer.view(static_cast<uint>(slot), 1u),
+            static_cast<uint>(slot)};
 }
 
 Float4 Pipeline::constant(Expr<uint> index) const noexcept {

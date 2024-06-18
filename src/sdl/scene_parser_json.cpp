@@ -17,7 +17,7 @@ namespace luisa::render {
 SceneParserJSON::SceneParserJSON(SceneDesc &desc, const std::filesystem::path &path,
                                  const MacroMap &cli_macros) noexcept
     : _desc{desc}, _cli_macros{cli_macros},
-      _location{desc.register_path(std::filesystem::canonical(path))} {}
+      _location{desc.register_path(LUISA_SCENE_PARSER_CHECKED_CANONICAL_PATH(path))} {}
 
 void SceneParserJSON::parse() const noexcept {
     auto root = [this] {
@@ -171,6 +171,9 @@ void SceneParserJSON::_parse_root(const json &root) const noexcept {
                              "Invalid global node property '{}.{}': {}",
                              item.key(), prop.key(), prop.value().dump(2));
             }
+            LUISA_ASSERT(item.value().contains("type"),
+                         "Missing node type in global node '{}': {}",
+                         item.key(), item.value().dump(2));
             auto type_desc = item.value().at("type").get<luisa::string>();
             auto tag = parse_scene_node_tag(type_desc);
             if (tag == SceneNodeTag::ROOT) {

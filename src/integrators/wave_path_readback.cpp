@@ -43,15 +43,7 @@ public:
           _max_depth{std::max(desc->property_uint_or_default("depth", 10u), 1u)},
           _rr_depth{std::max(desc->property_uint_or_default("rr_depth", 0u), 0u)},
           _rr_threshold{std::max(desc->property_float_or_default("rr_threshold", 0.95f), 0.05f)},
-          _samples_per_pass{std::max(desc->property_uint_or_default("samples_per_pass", 16u), 1u)} {}
-
-    WavefrontPathTracing(Scene *scene, const RawIntegratorInfo &integrator_info) noexcept
-        : ProgressiveIntegrator{scene, integrator_info},
-          _max_depth{std::max(integrator_info.max_depth, 1u)},
-          _rr_depth{std::max(integrator_info.rr_depth, 0u)},
-          _rr_threshold{std::max(integrator_info.rr_threshold, 0.05f)},
-          _samples_per_pass{16u} {}
-          
+          _samples_per_pass{std::max(desc->property_uint_or_default("samples_per_pass", 4u), 1u)} {}
     [[nodiscard]] auto max_depth() const noexcept { return _max_depth; }
     [[nodiscard]] auto rr_depth() const noexcept { return _rr_depth; }
     [[nodiscard]] auto rr_threshold() const noexcept { return _rr_threshold; }
@@ -190,6 +182,7 @@ private:
     Buffer<uint> _counter_buffer;
     uint _current_counter;
     Shader1D<> _clear_counters;
+    uint _host_counter;
 
 public:
     RayQueue(Device &device, size_t size) noexcept
@@ -199,6 +192,12 @@ public:
         _clear_counters = device.compile<1>([this] {
             _counter_buffer->write(dispatch_x(), 0u);
         });
+    }
+    void catch_counter(CommandBuffer &command_buffer) noexcept {
+        command_buffer << _counter_buffer.view(0, 1).copy_to(&_host_counter);
+    }
+    [[nodiscard]] uint host_counter() const noexcept {
+        return _host_counter;
     }
     [[nodiscard]] BufferView<uint> prepare_counter_buffer(CommandBuffer &command_buffer) noexcept {
         if (_current_counter == counter_buffer_size) {
@@ -267,7 +266,6 @@ void WavefrontPathTracingInstance::_render_one_camera(
         auto pixel_coord = make_uint2(pixel_id % resolution.x, pixel_id / resolution.x);
         sampler()->start(pixel_coord, sample_id);
         auto u_filter = sampler()->generate_pixel_2d();
-        // TODO: No need for u_lens
         auto u_lens = camera->node()->requires_lens_sampling() ? sampler()->generate_2d() : make_float2(.5f);
         auto u_wavelength = spectrum->node()->is_fixed() ? 0.f : sampler()->generate_1d();
         sampler()->save_state(state_id);
@@ -391,7 +389,6 @@ void WavefrontPathTracingInstance::_render_one_camera(
             auto u_lobe = sampler()->generate_1d();
             auto u_bsdf = sampler()->generate_2d();
             auto u_rr = def(0.f);
-
             auto rr_depth = node<WavefrontPathTracing>()->rr_depth();
             $if(trace_depth + 1u >= rr_depth) { u_rr = sampler()->generate_1d(); };
             sampler()->save_state(path_id);
@@ -511,11 +508,11 @@ void WavefrontPathTracingInstance::_render_one_camera(
     auto sample_id = 0u;
     auto last_committed_sample_id = 0u;
     Clock clock;
-    ProgressBar progress_bar(!use_progress());
+    ProgressBar progress_bar;
     progress_bar.update(0.0);
     for (auto s : shutter_samples) {
         auto time = s.point.time;
-        auto updated = pipeline().update(command_buffer, time);
+        pipeline().update(command_buffer, time);
         for (auto i = 0u; i < s.spp; i += samples_per_pass) {
             auto launch_spp = std::min(s.spp - i, samples_per_pass);
             auto launch_state_count = launch_spp * pixel_count;
@@ -524,7 +521,8 @@ void WavefrontPathTracingInstance::_render_one_camera(
             auto rays = ray_buffer.view();
             auto hits = hit_buffer.view();
             auto out_rays = ray_buffer_out.view();
-            command_buffer << generate_rays_shader.get()(path_indices, rays, sample_id, time).dispatch(launch_state_count);
+            command_buffer << generate_rays_shader.get()(path_indices, rays, sample_id, time)
+                                  .dispatch(launch_state_count);
             for (auto depth = 0u; depth < node<WavefrontPathTracing>()->max_depth(); depth++) {
                 auto surface_indices = surface_queue.prepare_index_buffer(command_buffer);
                 auto surface_count = surface_queue.prepare_counter_buffer(command_buffer);
@@ -534,24 +532,41 @@ void WavefrontPathTracingInstance::_render_one_camera(
                 auto miss_count = miss_queue.prepare_counter_buffer(command_buffer);
                 auto out_path_indices = out_path_queue.prepare_index_buffer(command_buffer);
                 auto out_path_count = out_path_queue.prepare_counter_buffer(command_buffer);
-                command_buffer << intersect_shader.get()(path_count, rays, hits, surface_indices, surface_count,
-                                                         light_indices, light_count, miss_indices, miss_count)
-                                      .dispatch(launch_state_count);
+                uint launch_size = 0;
+                command_buffer << path_count.copy_to(&launch_size);
+                command_buffer << synchronize();
+                if (launch_size)
+                    command_buffer << intersect_shader.get()(path_count, rays, hits, surface_indices, surface_count,
+                                                             light_indices, light_count, miss_indices, miss_count)
+                                          .dispatch(launch_size);
                 if (pipeline().environment()) {
-                    command_buffer << evaluate_miss_shader.get()(path_indices, rays, miss_indices, miss_count, time)
-                                          .dispatch(launch_state_count);
+                    command_buffer << miss_count.copy_to(&launch_size);
+                    command_buffer << synchronize();
+                    if (launch_size)
+                        command_buffer << evaluate_miss_shader.get()(path_indices, rays, miss_indices, miss_count, time)
+                                              .dispatch(launch_size);
                 }
                 if (!pipeline().lights().empty()) {
-                    command_buffer << evaluate_light_shader.get()(path_indices, rays, hits,
-                                                                  light_indices, light_count, time)
-                                          .dispatch(launch_state_count);
+                    command_buffer << light_count.copy_to(&launch_size);
+                    command_buffer << synchronize();
+                    if (launch_size)
+                        command_buffer << evaluate_light_shader.get()(path_indices, rays, hits,
+                                                                      light_indices, light_count, time)
+                                              .dispatch(launch_size);
                 }
-                command_buffer << sample_light_shader.get()(path_indices, rays, hits, surface_indices, surface_count, time)
-                                      .dispatch(launch_state_count)
-                               << evaluate_surface_shader.get()(path_indices, depth, surface_indices,
-                                                                surface_count, rays, hits, out_rays,
-                                                                out_path_indices, out_path_count, time)
-                                      .dispatch(launch_state_count);
+                command_buffer << surface_count.copy_to(&launch_size);
+                command_buffer << synchronize();
+                if (launch_size)
+                    command_buffer << sample_light_shader.get()(path_indices, rays, hits, surface_indices, surface_count, time)
+                                          .dispatch(launch_size);
+                command_buffer << surface_count.copy_to(&launch_size);
+                command_buffer << synchronize();
+                if (launch_size)
+                    command_buffer
+                        << evaluate_surface_shader.get()(path_indices, depth, surface_indices,
+                                                         surface_count, rays, hits, out_rays,
+                                                         out_path_indices, out_path_count, time)
+                               .dispatch(launch_size);
                 path_indices = out_path_indices;
                 path_count = out_path_count;
                 std::swap(rays, out_rays);
@@ -578,8 +593,3 @@ void WavefrontPathTracingInstance::_render_one_camera(
 }// namespace luisa::render
 
 LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::WavefrontPathTracing)
-
-LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
-    luisa::render::Scene *scene, const luisa::render::RawIntegratorInfo &integrator_info) LUISA_NOEXCEPT {
-    return luisa::new_with_allocator<luisa::render::WavefrontPathTracing>(scene, integrator_info);
-}

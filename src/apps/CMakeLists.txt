@@ -2,7 +2,9 @@ function(luisa_render_add_application name)
     cmake_parse_arguments(APP "" "" "SOURCES" ${ARGN})
     add_executable(${name} ${APP_SOURCES})
     target_link_libraries(${name} PRIVATE luisa::render)
-    message("${name} created!")
+    install(TARGETS ${name}
+            LIBRARY DESTINATION ${CMAKE_INSTALL_BINDIR}
+            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 endfunction()
 
 luisa_render_add_application(luisa-render-pipe-render SOURCES pipe_render.cpp)

@@ -7,11 +7,9 @@
 #include <tinyexr.h>
 #include <stb/stb_image.h>
 #include <stb/stb_image_write.h>
-#include <stb/stb_image_resize.h>
 
 #include <luisa/core/logging.h>
 #include <util/imageio.h>
-#include <util/half.h>
 
 namespace luisa::render {
 
@@ -93,19 +91,26 @@ template<typename T>
         if (num_channels == 1u) {
             swizzle = {0u, 0u};
         } else {
-            std::array desc{"R"sv, "G"sv};
-            std::transform(
-                desc.cbegin(), desc.cend(), swizzle.begin(),
-                [&](auto channel) noexcept {
+            std::array<luisa::string_view, 2> desc{"R"sv, "G"sv};
+            for (auto c = 0u; c < desc.size(); c++) {
+                auto channel = desc[c];
+                auto found = [&] {
                     for (auto i = 0u; i < num_channels; i++) {
-                        if (exr_header.channels[i].name == channel) {
-                            return i;
+                        if (auto name = exr_header.channels[i].name;
+                            // go ask msvc why I need to write such code...
+                            luisa::string_view{channel} == luisa::string_view{name}) {
+                            swizzle[c] = i;
+                            return true;
                         }
                     }
+                    return false;
+                }();
+                if (!found) {
                     LUISA_ERROR_WITH_LOCATION(
                         "Channel '{}' not found in OpenEXR image '{}'.",
                         channel, filename);
-                });
+                }
+            }
         }
         for (auto i = 0u; i < width * height; i++) {
             for (auto c = 0u; c < 2u; c++) {
@@ -119,22 +124,28 @@ template<typename T>
             swizzle = {0u, 0u, 0u, ~0u};
         } else {
             using namespace std::string_view_literals;
-            std::array desc{"R"sv, "G"sv, "B"sv, "A"sv};
-            std::transform(
-                desc.cbegin(), desc.cend(), swizzle.begin(),
-                [&](auto channel) noexcept {
+            std::array<luisa::string_view, 4> desc{"R"sv, "G"sv, "B"sv, "A"sv};
+            // workaround for GCC internal compiler error
+            for (auto c = 0u; c < desc.size(); c++) {
+                auto channel = desc[c];
+                auto s = [&] {
+                    // workaround for MSVC 19.29
                     for (auto i = 0u; i < num_channels; i++) {
-                        if (exr_header.channels[i].name == channel) {
+                        if (auto name = exr_header.channels[i].name;
+                            // go ask msvc why I need to write such code...
+                            luisa::string_view{channel} == luisa::string_view{name}) {
                             return i;
                         }
                     }
-                    if (channel != "A"sv) {
-                        LUISA_ERROR_WITH_LOCATION(
-                            "Channel '{}' not found in OpenEXR image '{}'.",
-                            channel, filename);
-                    }
                     return ~0u;
-                });
+                }();
+                if (s == ~0u && desc[c] != "A"sv) {
+                    LUISA_ERROR_WITH_LOCATION(
+                        "Channel '{}' not found in OpenEXR image '{}'.",
+                        channel, filename);
+                }
+                swizzle[c] = s;
+            }
         }
         if (swizzle[3] != ~0u) {// has alpha channel
             for (auto i = 0u; i < width * height; i++) {
@@ -221,16 +232,15 @@ LoadedImage LoadedImage::_load_half(const std::filesystem::path &path, LoadedIma
             "Failed to load HALF image '{}': {}.",
             filename, stbi_failure_reason());
     }
-    auto half_pixels = luisa::allocate_with_allocator<uint16_t>(w * h * expected_channels);
+    auto half_pixels = luisa::allocate_with_allocator<luisa::half>(w * h * expected_channels);
     for (auto i = 0u; i < w * h * expected_channels; i++) {
-        half_pixels[i] = float_to_half(
-            reinterpret_cast<const float *>(pixels)[i]);
+        half_pixels[i] = static_cast<luisa::half>(reinterpret_cast<const float *>(pixels)[i]);
     }
     stbi_image_free(pixels);
     return {
         half_pixels, storage, make_uint2(w, h),
         [](void *p) noexcept {
-            luisa::deallocate_with_allocator(static_cast<uint16_t *>(p));
+            luisa::deallocate_with_allocator(static_cast<luisa::half *>(p));
         }};
 }
 
@@ -706,6 +716,100 @@ LoadedImage::LoadedImage(void *pixels,
 //    }
 //}
 
+[[nodiscard]] inline int save_exr_impl(const float *data, int width, int height, int components,
+                                       const int save_as_fp16, const char *outfilename, const char **err) noexcept {
+    LUISA_ASSERT(components == 1 || components == 3 || components == 4,
+                 "Invalid number of components: {} (only 1, 3, or 4 are supported).",
+                 components);
+
+    EXRHeader header;
+    InitEXRHeader(&header);
+
+    if ((width < 16) && (height < 16)) {
+        // No compression for small image.
+        header.compression_type = TINYEXR_COMPRESSIONTYPE_NONE;
+    } else {
+        header.compression_type = TINYEXR_COMPRESSIONTYPE_ZIP;
+    }
+
+    EXRImage image;
+    InitEXRImage(&image);
+
+    image.num_channels = components;
+
+    std::vector<float> images[4];
+    auto pixel_count = static_cast<size_t>(width) * static_cast<size_t>(height);
+    if (components == 1) {
+        images[0].resize(pixel_count);
+        memcpy(images[0].data(), data, sizeof(float) * pixel_count);
+    } else {
+        images[0].resize(pixel_count);
+        images[1].resize(pixel_count);
+        images[2].resize(pixel_count);
+        images[3].resize(pixel_count);
+
+        // Split RGB(A)RGB(A)RGB(A)... into R, G and B(and A) layers
+        for (size_t i = 0; i < pixel_count; i++) {
+            images[0][i] = data[static_cast<size_t>(components) * i + 0];
+            images[1][i] = data[static_cast<size_t>(components) * i + 1];
+            images[2][i] = data[static_cast<size_t>(components) * i + 2];
+            if (components == 4) {
+                images[3][i] = data[static_cast<size_t>(components) * i + 3];
+            }
+        }
+    }
+
+    float *image_ptr[4] = {nullptr, nullptr, nullptr, nullptr};
+    if (components == 4) {
+        image_ptr[0] = &(images[3].at(0));// A
+        image_ptr[1] = &(images[2].at(0));// B
+        image_ptr[2] = &(images[1].at(0));// G
+        image_ptr[3] = &(images[0].at(0));// R
+    } else if (components == 3) {
+        image_ptr[0] = &(images[2].at(0));// B
+        image_ptr[1] = &(images[1].at(0));// G
+        image_ptr[2] = &(images[0].at(0));// R
+    } else /* components == 1 */ {
+        image_ptr[0] = &(images[0].at(0));// A
+    }
+
+    image.images = reinterpret_cast<unsigned char **>(image_ptr);
+    image.width = width;
+    image.height = height;
+
+    header.num_channels = components;
+    header.channels = luisa::allocate_with_allocator<EXRChannelInfo>(header.num_channels);
+
+    // Must be (A)BGR order, since most of EXR viewers expect this channel order.
+    if (components == 4) {
+        strcpy(header.channels[0].name, "A");
+        strcpy(header.channels[1].name, "B");
+        strcpy(header.channels[2].name, "G");
+        strcpy(header.channels[3].name, "R");
+    } else if (components == 3) {
+        strcpy(header.channels[0].name, "B");
+        strcpy(header.channels[1].name, "G");
+        strcpy(header.channels[2].name, "R");
+    } else {
+        strcpy(header.channels[0].name, "Y");
+    }
+    header.pixel_types = luisa::allocate_with_allocator<int>(header.num_channels);
+    header.requested_pixel_types = luisa::allocate_with_allocator<int>(header.num_channels);
+    for (int i = 0; i < header.num_channels; i++) {
+        header.pixel_types[i] = TINYEXR_PIXELTYPE_FLOAT;// pixel type of input image
+        if (save_as_fp16 > 0) {
+            header.requested_pixel_types[i] = TINYEXR_PIXELTYPE_HALF;
+        } else {
+            header.requested_pixel_types[i] = TINYEXR_PIXELTYPE_FLOAT;
+        }
+    }
+    int ret = SaveEXRImageToFile(&image, &header, outfilename, err);
+    luisa::deallocate_with_allocator(header.channels);
+    luisa::deallocate_with_allocator(header.pixel_types);
+    luisa::deallocate_with_allocator(header.requested_pixel_types);
+    return ret;
+}
+
 void save_image(std::filesystem::path path, const float *pixels, uint2 resolution, uint components) noexcept {
     // save results
     auto pixel_count = resolution.x * resolution.y;
@@ -723,12 +827,12 @@ void save_image(std::filesystem::path path, const float *pixels, uint2 resolutio
     auto c = static_cast<int>(std::clamp(components, 1u, 4u));
     if (ext == ".exr") {
         const char *err = nullptr;
-        SaveEXR(reinterpret_cast<const float *>(pixels),
-                size.x, size.y, c, false, path.string().c_str(), &err);
-        if (err != nullptr) [[unlikely]] {
+        if (auto ret = save_exr_impl(pixels, size.x, size.y, c,
+                                     false, path.string().c_str(), &err);
+            ret != TINYEXR_SUCCESS) [[unlikely]] {
             LUISA_WARNING_WITH_LOCATION(
                 "Failed to save film to '{}': {}.",
-                path.string(), err);
+                path.string(), err ? err : "unknown error");
         }
     } else if (ext == ".hdr") {
         if (!stbi_write_hdr(path.string().c_str(), size.x, size.y,

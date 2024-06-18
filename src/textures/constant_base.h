@@ -11,11 +11,14 @@
 namespace luisa::render {
 
 [[nodiscard]] static float4 build_constant(
-    const luisa::vector<float> &ov, float scale = 1.f
+    luisa::vector<float> &v, float scale = 1.f
 ) noexcept {
-    luisa::vector<float> v(ov.begin(), ov.end());
     if (v.empty()) [[unlikely]] {
-        LUISA_ERROR_WITH_LOCATION("No value for ConstantTexture!");
+        LUISA_WARNING(
+            "No value for ConstantTexture. "
+            "Fallback to single-channel zero. [{}]",
+            desc->source_location().string());
+        v.emplace_back(0.f);
     } else if (v.size() > 4u) [[unlikely]] {
         LUISA_WARNING_WITH_LOCATION(
             "Too many values (count = {}) for ConstantTexture. "

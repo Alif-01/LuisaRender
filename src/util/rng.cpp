@@ -141,17 +141,17 @@ Float lcg(UInt &state) noexcept {
 
 UInt PCG32::uniform_uint() noexcept {
     auto oldstate = _state;
-    _state = oldstate * U64{mult} + _inc;
-    auto xorshifted = (((oldstate >> 18u) ^ oldstate) >> 27u).lo();
-    auto rot = (oldstate >> 59u).lo();
+    _state = oldstate * mult + _inc;
+    auto xorshifted = compute::cast<uint>(((oldstate >> 18u) ^ oldstate) >> 27u);
+    auto rot = compute::cast<uint>(oldstate >> 59u);
     return (xorshifted >> rot) | (xorshifted << ((~rot + 1u) & 31u));
 }
 
-void PCG32::set_sequence(U64 init_seq) noexcept {
-    _state = U64{0u};
-    _inc = (init_seq << 1u) | 1u;
+void PCG32::set_sequence(ULong init_seq) noexcept {
+    _state = def<ulong>(0ull);
+    _inc = (init_seq << 1ull) | 1ull;
     static_cast<void>(uniform_uint());
-    _state = _state + U64{default_state};
+    _state = _state + default_state;
     static_cast<void>(uniform_uint());
 }
 
@@ -162,15 +162,15 @@ Float PCG32::uniform_float() noexcept {
 PCG32::PCG32() noexcept
     : _state{default_state}, _inc{default_stream} {}
 
-PCG32::PCG32(U64 state, U64 inc) noexcept
+PCG32::PCG32(ULong state, ULong inc) noexcept
     : _state{std::move(state)}, _inc{std::move(inc)} {}
 
-PCG32::PCG32(U64 seq_index) noexcept {
+PCG32::PCG32(ULong seq_index) noexcept {
     set_sequence(std::move(seq_index));
 }
 
 PCG32::PCG32(Expr<uint> seq_index) noexcept {
-    set_sequence(U64{seq_index});
+    set_sequence(compute::cast<ulong>(seq_index));
 }
 
 }// namespace luisa::render

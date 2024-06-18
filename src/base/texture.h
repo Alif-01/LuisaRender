@@ -7,7 +7,6 @@
 #include <luisa/dsl/syntax.h>
 #include <util/spec.h>
 #include <util/imageio.h>
-#include <util/half.h>
 #include <base/scene_node.h>
 #include <base/raw_type.h>
 #include <base/spectrum.h>
@@ -51,7 +50,7 @@ public:
         [[nodiscard]] auto node() const noexcept { return static_cast<const T *>(_texture); }
         [[nodiscard]] auto &pipeline() const noexcept { return _pipeline; }
         [[nodiscard]] virtual Float4 evaluate(
-            const Interaction &it, const SampledWavelengths &swl, Expr<float> time) const noexcept = 0;
+            const Interaction &it, Expr<float> time) const noexcept = 0;
         [[nodiscard]] virtual Spectrum::Decode evaluate_albedo_spectrum(
             const Interaction &it, const SampledWavelengths &swl, Expr<float> time) const noexcept;
         [[nodiscard]] virtual Spectrum::Decode evaluate_unbounded_spectrum(
@@ -67,6 +66,7 @@ public:
     [[nodiscard]] virtual bool is_constant() const noexcept = 0;
     [[nodiscard]] virtual luisa::optional<float4> evaluate_static() const noexcept;
     [[nodiscard]] virtual uint channels() const noexcept { return 4u; }
+    [[nodiscard]] virtual uint2 resolution() const noexcept = 0;
     [[nodiscard]] virtual luisa::unique_ptr<Instance> build(
         Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept = 0;
 };

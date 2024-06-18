@@ -55,6 +55,17 @@ public:
     }
     [[nodiscard]] luisa::unique_ptr<Surface::Closure> create_closure(const SampledWavelengths &swl, Expr<float> time) const noexcept override;
     void populate_closure(Surface::Closure *closure, const Interaction &it, Expr<float3> wo, Expr<float> eta_i) const noexcept override;
+
+    [[nodiscard]] bool maybe_non_opaque() const noexcept override {
+        return _a->maybe_non_opaque() || _b->maybe_non_opaque();
+    }
+
+    [[nodiscard]] luisa::optional<Float> evaluate_opacity(const Interaction &it, Expr<float> time) const noexcept override {
+        if (!maybe_non_opaque()) { return luisa::nullopt; }
+        auto opacity_a = _a->evaluate_opacity(it, time).value_or(1.f);
+        auto opacity_b = _b->evaluate_opacity(it, time).value_or(1.f);
+        return opacity_a * opacity_b;
+    }
 };
 
 luisa::unique_ptr<Surface::Instance> MixSurface::_build(
@@ -84,7 +95,9 @@ private:
         auto t = 1.f - ratio;
         return Surface::Evaluation{
             .f = lerp(eval_a.f, eval_b.f, t),
-            .pdf = lerp(eval_a.pdf, eval_b.pdf, t)};
+            .pdf = lerp(eval_a.pdf, eval_b.pdf, t),
+            .f_diffuse = lerp(eval_a.f_diffuse, eval_b.f_diffuse, t),
+            .pdf_diffuse = lerp(eval_a.pdf_diffuse, eval_b.pdf_diffuse, t)};
     }
 
 public:
@@ -125,14 +138,6 @@ public:
     }
 
     [[nodiscard]] const Interaction &it() const noexcept override { return context<Context>().it; }
-    [[nodiscard]] luisa::optional<Float> opacity() const noexcept override {
-        auto &&ctx = context<Context>();
-
-        auto opacity_a = a()->opacity();
-        auto opacity_b = b()->opacity();
-        if (!opacity_a && !opacity_b) { return luisa::nullopt; }
-        return lerp(opacity_b.value_or(1.f), opacity_a.value_or(1.f), ctx.ratio);
-    }
     [[nodiscard]] luisa::optional<Float> eta() const noexcept override {
         auto &&ctx = context<Context>();
 
@@ -195,7 +200,7 @@ void MixSurfaceInstance::populate_closure(Surface::Closure *closure_in, const In
     auto closure = static_cast<MixSurfaceClosure *>(closure_in);
     auto &swl = closure->swl();
     auto time = closure->time();
-    auto ratio = _ratio == nullptr ? 0.5f : clamp(_ratio->evaluate(it, swl, time).x, 0.f, 1.f);
+    auto ratio = _ratio == nullptr ? 0.5f : clamp(_ratio->evaluate(it, time).x, 0.f, 1.f);
 
     MixSurfaceClosure::Context ctx{
         .it = it,
@@ -206,9 +211,8 @@ void MixSurfaceInstance::populate_closure(Surface::Closure *closure_in, const In
     _b->populate_closure(closure->b(), it, wo, eta_i);
 }
 
-using NormalMapMixSurface = NormalMapWrapper<
-    MixSurface, MixSurfaceInstance>;
+using NormalMapOpacityMixSurface = NormalMapWrapper<OpacitySurfaceWrapper<MixSurface, MixSurfaceInstance>>;
 
 }// namespace luisa::render
 
-LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::NormalMapMixSurface)
+LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::NormalMapOpacityMixSurface)

@@ -9,25 +9,20 @@
 #include <base/pipeline.h>
 #include <base/integrator.h>
 #include <base/scene.h>
-#include <gui/framerate.h>
-#include <gui/window.h>
 
 namespace luisa::render {
 
 using namespace compute;
 
 static const luisa::unordered_map<luisa::string_view, uint>
-    aov_component_to_channels{{"sample", 3u},
-                              {"diffuse", 3u},
-                              {"specular", 3u},
+    aov_component_to_channels{{"color", 3u},
                               {"normal", 3u},
                               {"albedo", 3u},
                               {"depth", 1u},
-                              {"roughness", 2u},
-                              {"ndc", 3u},
-                              {"mask", 1u},
-                              {"radiance_2", 3u},
-                              {"variance", 3u}};
+                              {"position", 3u},
+                              {"visibility", 1u},
+                              {"diffuse", 3u},
+                              {"specular", 3u}};
 
 class AuxiliaryBufferPathTracing final : public Integrator {
 
@@ -36,7 +31,6 @@ public:
         POWER2,
         ALL,
         FINAL,
-        SINGLE,
     };
 
 private:
@@ -53,7 +47,7 @@ public:
           _max_depth{std::max(desc->property_uint_or_default("depth", 10u), 1u)},
           _rr_depth{std::max(desc->property_uint_or_default("rr_depth", 0u), 0u)},
           _rr_threshold{std::max(desc->property_float_or_default("rr_threshold", 0.95f), 0.05f)},
-          _noisy_count{std::max(desc->property_uint_or_default("noisy_count", 8u), 8u)} {
+          _noisy_count{std::max(desc->property_uint_or_default("noisy_count", 8u), 1u)} {
         auto components = desc->property_string_list_or_default("components", {"all"});
         for (auto &comp : components) {
             for (auto &c : comp) { c = static_cast<char>(std::tolower(c)); }
@@ -78,8 +72,6 @@ public:
             _dump_strategy = DumpStrategy::ALL;
         } else if (dump == "final") {
             _dump_strategy = DumpStrategy::FINAL;
-        } else if (dump == "single") {
-            _dump_strategy = DumpStrategy::SINGLE;
         } else {
             if (dump != "power2") [[unlikely]] {
                 LUISA_WARNING_WITH_LOCATION(
@@ -94,7 +86,7 @@ public:
     [[nodiscard]] auto rr_depth() const noexcept { return _rr_depth; }
     [[nodiscard]] auto rr_threshold() const noexcept { return _rr_threshold; }
     [[nodiscard]] auto noisy_count() const noexcept { return _noisy_count; }
-    [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
+    [[nodiscard]] string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] auto dump_strategy() const noexcept { return _dump_strategy; }
     [[nodiscard]] auto is_component_enabled(luisa::string_view component) const noexcept {
         return _enabled_aov.contains(component);
@@ -106,9 +98,9 @@ public:
 class AuxiliaryBufferPathTracingInstance final : public Integrator::Instance {
 
 private:
+    uint _last_spp{0u};
     Clock _clock;
     Framerate _framerate;
-    luisa::optional<Window> _window;
 
 private:
     void _render_one_camera(CommandBuffer &command_buffer, Camera::Instance *camera) noexcept;
@@ -126,6 +118,8 @@ public:
         for (auto i = 0u; i < pipeline().camera_count(); i++) {
             auto camera = pipeline().camera(i);
             auto resolution = camera->film()->node()->resolution();
+            auto pixel_count = resolution.x * resolution.y;
+            _last_spp = 0u;
             _clock.tic();
             _framerate.clear();
             camera->film()->prepare(command_buffer);
@@ -146,77 +140,61 @@ class AuxiliaryBuffer {
 
 private:
     Pipeline &_pipeline;
-    uint2 _resolution;
-    uint _channels;
-    Buffer<float> _buffer;
+    Image<float> _image;
 
 private:
     static constexpr auto clear_shader_name = luisa::string_view{"__aux_buffer_clear_shader"};
 
 public:
     AuxiliaryBuffer(Pipeline &pipeline, uint2 resolution, uint channels, bool enabled = true) noexcept
-        : _pipeline{pipeline}, _resolution{resolution},
-          _channels{std::clamp(channels == 2u ? 3u : channels, 1u, 4u)} {
-        _pipeline.register_shader<1u>(
-            clear_shader_name, [](BufferFloat buffer) noexcept {
-                buffer.write(dispatch_x(), 0.f);
+        : _pipeline{pipeline} {
+        _pipeline.register_shader<2u>(
+            clear_shader_name, [](ImageFloat image) noexcept {
+                image.write(dispatch_id().xy(), make_float4(0.f));
             });
         if (enabled) {
-            _buffer = pipeline.device().create_buffer<float>(
-                _resolution.x * _resolution.y * _channels);
+            _image = pipeline.device().create_image<float>(
+                channels == 1u ?// TODO: support FLOAT2
+                    PixelStorage::FLOAT1 :
+                    PixelStorage::FLOAT4,
+                resolution);
         }
     }
     void clear(CommandBuffer &command_buffer) const noexcept {
-        if (_buffer) {
-            command_buffer << _pipeline.shader<1u, Buffer<float>>(clear_shader_name, _buffer)
-                                  .dispatch(_resolution.x * _resolution.y * _channels);
+        if (_image) {
+            command_buffer << _pipeline.shader<2u, Image<float>>(clear_shader_name, _image)
+                                  .dispatch(_image.size());
         }
     }
     [[nodiscard]] auto save(CommandBuffer &command_buffer,
                             std::filesystem::path path, uint total_samples) const noexcept
         -> luisa::function<void()> {
-        if (!_buffer) { return {}; }
+        if (!_image) { return {}; }
         auto host_image = luisa::make_shared<luisa::vector<float>>();
-        host_image->resize(_resolution.x * _resolution.y * _channels);
-        command_buffer << _buffer.copy_to(host_image->data());
-        return [host_image, total_samples,
-                resolution = _resolution,
-                channels = _channels,
-                path = std::move(path)] {
+        auto nc = pixel_storage_channel_count(_image.storage());
+        host_image->resize(_image.size().x * _image.size().y * nc);
+        command_buffer << _image.copy_to(host_image->data());
+        return [host_image, total_samples, nc, size = _image.size(), path = std::move(path)] {
             auto scale = static_cast<float>(1. / total_samples);
             for (auto &p : *host_image) { p *= scale; }
             LUISA_INFO("Saving auxiliary buffer to '{}'.", path.string());
-            save_image(path.string(), host_image->data(), resolution, channels);
+            save_image(path.string(), host_image->data(), size, nc);
         };
     }
-    void accumulate(Expr<uint2> p, Expr<float4> value) noexcept {
-        if (_buffer) {
+    void accumulate(Expr<uint2> p, Expr<float4> value, bool squared = false) noexcept {
+        if (_image) {
             $if (!any(isnan(value))) {
-                auto index = p.x + p.y * _resolution.x;
-                for (auto i = 0u; i < _channels; i++) {
-                    _buffer->atomic(index * _channels + i).fetch_add(value[i]);
+                auto old = _image->read(p);
+                auto threshold = 256.f;
+                auto abs_v = abs(value);
+                auto strength = max(max(max(abs_v.x, abs_v.y), abs_v.z), 0.f);
+                auto c = value.xyz() * (threshold / max(threshold, strength));
+                if (squared) {
+                    _image->write(p, old + make_float4(c * c, value.w));
+                } else {
+                    _image->write(p, old + make_float4(c, value.w));
                 }
             };
-        }
-    }
-
-    auto read(Expr<uint2> p) noexcept {
-        auto v = def(make_float4());
-        if (_buffer) {
-            auto index = p.y * _resolution.x + p.x;
-            for (auto c = 0u; c < _channels; c++) {
-                v[c] = _buffer->read(index * _channels + c);
-            }
-        }
-        return v;
-    }
-
-    void write(Expr<uint2> p, Expr<float3> value) noexcept {
-        if (_buffer) {
-            auto index = p.y * _resolution.x + p.x;
-            for (auto ch = 0u; ch < _channels; ch++) {
-                _buffer->write(index * _channels + ch, value[ch]);
-            }
         }
     }
 };
@@ -247,6 +225,9 @@ void AuxiliaryBufferPathTracingInstance::_render_one_camera(
         LUISA_INFO("Component {} is {}.", comp, enabled ? "enabled" : "disabled");
         auto v = luisa::make_unique<AuxiliaryBuffer>(pipeline(), resolution, nc, enabled);
         aux_buffers.emplace(comp, std::move(v));
+        // Add ^2 buffers
+        auto v_2 = luisa::make_unique<AuxiliaryBuffer>(pipeline(), resolution, nc, enabled);
+        aux_buffers.emplace(fmt::format("{}_2", comp), std::move(v_2));
     }
 
     // clear auxiliary buffers
@@ -274,11 +255,16 @@ void AuxiliaryBufferPathTracingInstance::_render_one_camera(
 
         auto ray = camera_sample.ray;
         auto pdf_bsdf = def(1e16f);
+        auto pdf_bsdf_diffuse = def(1e16f);
         auto specular_bounce = def(true);
+        auto specular_depth = def(-1);
 
         auto albedo = def(make_float3());
         auto normal = def(make_float3());
         auto roughness = def(make_float2());
+        auto position = def(make_float3());
+        auto visibility = def(0.f);
+        auto visibility_tmp = def(0.f);
 
         $for (depth, node<AuxiliaryBufferPathTracing>()->max_depth()) {
 
@@ -287,13 +273,10 @@ void AuxiliaryBufferPathTracingInstance::_render_one_camera(
             auto it = pipeline().geometry()->intersect(ray);
 
             $if (depth == 0 & it->valid()) {
-                aux_buffers.at("mask")->accumulate(dispatch_id().xy(), make_float4(1.f));
-                auto p_ndc = make_float3((camera_sample.pixel / make_float2(resolution) * 2.f - 1.f) * make_float2(1.f, -1.f),
-                                         depth / (ray->t_max() - ray->t_min()));
-                aux_buffers.at("ndc")->accumulate(dispatch_id().xy(), make_float4(p_ndc, 1.f));
                 normal = it->shading().n();
                 auto distance = length(it->p() - ray->origin());
                 aux_buffers.at("depth")->accumulate(dispatch_id().xy(), make_float4(distance));
+                aux_buffers.at("depth_2")->accumulate(dispatch_id().xy(), make_float4(distance), true);
             };
 
             // miss
@@ -301,11 +284,11 @@ void AuxiliaryBufferPathTracingInstance::_render_one_camera(
                 if (pipeline().environment()) {
                     auto eval = light_sampler()->evaluate_miss(ray->direction(), swl, time);
                     Li += beta * eval.L * balance_heuristic(pdf_bsdf, eval.pdf);
-                    $if (!specular_bounce) {
-                        Li_diffuse += beta_diffuse * eval.L * balance_heuristic(pdf_bsdf, eval.pdf);
-                    };
                     $if (specular_bounce | depth == 0) {
                         albedo = spectrum->srgb(swl, eval.L);
+                    }
+                    $else {
+                        Li_diffuse += beta_diffuse * eval.L * balance_heuristic(pdf_bsdf_diffuse, eval.pdf);
                     };
                 }
                 $break;
@@ -317,11 +300,17 @@ void AuxiliaryBufferPathTracingInstance::_render_one_camera(
                     auto eval = light_sampler()->evaluate_hit(
                         *it, ray->origin(), swl, time);
                     Li += beta * eval.L * balance_heuristic(pdf_bsdf, eval.pdf);
-                    $if (!specular_bounce) {
-                        Li_diffuse += beta_diffuse * eval.L * balance_heuristic(pdf_bsdf, eval.pdf);
-                    };
                     $if (specular_bounce | depth == 0) {
                         albedo = spectrum->srgb(swl, eval.L);
+                        position = it->p();
+                    }
+                    $else {
+                        Li_diffuse += beta_diffuse * eval.L * balance_heuristic(pdf_bsdf_diffuse, eval.pdf);
+                    };
+                    // just after the first diffuse bounce
+                    $if (depth == specular_depth + 1) {
+                        // Hit by bsdf
+                        visibility += balance_heuristic(pdf_bsdf, eval.pdf);
                     };
                 };
             }
@@ -345,6 +334,7 @@ void AuxiliaryBufferPathTracingInstance::_render_one_camera(
 
             PolymorphicCall<Surface::Closure> call;
             pipeline().surfaces().dispatch(surface_tag, [&](auto surface) noexcept {
+                // create closure
                 surface->closure(call, *it, swl, wo, 1.f, time);
             });
             call.execute([&](auto closure) noexcept {
@@ -373,20 +363,19 @@ void AuxiliaryBufferPathTracingInstance::_render_one_camera(
                         auto w = balance_heuristic(light_sample.eval.pdf, eval.pdf) /
                                  light_sample.eval.pdf;
                         Li += w * beta * eval.f * light_sample.eval.L;
-                        $if (!specular_bounce) {
-                            Li_diffuse += w * beta_diffuse * eval.f * light_sample.eval.L;
-                        };
+                        Li_diffuse += beta_diffuse * eval.f_diffuse * light_sample.eval.L *
+                                      balance_heuristic(light_sample.eval.pdf, eval.pdf) / light_sample.eval.pdf;
+                        visibility_tmp = balance_heuristic(light_sample.eval.pdf, eval.pdf);
                     };
 
                     // sample material
                     auto sample = closure->sample(wo, u_lobe, u_bsdf);
                     ray = it->spawn_ray(sample.wi);
                     pdf_bsdf = sample.eval.pdf;
+                    pdf_bsdf_diffuse = sample.eval.pdf;
                     auto w = ite(sample.eval.pdf > 0.f, 1.f / sample.eval.pdf, 0.f);
+                    auto w_diffuse = ite(sample.eval.pdf_diffuse > 0.f, 1.f / sample.eval.pdf_diffuse, 0.f);
                     beta *= w * sample.eval.f;
-                    $if (!specular_bounce) {
-                        beta_diffuse *= w * sample.eval.f;
-                    };
 
                     // apply eta scale
                     auto eta = closure->eta().value_or(1.f);
@@ -397,41 +386,46 @@ void AuxiliaryBufferPathTracingInstance::_render_one_camera(
 
                     // first non-specular bounce
                     auto rough = closure->roughness();
-                    $if (specular_bounce & any(rough > .001f)) {
+                    $if (specular_bounce & any(rough > .05f)) {
+                        specular_depth = depth;
                         specular_bounce = false;
                         albedo = spectrum->srgb(swl, closure->albedo());
                         normal = closure->it().shading().n();
                         roughness = rough;
+                        position = it->p();
+                        // Hit by nee
+                        visibility += visibility_tmp;
+                        // split the diffuse component
+                        beta_diffuse *= w * sample.eval.f_diffuse;
+                    }
+                    $else {
+                        beta_diffuse *= w * sample.eval.f;
                     };
                 };
             });
         };
         auto exposure = camera->film()->node()->exposure();
-        auto radiance = spectrum->srgb(swl, Li * shutter_weight) * luisa::exp2(exposure);
-        auto diffuse = min(radiance, spectrum->srgb(swl, Li_diffuse * shutter_weight) * luisa::exp2(exposure));
+        auto radiance = spectrum->srgb(swl, Li) * shutter_weight * luisa::exp2(exposure);
+        auto diffuse = min(radiance, spectrum->srgb(swl, Li_diffuse) * shutter_weight * luisa::exp2(exposure));
         auto specular = radiance - diffuse;
-        aux_buffers.at("sample")->accumulate(pixel_id, make_float4(radiance, 1.f));
-        aux_buffers.at("radiance_2")->accumulate(pixel_id, make_float4(radiance * radiance, 1.f));
+        aux_buffers.at("color")->accumulate(pixel_id, make_float4(radiance, 1.f));
+        aux_buffers.at("normal")->accumulate(pixel_id, make_float4(normal, 1.f));
+        aux_buffers.at("albedo")->accumulate(pixel_id, make_float4(albedo, 1.f));
+        aux_buffers.at("color_2")->accumulate(pixel_id, make_float4(radiance, 1.f), true);
+        aux_buffers.at("normal_2")->accumulate(pixel_id, make_float4(normal, 1.f), true);
+        aux_buffers.at("albedo_2")->accumulate(pixel_id, make_float4(albedo, 1.f), true);
+        aux_buffers.at("position")->accumulate(pixel_id, make_float4(position, 1.f));
+        aux_buffers.at("position_2")->accumulate(pixel_id, make_float4(position, 1.f), true);
+        aux_buffers.at("visibility")->accumulate(pixel_id, make_float4(visibility));
+        aux_buffers.at("visibility_2")->accumulate(pixel_id, make_float4(visibility), true);
         aux_buffers.at("diffuse")->accumulate(pixel_id, make_float4(diffuse, 1.f));
+        aux_buffers.at("diffuse_2")->accumulate(pixel_id, make_float4(diffuse, 1.f), true);
         aux_buffers.at("specular")->accumulate(pixel_id, make_float4(specular, 1.f));
-        aux_buffers.at("normal")->accumulate(dispatch_id().xy(), make_float4(normal, 1.f));
-        aux_buffers.at("albedo")->accumulate(dispatch_id().xy(), make_float4(albedo, 1.f));
-        aux_buffers.at("roughness")->accumulate(dispatch_id().xy(), make_float4(roughness, 0.f, 1.f));
-    };
-
-    Kernel2D finalize_var_kernel = [&](UInt sample_count) noexcept {
-        set_block_size(16u, 16u, 1u);
-        auto pixel_id = dispatch_id().xy();
-        auto n = cast<float>(sample_count);
-        auto mean_x = aux_buffers.at("sample")->read(pixel_id).xyz() / n;     // mean(x)   = 1/n * sum(x)
-        auto mean_x2 = aux_buffers.at("radiance_2")->read(pixel_id).xyz() / n;// mean(x^2) = 1/n * sum(x^2)
-        auto var = (mean_x2 - mean_x * mean_x) / (n - 1.f) * n;               // var(x)    = 1/(n-1) * (sum(x^2) - n * mean(x)^2)
-        aux_buffers.at("variance")->write(pixel_id, max(var, 0.f));
+        aux_buffers.at("specular_2")->accumulate(pixel_id, make_float4(specular, 1.f), true);
     };
 
     Clock clock_compile;
     auto render_auxiliary = pipeline().device().compile(render_auxiliary_kernel);
-    auto finalize_var = pipeline().device().compile(finalize_var_kernel);
     auto integrator_shader_compilation_time = clock_compile.toc();
     LUISA_INFO("Integrator shader compile in {} ms.", integrator_shader_compilation_time);
     auto shutter_samples = camera->node()->shutter_samples();
@@ -450,7 +444,7 @@ void AuxiliaryBufferPathTracingInstance::_render_one_camera(
         if (strategy == AuxiliaryBufferPathTracing::DumpStrategy::POWER2) {
             return n > 0 && ((n & (n - 1)) == 0);
         }
-        if (strategy == AuxiliaryBufferPathTracing::DumpStrategy::ALL || strategy == AuxiliaryBufferPathTracing::DumpStrategy::SINGLE) {
+        if (strategy == AuxiliaryBufferPathTracing::DumpStrategy::ALL) {
             return true;
         }
         return n == aux_spp;
@@ -472,35 +466,40 @@ void AuxiliaryBufferPathTracingInstance::_render_one_camera(
         auto parent_path = camera->node()->file().parent_path();
         auto filename = camera->node()->file().stem().string();
         auto ext = camera->node()->file().extension().string();
-        for (auto i = 0u; i < s.spp; i++) {
+        LUISA_WARNING("spp: {}", s.spp);
+        for (auto i = 0u; i < 2 * s.spp; i++) {
             command_buffer << render_auxiliary(sample_count++, s.point.time, s.point.weight)
                                   .dispatch(resolution);
-            camera->film()->show(command_buffer);
-            if (should_dump(sample_count)) {
+            if (sample_count % s.spp == 0) {
                 LUISA_INFO("Saving AOVs at sample #{}.", sample_count);
-                command_buffer << finalize_var(sample_count).dispatch(resolution);
                 luisa::vector<luisa::function<void()>> savers;
-                auto strategy_single = node<AuxiliaryBufferPathTracing>()->dump_strategy() ==
-                                       AuxiliaryBufferPathTracing::DumpStrategy::SINGLE;
                 for (auto &[component, buffer] : aux_buffers) {
-                    if (component == "radiance_2") continue;// Don't save radiance^2
+                    auto flag = sample_count == s.spp ? "A" : "B";
+                    auto total_samples = s.spp;
+                    if (component.ends_with("_2")) {
+                        // skip var saving at first half
+                        flag = "";
+                        total_samples = sample_count;
+                        if (sample_count == s.spp)
+                            continue;
+                    }
                     auto path = node<AuxiliaryBufferPathTracing>()->dump_strategy() ==
                                         AuxiliaryBufferPathTracing::DumpStrategy::FINAL ?
-                                    parent_path / fmt::format("{}_{}{}", filename, component, ext) :
-                                    parent_path / fmt::format("{}_{}_{:05}{}", filename, component, sample_count, ext);
-                    auto dump_sample_count = strategy_single ? 1 : sample_count;
-                    if (auto saver = buffer->save(command_buffer, path, dump_sample_count)) {
+                                    parent_path / fmt::format("{}_{}{}{}", filename, component, flag, ext) :
+                                    parent_path / fmt::format("{}_{}_{:05}{}{}", filename, component, sample_count, flag, ext);
+                    if (auto saver = buffer->save(command_buffer, path, total_samples)) {
                         savers.emplace_back(std::move(saver));
                     }
                 }
                 if (!savers.empty()) {
-                    command_buffer << [&] { for (auto &s : savers) { s(); } };
-                    if (strategy_single) {
-                        for (auto &[component, buffer] : aux_buffers) {
-                            buffer->clear(command_buffer);
-                        }
+                    command_buffer << [&] { for (auto &s : savers) { s(); } }
+                                   << synchronize();
+                }
+                if (sample_count == s.spp) {
+                    // clean the first half
+                    for (auto &[component, buffer] : aux_buffers) {
+                        if (!component.ends_with("_2")) buffer->clear(command_buffer);
                     }
-                    command_buffer << synchronize();
                 }
             }
             if (sample_count % 16u == 0u) { command_buffer << commit(); }

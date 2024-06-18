@@ -45,13 +45,15 @@ void ProgressiveIntegrator::Instance::render(Stream &stream) noexcept {
         auto resolution = camera->film()->node()->resolution();
         auto pixel_count = resolution.x * resolution.y;
         camera->film()->prepare(command_buffer);
-        _render_one_camera(command_buffer, camera);
-        luisa::vector<float4> pixels(pixel_count);
-        camera->film()->download(command_buffer, pixels.data());
-        command_buffer << compute::synchronize();
+        {
+            _render_one_camera(command_buffer, camera);
+            luisa::vector<float4> pixels(pixel_count);
+            camera->film()->download(command_buffer, pixels.data());
+            command_buffer << compute::synchronize();
+            auto film_path = camera->node()->file();
+            save_image(film_path, reinterpret_cast<const float *>(pixels.data()), resolution);
+        }
         camera->film()->release();
-        auto film_path = camera->node()->file();
-        save_image(film_path, reinterpret_cast<const float *>(pixels.data()), resolution);
     }
 }
 
@@ -82,7 +84,6 @@ void ProgressiveIntegrator::Instance::_render_one_camera(
 
     auto pixel_count = resolution.x * resolution.y;
     sampler()->reset(command_buffer, resolution, pixel_count, spp);
-    command_buffer << pipeline().printer().reset();
     command_buffer << compute::synchronize();
 
     LUISA_INFO(
@@ -115,12 +116,12 @@ void ProgressiveIntegrator::Instance::_render_one_camera(
     for (auto s : shutter_samples) {
         auto updated = pipeline().update(command_buffer, s.point.time);     // TODO: UniSim, update is not needed
         for (auto i = 0u; i < s.spp; i++) {
-            command_buffer << render(sample_id++, s.point.time, s.point.weight).dispatch(resolution);
-            if (auto &&p = pipeline().printer(); !p.empty()) {
-                command_buffer << p.retrieve();
-            }
+            command_buffer << render(sample_id++, s.point.time, s.point.weight)
+                                  .dispatch(resolution);
+            dispatch_count++;
+            if (camera->film()->show(command_buffer)) { dispatch_count = 0u; }
             auto dispatches_per_commit = 4u;
-            if (++dispatch_count % dispatches_per_commit == 0u) [[unlikely]] {
+            if (dispatch_count % dispatches_per_commit == 0u) [[unlikely]] {
                 dispatch_count = 0u;
                 auto p = sample_id / static_cast<double>(spp);
                 command_buffer << [&progress, p] { progress.update(p); };

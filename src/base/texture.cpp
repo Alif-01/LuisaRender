@@ -29,7 +29,7 @@ Spectrum::Decode Texture::Instance::evaluate_albedo_spectrum(
     }
 
     // we have got no luck, do the expensive encoding/decoding
-    auto v = evaluate(it, swl, time);
+    auto v = evaluate(it, time);
     v = pipeline().spectrum()->encode_srgb_albedo(
         extend_color_to_rgb(v.xyz(), node()->channels()));
     return pipeline().spectrum()->decode_albedo(swl, v);
@@ -42,7 +42,7 @@ Spectrum::Decode Texture::Instance::evaluate_unbounded_spectrum(
         return _evaluate_static_unbounded_spectrum(swl, *v);
     }
     // we have got no luck, do the expensive encoding/decoding
-    auto v = evaluate(it, swl, time);
+    auto v = evaluate(it, time);
     v = pipeline().spectrum()->encode_srgb_unbounded(
         extend_color_to_rgb(v.xyz(), node()->channels()));
     return pipeline().spectrum()->decode_unbounded(swl, v);
@@ -55,7 +55,7 @@ Spectrum::Decode Texture::Instance::evaluate_illuminant_spectrum(
         return _evaluate_static_illuminant_spectrum(swl, *v);
     }
     // we have got no luck, do the expensive encoding/decoding
-    auto v = evaluate(it, swl, time);
+    auto v = evaluate(it, time);
     v = pipeline().spectrum()->encode_srgb_illuminant(v.xyz());
     return pipeline().spectrum()->decode_illuminant(swl, v);
 }

@@ -37,31 +37,31 @@ struct SRGBSpectrumInstance final : public Spectrum::Instance {
         SampledSpectrum s{node()->dimension()};
         auto sv = saturate(v.xyz());
         for (auto i = 0u; i < 3u; i++) { s[i] = sv[i]; }
-        return {.value = s, .strength = srgb_to_cie_y(sv)};
+        return {.value = s, .strength = linear_srgb_to_cie_y(sv)};
     }
     [[nodiscard]] Spectrum::Decode decode_unbounded(
         const SampledWavelengths &swl, Expr<float4> v) const noexcept override {
         SampledSpectrum s{node()->dimension()};
         auto sv = v.xyz();
         for (auto i = 0u; i < 3u; i++) { s[i] = sv[i]; }
-        return {.value = s, .strength = srgb_to_cie_y(sv)};
+        return {.value = s, .strength = linear_srgb_to_cie_y(sv)};
     }
     [[nodiscard]] Spectrum::Decode decode_illuminant(
         const SampledWavelengths &swl, Expr<float4> v) const noexcept override {
         auto sv = max(v.xyz(), 0.f);
         SampledSpectrum s{node()->dimension()};
         for (auto i = 0u; i < 3u; i++) { s[i] = sv[i]; }
-        return {.value = s, .strength = srgb_to_cie_y(sv)};
+        return {.value = s, .strength = linear_srgb_to_cie_y(sv)};
     }
     [[nodiscard]] Float cie_y(
         const SampledWavelengths &swl,
         const SampledSpectrum &sp) const noexcept override {
-        return srgb_to_cie_y(srgb(swl, sp));
+        return linear_srgb_to_cie_y(srgb(swl, sp));
     }
     [[nodiscard]] Float3 cie_xyz(
         const SampledWavelengths &swl,
         const SampledSpectrum &sp) const noexcept override {
-        return srgb_to_cie_xyz(srgb(swl, sp));
+        return linear_srgb_to_cie_xyz(srgb(swl, sp));
     }
     [[nodiscard]] Float3 srgb(
         const SampledWavelengths &swl,

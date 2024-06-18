@@ -6,9 +6,8 @@
 
 #include <filesystem>
 
-#include <luisa/core/stl.h>
-#include <util/half.h>
-#include <luisa/runtime/rhi/pixel.h>
+#include <core/stl.h>
+#include <runtime/rhi/pixel.h>
 
 namespace luisa::render {
 

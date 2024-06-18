@@ -56,8 +56,6 @@ void Geometry::_process_shape(
                 }
 
                 // create mesh
-                // auto [vertex_buffer, vertex_index, vertex_buffer_id] = _pipeline.bindless_buffer<Vertex>(vertices.size());
-                // auto [triangle_buffer, triangle_index, triangle_buffer_id] = _pipeline.bindless_buffer<Triangle>(triangles.size());
                 auto [vertex_buffer, vertex_index] = _pipeline.create_with_index<Buffer<Vertex>>(vertices.size());
                 auto [triangle_buffer, triangle_index] = _pipeline.create_with_index<Buffer<Triangle>>(triangles.size());
                 auto [mesh, mesh_index] = _pipeline.create_with_index<Mesh>(*vertex_buffer, *triangle_buffer, shape->build_option());
@@ -117,7 +115,6 @@ void Geometry::_process_shape(
         InstancedTransform inst_xform{t_node, instance_id};
         if (!is_static) { _dynamic_transforms.emplace_back(inst_xform); }
         auto object_to_world = inst_xform.matrix(init_time);
-        _accel.emplace_back(*mesh.resource, object_to_world, visible);
 
         // TODO: _world_max/min cannot support deleting objects
         auto vertices = shape->mesh().vertices;
@@ -128,13 +125,22 @@ void Geometry::_process_shape(
 
         // create instance
         auto surface_tag = 0u;
-        auto light_tag = 0u;
-        auto medium_tag = 0u;
         auto properties = mesh.vertex_properties;
         if (surface != nullptr && !surface->is_null()) {
             surface_tag = _pipeline.register_surface(command_buffer, surface);
             properties |= Shape::property_flag_has_surface;
+            if (_pipeline.surfaces().impl(surface_tag)->maybe_non_opaque()) {
+                properties |= Shape::property_flag_maybe_non_opaque;
+                _any_non_opaque = true;
+            }
         }
+
+        // emplace instance here since we need to know the opaque property
+        _accel.emplace_back(*mesh.resource, object_to_world, visible,
+                            (properties & Shape::property_flag_maybe_non_opaque) == 0u);
+
+        auto light_tag = 0u;
+        auto medium_tag = 0u;
         if (light != nullptr && !light->is_null()) {
             light_tag = _pipeline.register_light(command_buffer, light);
             properties |= Shape::property_flag_has_light;
@@ -166,6 +172,35 @@ void Geometry::_process_shape(
     }
 }
 
+Bool Geometry::_alpha_skip(const Var<Ray> &ray, const Var<SurfaceHit> &hit) const noexcept {
+    auto bary = make_float3(1.f - hit.bary.x - hit.bary.y, hit.bary);
+    auto it = interaction(hit.inst, hit.prim, bary, -ray->direction());
+    auto skip = def(true);
+    $if (it->shape().maybe_non_opaque() & it->shape().has_surface()) {
+        auto u = xxhash32(make_uint4(hit.inst, hit.prim, compute::as<uint2>(hit.bary))) * 0x1p-32f;
+        $switch (it->shape().surface_tag()) {
+            for (auto i = 0u; i < _pipeline.surfaces().size(); i++) {
+                if (auto surface = _pipeline.surfaces().impl(i);
+                    surface->maybe_non_opaque()) {
+                    $case (i) {
+                        // TODO: pass the correct swl and time
+                        if (auto opacity = surface->evaluate_opacity(*it, 0.f)) {
+                            skip = u > *opacity;
+                        } else {
+                            skip = false;
+                        }
+                    };
+                }
+            }
+            $default { compute::unreachable(); };
+        };
+    }
+    $else {
+        skip = false;
+    };
+    return skip;
+}
+
 bool Geometry::update(CommandBuffer &command_buffer, float time) noexcept {
     auto updated = false;
     if (!_dynamic_transforms.empty()) {
@@ -190,13 +225,67 @@ bool Geometry::update(CommandBuffer &command_buffer, float time) noexcept {
     return updated;
 }
 
-Var<Hit> Geometry::trace_closest(const Var<Ray> &ray) const noexcept {
-    auto hit = _accel->trace_closest(ray);
-    return Var<Hit>{hit.inst, hit.prim, hit.bary};
+Var<Hit> Geometry::trace_closest(const Var<Ray> &ray_in) const noexcept {
+    if (!_any_non_opaque) {
+        // happy path
+        auto hit = _accel->intersect(ray_in, {});
+        return Var<Hit>{hit.inst, hit.prim, hit.bary};
+    }
+    // TODO: DirectX has bug with ray query, so we manually march the ray here
+    if (_pipeline.device().backend_name() == "dx") {
+        auto ray = ray_in;
+        auto hit = _accel->intersect(ray, {});
+        constexpr auto max_iterations = 100u;
+        constexpr auto epsilone = 1e-5f;
+        $for (i [[maybe_unused]], max_iterations) {
+            $if (hit->miss()) { $break; };
+            $if (!this->_alpha_skip(ray, hit)) { $break; };
+#ifndef NDEBUG
+            $if (i == max_iterations - 1u) {
+                compute::device_log(luisa::format(
+                    "ERROR: max iterations ({}) exceeded in trace closest",
+                    max_iterations));
+            };
+#endif
+            ray = compute::make_ray(ray->origin(), ray->direction(),
+                                    hit.committed_ray_t + epsilone,
+                                    ray->t_max());
+            hit = _accel->intersect(ray, {});
+        };
+        return Var<Hit>{hit.inst, hit.prim, hit.bary};
+    }
+    // use ray query
+    Callable impl = [this](Var<Ray> ray) noexcept {
+        auto rq_hit =
+            _accel->traverse(ray, {})
+                .on_surface_candidate([&](compute::SurfaceCandidate &c) noexcept {
+                    $if (!this->_alpha_skip(c.ray(), c.hit())) {
+                        c.commit();
+                    };
+                })
+                .trace();
+        return Var<Hit>{rq_hit.inst, rq_hit.prim, rq_hit.bary};
+    };
+    return impl(ray_in);
 }
 
 Var<bool> Geometry::trace_any(const Var<Ray> &ray) const noexcept {
-    return _accel->trace_any(ray);
+    if (!_any_non_opaque) {
+        // happy path
+        return _accel->intersect_any(ray, {});
+    }
+    Callable impl = [this](Var<Ray> ray) noexcept {
+        auto rq_hit =
+            _accel->traverse_any(ray, {})
+                .on_surface_candidate([&](compute::SurfaceCandidate &c) noexcept {
+                    $if (!this->_alpha_skip(c.ray(), c.hit())) {
+                        c.commit();
+                    };
+                })
+                .trace();
+        return !rq_hit->miss();
+    };
+    return impl(ray);
 }
 
 luisa::shared_ptr<Interaction> Geometry::interaction(Expr<uint> inst_id, Expr<uint> prim_id,
@@ -213,12 +302,10 @@ luisa::shared_ptr<Interaction> Geometry::interaction(Expr<uint> inst_id, Expr<ui
 luisa::shared_ptr<Interaction> Geometry::interaction(const Var<Ray> &ray, const Var<Hit> &hit) const noexcept {
     using namespace luisa::compute;
     Interaction it;
-    $if(!hit->miss()) {
-        it = *interaction(
-            hit.inst, hit.prim,
-            make_float3(1.f - hit.bary.x - hit.bary.y, hit.bary),
-            -ray->direction()
-        );
+    $if (!hit->miss()) {
+        it = *interaction(hit.inst, hit.prim,
+                          make_float3(1.f - hit.bary.x - hit.bary.y, hit.bary),
+                          -ray->direction());
     };
     return luisa::make_shared<Interaction>(std::move(it));
 }

@@ -98,7 +98,7 @@ private:
         auto wi_local = ctx.it.shading().world_to_local(wi);
         auto f = _refl->evaluate(wo_local, wi_local, mode);
         auto pdf = _refl->pdf(wo_local, wi_local, mode);
-        return {.f = f * abs_cos_theta(wi_local), .pdf = pdf};
+        return {.f = f * abs_cos_theta(wi_local), .pdf = pdf, .f_diffuse = f * abs_cos_theta(wi_local), .pdf_diffuse = pdf};
     }
 
     [[nodiscard]] Surface::Sample _sample(Expr<float3> wo,
@@ -111,7 +111,7 @@ private:
         auto f = _refl->sample(wo_local, std::addressof(wi_local),
                                u, std::addressof(pdf), mode);
         auto wi = ctx.it.shading().local_to_world(wi_local);
-        return {.eval = {.f = f * abs_cos_theta(wi_local), .pdf = pdf},
+        return {.eval = {.f = f * abs_cos_theta(wi_local), .pdf = pdf, .f_diffuse = f * abs_cos_theta(wi_local), .pdf_diffuse = pdf},
                 .wi = wi,
                 .event = Surface::event_reflect};
     }
@@ -129,7 +129,7 @@ void MatteInstance::populate_closure(Surface::Closure *closure, const Interactio
     auto [Kd, _] = _kd ? _kd->evaluate_albedo_spectrum(it, swl, time) :
                          Spectrum::Decode::one(swl.dimension());
     auto sigma = _sigma && !_sigma->node()->is_black() ?
-                     luisa::make_optional(saturate(_sigma->evaluate(it, swl, time).x) * 90.f) :
+                     luisa::make_optional(saturate(_sigma->evaluate(it, time).x) * 90.f) :
                      luisa::nullopt;
 
     MatteClosure::Context ctx{

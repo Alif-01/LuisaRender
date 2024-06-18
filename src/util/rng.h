@@ -4,8 +4,7 @@
 
 #pragma once
 
-#include <luisa/dsl/syntax.h>
-#include <util/u64.h>
+#include <dsl/syntax.h>
 
 namespace luisa::render {
 
@@ -15,6 +14,7 @@ using compute::UInt2;
 using compute::UInt3;
 using compute::UInt4;
 using compute::Float;
+using compute::ULong;
 
 [[nodiscard]] UInt xxhash32(Expr<uint> p) noexcept;
 [[nodiscard]] UInt xxhash32(Expr<uint2> p) noexcept;
@@ -38,15 +38,15 @@ private:
     static constexpr auto mult = 0x5851f42d4c957f2dull;
 
 private:
-    U64 _state;
-    U64 _inc;
+    ULong _state;
+    ULong _inc;
 
 public:
     PCG32() noexcept;
-    PCG32(U64 state, U64 inc) noexcept;
-    explicit PCG32(U64 seq_index) noexcept;
+    PCG32(ULong state, ULong inc) noexcept;
+    explicit PCG32(ULong seq_index) noexcept;
     explicit PCG32(Expr<uint> seq_index) noexcept;
-    void set_sequence(U64 init_seq) noexcept;
+    void set_sequence(ULong init_seq) noexcept;
     [[nodiscard]] UInt uniform_uint() noexcept;
     [[nodiscard]] Float uniform_float() noexcept;
     [[nodiscard]] auto state() const noexcept { return _state; }
