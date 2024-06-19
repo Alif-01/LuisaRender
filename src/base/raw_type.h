@@ -22,6 +22,7 @@ namespace omit{
 }
 using namespace omit;
 
+// Transforms
 struct RawSRTInfo {
     float3 translate;
     float4 rotate;
@@ -82,6 +83,7 @@ struct RawTransformInfo {
     UniquePtr<RawViewInfo> view_info;
 };
 
+// Textures
 struct RawConstantInfo; 
 struct RawImageInfo;
 struct RawCheckerInfo;
@@ -133,6 +135,7 @@ struct RawCheckerInfo {
     float scale;
 };
 
+// Lights
 struct RawLightInfo {
     [[nodiscard]] StringArr get_info() const noexcept {
         return luisa::format("Light {} <{}>", name, texture_info.get_info());
@@ -141,6 +144,7 @@ struct RawLightInfo {
     RawTextureInfo texture_info;
 };
 
+// Environments
 struct RawEnvironmentInfo {
     [[nodiscard]] StringArr get_info() const noexcept {
         return luisa::format("Environment {} <{}, {}>",
@@ -151,6 +155,17 @@ struct RawEnvironmentInfo {
     RawTransformInfo transform_info;
 };
 
+// Films
+struct RawFilmInfo {
+    uint2 resolution;
+};
+
+// Filters
+struct RawFilterInfo {
+    float radius;
+};
+
+// Cameras
 struct RawPinholeInfo {
     [[nodiscard]] StringArr get_info() const noexcept {
         return luisa::format("Pinhole <fov={}>", fov);
@@ -171,14 +186,14 @@ struct RawThinlensInfo {
 };
 
 struct RawCameraInfo {
-    RawCameraInfo(StringArr name, RawTransformInfo pose, uint spp,
-                  uint2 resolution, float filter_radius) noexcept:
-        name{std::move(name)}, pose{std::move(pose)}, spp{spp},
-        resolution{std::move(resolution)}, filter_radius{filter_radius} {}
+    RawCameraInfo(StringArr name, RawTransformInfo pose, RawFilmInfo film_info,
+                  RawFilterInfo filter_info, uint spp) noexcept:
+        name{std::move(name)}, pose{std::move(pose)}, film_info{std::move(film_info)},
+        filter_info{std::move(filter_info)}, spp{spp} {}
 
     [[nodiscard]] StringArr get_info() const noexcept {
         return luisa::format("Camera {} <pos={}, spp={}, res={}x{}>",
-            name, pose.get_info(), spp, resolution[0], resolution[1]
+            name, pose.get_info(), spp, film_info.resolution[0], film_info.resolution[1]
         );
     }
     [[nodiscard]] StringArr get_type_info() const noexcept;
@@ -195,13 +210,14 @@ struct RawCameraInfo {
     
     StringArr name;
     RawTransformInfo pose;
+    RawFilmInfo film_info;
+    RawFilterInfo filter_info;
     uint spp;
-    uint2 resolution;
-    float filter_radius;
     UniquePtr<RawPinholeInfo> pinhole_info;
     UniquePtr<RawThinlensInfo> thinlens_info;
 };
 
+// Shapes
 struct RawSpheresInfo {
     [[nodiscard]] StringArr get_info() const noexcept {
         return luisa::format(
@@ -298,6 +314,7 @@ struct RawShapeInfo {
     UniquePtr<RawPlaneInfo> plane_info;
 };
 
+// Surfaces
 struct RawMetalInfo {
     RawTextureInfo kd;
     StringArr eta;
@@ -348,7 +365,7 @@ struct RawSurfaceInfo {
     UniquePtr<RawGlassInfo> glass_info;
 };
 
-
+// Samplers
 struct RawSamplerInfo {
     RawSamplerInfo() noexcept = default;
 
@@ -378,6 +395,7 @@ struct RawSamplerInfo {
     uint sampler_index;
 };
 
+// Integrators
 struct RawIntegratorInfo {
     [[nodiscard]] StringArr get_type() const noexcept {
         return version == 1 ? "wavepath" :
@@ -394,6 +412,7 @@ struct RawIntegratorInfo {
     uint state_limit;
 };
 
+// Spectra
 struct RawSpectrumInfo {
     RawSpectrumInfo() noexcept = default;
 
@@ -425,6 +444,7 @@ struct RawSpectrumInfo {
     uint dimension{0u};
 };
 
+// Scenes
 struct RawSceneInfo {
     RawIntegratorInfo integrator_info;
     RawSpectrumInfo spectrum_info;

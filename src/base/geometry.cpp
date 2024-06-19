@@ -389,11 +389,6 @@ ShadingAttribute Geometry::shading_point(const Shape::Handle &instance, const Va
     // auto n0_local = v0->normal();
     // auto n1_local = v1->normal();
     // auto n2_local = v2->normal();
-    
-    // LUISA_INFO(dot)
-    // auto n0_local = v0->normal();
-    // auto n1_local = v1->normal();
-    // auto n2_local = v2->normal();
     auto ns_local = interpolate(bary, n0_local, n1_local, n2_local);
 
     auto ng = m * ng_local;

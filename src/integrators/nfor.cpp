@@ -145,7 +145,7 @@ public:
         camera->film()->prepare(command_buffer);
         _render_one_camera(command_buffer, camera);
         buffer.resize(pixel_count);
-        camera->film()->download(command_buffer, (*buffer).data());
+        camera->film()->download(command_buffer, buffer.data());
         command_buffer << compute::synchronize();
         camera->film()->release();
     }

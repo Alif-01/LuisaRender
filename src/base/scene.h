@@ -46,6 +46,7 @@ struct RawIntegratorInfo;
 struct RawEnvironmentInfo;
 struct RawSurfaceInfo;
 struct RawTransformInfo;
+struct RawFilmInfo;
 struct RawCameraInfo;
 struct RawShapeInfo;
 struct RawSceneInfo;
@@ -99,9 +100,9 @@ public:
     [[nodiscard]] Medium *load_medium(const SceneNodeDesc *desc) noexcept;
     [[nodiscard]] PhaseFunction *load_phase_function(const SceneNodeDesc *desc) noexcept;
     
-    [[nodiscard]] Film *update_film(luisa::string_view name, const uint2 &resolution) noexcept;
+    [[nodiscard]] Film *update_film(luisa::string_view name, const RawFilmInfo &film_info) noexcept;
     [[nodiscard]] Sampler *add_sampler(const RawSamplerInfo &sampler_info) noexcept;
-    [[nodiscard]] Filter *add_filter(luisa::string_view name, const float &radius) noexcept;
+    [[nodiscard]] Filter *add_filter(luisa::string_view name, const RawFilterInfo &filter_info) noexcept;
     [[nodiscard]] Spectrum *add_spectrum(const RawSpectrumInfo &spectrum_info) noexcept;
     [[nodiscard]] Integrator *add_integrator(const RawIntegratorInfo &integrator_info) noexcept;
     [[nodiscard]] Environment *add_environment(const RawEnvironmentInfo &environment_info) noexcept;

@@ -102,7 +102,4 @@ int main(int argc, char *argv[]) {
     } else {
         save_image(img_path, buffer_p, resolution);
     }
-
-    denoiser_ext->destroy(stream);
-    stream.synchronize();
 }

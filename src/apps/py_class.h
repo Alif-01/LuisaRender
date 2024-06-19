@@ -171,18 +171,19 @@ struct PySurface {
 
 struct PyCamera {
     PyCamera(
-        luisa::string name, RawTransformInfo pose, uint spp,
-        uint2 resolution, float filter_radius
+        luisa::string name, RawTransformInfo pose, RawFilmInfo film_info,
+        RawFilterInfo filter_info, uint spp 
     ) noexcept :
-        camera_info{name, std::move(pose), spp, std::move(resolution), filter_radius} {
+        camera_info{name, std::move(pose), std::move(film_info), std::move(filter_info), spp} {
     }
 
     static PyCamera pinhole(    
         std::string_view name, uint spp, const PyUIntArr &resolution
     ) noexcept {
         PyCamera camera(
-            luisa::string(name), RawTransformInfo(), spp,
-            pyarray_to_pack<uint, 2>(resolution), 1.0
+            luisa::string(name), RawTransformInfo(),
+            RawFilmInfo(pyarray_to_pack<uint, 2>(resolution)),
+            RawFilterInfo(1.0), spp, 
         );
         camera.camera_info.build_pinhole(0.0);
         return camera;
@@ -192,10 +193,11 @@ struct PyCamera {
         std::string_view name, uint spp, const PyUIntArr &resolution
     ) noexcept {
         PyCamera camera(
-            luisa::string(name), RawTransformInfo(), spp,
-            pyarray_to_pack<uint, 2>(resolution), 1.0
+            luisa::string(name), RawTransformInfo(),
+            RawFilmInfo(pyarray_to_pack<uint, 2>(resolution)),
+            RawFilterInfo(1.0), spp,
         );
-        camera.camera_info.build_thinlens(0.0, 0.0, 0.0);            
+        camera.camera_info.build_thinlens(0.0, 0.0, 0.0);
         return camera;
     }
 

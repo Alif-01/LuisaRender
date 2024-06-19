@@ -142,9 +142,12 @@ Camera::Camera(Scene *scene, const RawCameraInfo &camera_info) noexcept:
     SceneNode{scene, SceneNodeTag::CAMERA},
     _film{scene->update_film(
         luisa::format("{}_film", camera_info.name),
-        camera_info.resolution
+        camera_info.film_info
     )},
-    _filter{scene->add_filter("filter_gaussian", camera_info.filter_radius)},
+    _filter{scene->add_filter(
+        luisa::format("{}_filter", camera_info.name),
+        camera_info.filter_info
+    )},
     _shutter_span{make_float2(0.0f)},
     _shutter_samples{0u},                     // 0 means default
     _spp{camera_info.spp},
@@ -171,7 +174,7 @@ bool Camera::update_camera(Scene *scene, const RawCameraInfo &camera_info) noexc
     }
 
     auto film_name = luisa::format("{}_film", camera_info.name);
-    auto new_film = scene->update_film(film_name, camera_info.resolution);
+    auto new_film = scene->update_film(film_name, camera_info.film_info);
     if (_film != new_film) {
         _film = new_film;
         updated = true;

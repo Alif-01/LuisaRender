@@ -43,9 +43,18 @@ public:
         _scale[2] = std::pow(2.0f, _exposure.z);
         _clamp = std::max(1.f, desc->property_float_or_default("clamp", 256.f));
     }
-    ColorFilm(Scene *scene, const uint2 &resolution) noexcept
-        : Film{scene, resolution},
-          _scale{1.0f, 1.0f, 1.0f}, _clamp{256.f}, _warn_nan{false} {}
+    ColorFilm(Scene *scene, const RawFilmInfo &film_info) noexcept:
+        Film{scene},
+        _resolution{film_info.resolution}, _exposure{0.0f, 0.0f, 0.0f},
+        _scale{1.0f, 1.0f, 1.0f}, _clamp{256.f}, _warn_nan{false} {}
+        
+    [[nodiscard]] bool update_film(Scene *scene, const RawFilmInfo &film_info) noexcept override {
+        if (any(_resolution != film_info.resolution)) {
+            _resolution = film_info.resolution;
+            return true;
+        }
+        return false;
+    }
     [[nodiscard]] auto scale() const noexcept { return make_float3(_scale[0], _scale[1], _scale[2]); }
     [[nodiscard]] float clamp() const noexcept override { return _clamp; }
     [[nodiscard]] uint2 resolution() const noexcept override { return _resolution; }
@@ -177,6 +186,6 @@ LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::ColorFilm)
 
 LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
     luisa::render::Scene *scene,
-    const luisa::uint2 &resolution) LUISA_NOEXCEPT {
-    return luisa::new_with_allocator<luisa::render::ColorFilm>(scene, resolution);
+    const luisa::render::RawFilmInfo &film_info) LUISA_NOEXCEPT {
+    return luisa::new_with_allocator<luisa::render::ColorFilm>(scene, film_info);
 }

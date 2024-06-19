@@ -53,7 +53,7 @@ private:
 
 public:
     Filter(Scene *scene, const SceneNodeDesc *desc) noexcept;
-    Filter(Scene *scene, const float &radius) noexcept;
+    Filter(Scene *scene, const RawFilterInfo &filter_info) noexcept;
     [[nodiscard]] auto radius() const noexcept { return _radius; }
     [[nodiscard]] auto shift() const noexcept { return _shift; }
     [[nodiscard]] virtual float evaluate(float x) const noexcept = 0;

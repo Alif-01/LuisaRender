@@ -10,17 +10,12 @@ namespace luisa::render {
 Film::Film(Scene *scene, const SceneNodeDesc *desc) noexcept
     : SceneNode{scene, desc, SceneNodeTag::FILM} {}
 
-Film::Film(Scene *scene, const uint2 &resolution) noexcept
+Film::Film(Scene *scene) noexcept
     : SceneNode{scene, SceneNodeTag::FILM} {}
-//       _resolution{resolution} {}
 
-// bool Film::update_film(Scene *scene, const uint2 &resolution) noexcept {
-//     if (any(_resolution != resolution)) {
-//         _resolution = resolution;
-//         return true;
-//     }
-//     return false;
-// }
+bool Film::update_film(Scene *scene, const RawFilmInfo &film_info) noexcept {
+    LUISA_NOT_IMPLEMENTED();
+}
     
 
 void Film::Instance::accumulate(Expr<uint2> pixel, Expr<float3> rgb,

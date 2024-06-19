@@ -27,8 +27,8 @@ public:
         }
     }
 
-    GaussianFilter(Scene *scene, const float &radius) noexcept
-        : Filter{scene, radius} {
+    GaussianFilter(Scene *scene, const RawFilterInfo &filter_info) noexcept
+        : Filter{scene, filter_info} {
         _sigma = this->radius() / 3.f;
     }
     
@@ -46,6 +46,7 @@ public:
 LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::GaussianFilter)
 
 LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
-    luisa::render::Scene *scene, const float &radius) LUISA_NOEXCEPT {
-    return luisa::new_with_allocator<luisa::render::GaussianFilter>(scene, radius);
+    luisa::render::Scene *scene,
+    const luisa::render::RawFilterInfo &filter_info) LUISA_NOEXCEPT {
+    return luisa::new_with_allocator<luisa::render::GaussianFilter>(scene, filter_info);
 }

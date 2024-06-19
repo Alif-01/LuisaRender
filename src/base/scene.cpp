@@ -246,24 +246,24 @@ PhaseFunction *Scene::load_phase_function(const SceneNodeDesc *desc) noexcept {
     return dynamic_cast<PhaseFunction *>(load_node(SceneNodeTag::PHASE_FUNCTION, desc));
 }
 
-Film *Scene::update_film(luisa::string_view name, const uint2 &resolution) noexcept {
-    using NodeCreater = SceneNode *(Scene *, const uint2 &);
+Film *Scene::update_film(luisa::string_view name, const RawFilmInfo &film_info) noexcept {
+    using NodeCreater = SceneNode *(Scene *, const RawFilmInfo &);
     auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::FILM, "color", "create_raw");
-    NodeHandle color_film = handle_creater(this, resolution);
+    NodeHandle color_film = handle_creater(this, film_info);
 
-    auto [node, first_def] = load_from_nodes(name, handle_creater, this, resolution);
+    auto [node, first_def] = load_from_nodes(name, handle_creater, this, film_info);
     Film *film = dynamic_cast<Film *>(node);
 
     if (!first_def) {
-        _config->film_updated |= film->update_film(this, resolution);
+        _config->film_updated |= film->update_film(this, film_info);
     }
     return film;
 }
 
-Filter *Scene::add_filter(luisa::string_view name, const float &radius) noexcept {
-    using NodeCreater = SceneNode *(Scene *, const float &);
+Filter *Scene::add_filter(luisa::string_view name, const RawFilterInfo &filter_info) noexcept {
+    using NodeCreater = SceneNode *(Scene *, const RawFilterInfo &);
     auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::FILTER, "gaussian", "create_raw");
-    NodeHandle handle = handle_creater(this, radius);
+    NodeHandle handle = handle_creater(this, filter_info);
 
     std::scoped_lock lock{_mutex};
     return dynamic_cast<Filter *>(_config->internal_nodes.emplace_back(std::move(handle)).get());
