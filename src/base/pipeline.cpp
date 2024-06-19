@@ -189,8 +189,8 @@ void Pipeline::render(Stream &stream) noexcept {
     _integrator->render(stream);
 }
 
-luisa::unique_ptr<luisa::vector<float4>> Pipeline::render_to_buffer(Stream &stream, uint camera_index) noexcept {
-    return _integrator->render_to_buffer(stream, camera_index);
+void Pipeline::render_to_buffer(Stream &stream, uint camera_index, luisa::vector<float4> &buffer) noexcept {
+    _integrator->render_to_buffer(stream, camera_index, buffer);
 }
 
 const Texture::Instance *Pipeline::build_texture(CommandBuffer &command_buffer, const Texture *texture) noexcept {

@@ -17,8 +17,7 @@ public:
                             Pipeline &pipeline,
                             CommandBuffer &cb) noexcept;
     void render(Stream &stream) noexcept override;
-    luisa::unique_ptr<luisa::vector<float4>> render_to_buffer(
-        Stream &stream, uint camera_index) noexcept override;
+    void render_to_buffer(Stream &stream, uint camera_index, luisa::vector<float4> &buffer) noexcept override;
 };
 
 class GroupIntegrator final : public Integrator {
@@ -57,10 +56,9 @@ void GroupIntegratorInstance::render(Stream &stream) noexcept {
     }
 }
 
-luisa::unique_ptr<luisa::vector<float4>> GroupIntegratorInstance::render_to_buffer(
-    Stream &stream, uint camera_index) noexcept {
+void GroupIntegratorInstance::render_to_buffer(
+    Stream &stream, uint camera_index, luisa::vector<float4> &buffer) noexcept {
     LUISA_ERROR("Do not support group integrator.");
-    return nullptr;
 }
 
 }// namespace luisa::render

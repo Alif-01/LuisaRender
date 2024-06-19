@@ -225,7 +225,7 @@ public:
     void scene_update(Stream &stream, Scene &scene, float time) noexcept;
     bool update(CommandBuffer &command_buffer, float time) noexcept;
     void render(Stream &stream) noexcept;
-    [[nodiscard]] luisa::unique_ptr<luisa::vector<float4>> render_to_buffer(Stream &stream, uint camera_index) noexcept;
+    void render_to_buffer(Stream &stream, uint camera_inde, luisa::vector<float4> &buffer) noexcept;
     [[nodiscard]] uint named_id(luisa::string_view name) const noexcept;
     template<typename T, typename I>
     [[nodiscard]] auto buffer(I &&i) const noexcept { return _bindless_array->buffer<T>(std::forward<I>(i)); }
