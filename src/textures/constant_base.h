@@ -14,10 +14,9 @@ namespace luisa::render {
     luisa::vector<float> &v, float scale = 1.f
 ) noexcept {
     if (v.empty()) [[unlikely]] {
-        LUISA_WARNING(
+        LUISA_WARNING_WITH_LOCATION(
             "No value for ConstantTexture. "
-            "Fallback to single-channel zero. [{}]",
-            desc->source_location().string());
+            "Fallback to single-channel zero.");
         v.emplace_back(0.f);
     } else if (v.size() > 4u) [[unlikely]] {
         LUISA_WARNING_WITH_LOCATION(

@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
     auto device = context.create_device(backend, &config);
     auto stream = device.create_stream(StreamTag::COMPUTE);
     auto denoiser_ext = device.extension<DenoiserExt>();
-    DenoiserExt::DenoiserMode mode{};
+    // DenoiserExt::DenoiserMode mode{};
 
     Clock clock;
     auto scene_desc = SceneParser::parse(path, macros);
@@ -52,36 +52,55 @@ int main(int argc, char *argv[]) {
 
     auto camera = scene->cameras()[0];
     auto resolution = camera->film()->resolution();
-    uint pixel_count = resolution.x * resolution.y * 4;
-    auto hdr_buffer = device.create_buffer<float>(pixel_count);
-    auto denoised_buffer = device.create_buffer<float>(pixel_count);
+    uint pixel_count = resolution.x * resolution.y;
 
     auto pipeline = Pipeline::create(device, stream, *scene);
-    auto picture = pipeline->render_to_buffer(stream, 0);
-    auto buffer = reinterpret_cast<float *>((*picture).data());
+    luisa::vector<float4> buffer;
+    auto buffer_p = reinterpret_cast<float *>(buffer.data());
+    pipeline->render_to_buffer(stream, 0, buffer);
+    // auto buffer_p = reinterpret_cast<float *>((*buffer).data());
 
+    // auto hdr_buffer = device.create_buffer<float>(pixel_count);
     LUISA_INFO("Start denoising...");
-    stream << hdr_buffer.copy_from(buffer);
-    stream.synchronize();
-    DenoiserExt::DenoiserInput data;
-    data.beauty = &hdr_buffer;
+    auto color_buffer = device.create_buffer<float4>(pixel_count);
+    auto output_buffer = device.create_buffer<float4>(pixel_count);
+    auto denoiser = denoiser_ext->create(stream);
+    {
+        auto input = DenoiserExt::DenoiserInput{resolution.x, resolution.y};
+        input.push_noisy_image(
+            color_buffer.view(), output_buffer.view(),
+            DenoiserExt::ImageFormat::FLOAT3,
+            DenoiserExt::ImageColorSpace::HDR
+        );
+        input.noisy_features = false;
+        input.filter_quality = DenoiserExt::FilterQuality::DEFAULT;
+        input.prefilter_mode = DenoiserExt::PrefilterMode::NONE;
+        denoiser->init(input);
+    }
+    stream << color_buffer.copy_from(buffer_p) << synchronize();
+    denoiser->execute(true);
+    stream << output_buffer.copy_to(buffer_p) << synchronize();
 
-    denoiser_ext->init(stream, mode, data, resolution);
-    denoiser_ext->process(stream, data);
-    denoiser_ext->get_result(stream, denoised_buffer);
-    stream.synchronize();
+    // auto denoised_buffer = device.create_buffer<float>(pixel_count);
+    // stream << hdr_buffer.copy_from(buffer);
+    // stream.synchronize();
+    // DenoiserExt::DenoiserInput data;
+    // data.beauty = &hdr_buffer;
+    // denoiser_ext->init(stream, mode, data, resolution);
+    // denoiser_ext->process(stream, data);
+    // denoiser_ext->get_result(stream, denoised_buffer);
+    // stream.synchronize();
+    // stream << denoised_buffer.copy_to(buffer);
+    // stream.synchronize();
 
-    stream << denoised_buffer.copy_to(buffer);
-    stream.synchronize();
-    
     if (render_png) {
-        apply_gamma(buffer, resolution);
+        apply_gamma(buffer_p, resolution);
         std::filesystem::path png_path = img_path;
         png_path.replace_extension(".png");
-        auto int_buffer = convert_to_int_pixel(buffer, resolution);
+        auto int_buffer = convert_to_int_pixel(buffer_p, resolution);
         save_image(png_path, (*int_buffer).data(), resolution);
     } else {
-        save_image(img_path, buffer, resolution);
+        save_image(img_path, buffer_p, resolution);
     }
 
     denoiser_ext->destroy(stream);

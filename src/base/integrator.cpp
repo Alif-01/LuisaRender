@@ -57,8 +57,8 @@ void ProgressiveIntegrator::Instance::render(Stream &stream) noexcept {
     }
 }
 
-luisa::unique_ptr<luisa::vector<float4>> ProgressiveIntegrator::Instance::render_to_buffer(
-    Stream &stream, uint camera_index) noexcept {
+void ProgressiveIntegrator::Instance::render_to_buffer(
+    Stream &stream, uint camera_index, luisa::vector<float4> &buffer) noexcept {
     CommandBuffer command_buffer{&stream};
     if (camera_index >= pipeline().camera_count()) [[unlikely]] {
         LUISA_ERROR("Invalid camera number {}.", camera_index);
@@ -68,11 +68,10 @@ luisa::unique_ptr<luisa::vector<float4>> ProgressiveIntegrator::Instance::render
     auto pixel_count = resolution.x * resolution.y;
     camera->film()->prepare(command_buffer);
     _render_one_camera(command_buffer, camera);
-    auto buffer = luisa::make_unique<luisa::vector<float4>>(pixel_count);
+    buffer.resize(pixel_count);
     camera->film()->download(command_buffer, (*buffer).data());
     command_buffer << compute::synchronize();
     camera->film()->release();
-    return buffer;
 }
 
 void ProgressiveIntegrator::Instance::_render_one_camera(

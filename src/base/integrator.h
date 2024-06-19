@@ -42,7 +42,7 @@ public:
         [[nodiscard]] auto light_sampler() const noexcept { return _light_sampler.get(); }
         [[nodiscard]] bool use_progress() const noexcept { return _integrator->use_progress(); }
         virtual void render(Stream &stream) noexcept = 0;
-        virtual luisa::unique_ptr<luisa::vector<float4>> render_to_buffer(Stream &stream, uint camera_index) noexcept = 0;
+        virtual void render_to_buffer(Stream &stream, uint camera_index, luisa::vector<float4> &buffer) noexcept = 0;
     };
 
 private:
@@ -76,7 +76,7 @@ public:
                  const ProgressiveIntegrator *node) noexcept;
         ~Instance() noexcept override;
         void render(Stream &stream) noexcept override;
-        luisa::unique_ptr<luisa::vector<float4>> render_to_buffer(Stream &stream, uint camera_index) noexcept override;
+        void render_to_buffer(Stream &stream, uint camera_index, luisa::vector<float4> &buffer) noexcept override;
     };
 
 public:

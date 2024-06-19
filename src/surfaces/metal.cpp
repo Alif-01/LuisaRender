@@ -157,7 +157,7 @@ private:
         } else if (eta_name == "li" || eta_name == "lithium") {
             _ior = _register_eta_k("__internal_ior_Li", ior::Li);
         } else if (eta_name == "cr" || eta_name == "chromium") {
-            _ior = register_eta_k("__internal_ior_Cr", ior::Cr);
+            _ior = _register_eta_k("__internal_ior_Cr", ior::Cr);
         } else [[unlikely]] {
             LUISA_WARNING_WITH_LOCATION(
                 "Unknown metal '{}'. Fallback to Aluminium", eta_name);

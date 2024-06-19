@@ -1,5 +1,4 @@
 #include <base/texture.h>
-#include <base/scene.h>
 #include <base/pipeline.h>
 
 namespace luisa::render {
@@ -52,6 +51,7 @@ public:
         auto bottom_is_constant = _bottom == nullptr || _bottom->is_constant();
         return top_is_constant && bottom_is_constant;
     }
+    [[nodiscard]] uint2 resolution() const noexcept override { return max(_top->resolution(), _bottom->resolution()); }
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] uint channels() const noexcept override {
         auto top_channels = _top == nullptr ? 4u : _top->channels();
@@ -80,11 +80,10 @@ public:
                                 const Texture::Instance *top, const Texture::Instance *bottom) noexcept
         : Texture::Instance{pipeline, node}, _top{top}, _bottom{bottom} {}
     [[nodiscard]] Float4 evaluate(const Interaction &it,
-                                  const SampledWavelengths &swl,
                                   Expr<float> time) const noexcept override {
         auto value = def(make_float4());
-        auto top_value = _top == nullptr ? make_float4(1.f) : _top->evaluate(it, swl, time);
-        auto bottom_value = _bottom == nullptr ? make_float4(1.f) : _bottom->evaluate(it, swl, time);
+        auto top_value = _top == nullptr ? make_float4(1.f) : _top->evaluate(it, time);
+        auto bottom_value = _bottom == nullptr ? make_float4(1.f) : _bottom->evaluate(it, time);
         auto method = node<MixTexture>()->method();
         auto factor = node<MixTexture>()->factor();
         if (method == MixTexture::MixMethod::MIX) {

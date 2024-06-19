@@ -22,12 +22,12 @@ public:
     };
 
 private:
-    std::shared_future<LoadedImage> _image;// TODO: release host memory after all builds
+    std::shared_future<LoadedImage> _image; // TODO: release host memory after all builds
     float2 _uv_scale;
     float2 _uv_offset;
     TextureSampler _sampler{};
     Encoding _encoding{};
-    float4 _scale{make_float4(1.f)};
+    float3 _scale{make_float3(1.f)};
     float _gamma{1.f};
     uint _mipmaps{0u};
 
@@ -121,9 +121,9 @@ public:
             _encoding = Encoding::LINEAR;
         }
 
-        _scale = desc->property_float4_or_default(
+        _scale = desc->property_float3_or_default(
             "scale", lazy_construct([desc] {
-                return make_float4(desc->property_float_or_default("scale", 1.0f));
+                return make_float3(desc->property_float_or_default("scale", 1.0f));
             })
         );
 
@@ -143,7 +143,7 @@ public:
         auto image_info = texture_info.image_info.get();
 
         luisa::vector<float> s(image_info->scale);
-        _scale = build_constant(s);
+        _scale = build_constant(s).xyz();
         std::filesystem::path path = image_info->image;
         auto encoding = _get_encoding(path);
         for (auto &c : encoding) { c = static_cast<char>(tolower(c)); }
@@ -188,19 +188,19 @@ private:
         auto texture = node<ImageTexture>();
         auto encoding = texture->encoding();
         auto scale = texture->scale();
+        auto rgb = rgba.xyz();
         if (encoding == ImageTexture::Encoding::SRGB) {
             auto linear = ite(
-                rgba <= 0.04045f,
-                rgba * (1.0f / 12.92f),
-                pow((rgba + 0.055f) * (1.0f / 1.055f), 2.4f));
-            return scale * linear;
+                rgb <= 0.04045f,
+                rgb * (1.0f / 12.92f),
+                pow((rgb + 0.055f) * (1.0f / 1.055f), 2.4f));
+            return make_float4(scale * linear, rgba.w);
         }
         if (encoding == ImageTexture::Encoding::GAMMA) {
-            auto rgb = rgba.xyz();
             auto gamma = texture->gamma();
             return make_float4(scale * pow(rgb, gamma), rgba.w);
         }
-        return scale * rgba;
+        return make_float4(scale * rgb, rgba.w);
     }
 
 public:

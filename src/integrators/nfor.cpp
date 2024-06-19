@@ -128,6 +128,27 @@ public:
             camera->film()->release();
         }
     }
+    
+    void render_to_buffer(Stream &stream, uint camera_index, luisa::vector<float4> &buffer) noexcept override {
+        auto pt = node<AuxiliaryBufferPathTracing>();
+        CommandBuffer command_buffer{&stream};
+        if (camera_index >= pipeline().camera_count()) [[unlikely]] {
+            LUISA_ERROR("Invalid camera number {}.", camera_index);
+        }
+        auto camera = pipeline().camera(camera_index);
+        auto resolution = camera->film()->node()->resolution();
+        auto pixel_count = resolution.x * resolution.y;
+        
+        _last_spp = 0u;
+        _clock.tic();
+        _framerate.clear();
+        camera->film()->prepare(command_buffer);
+        _render_one_camera(command_buffer, camera);
+        buffer.resize(pixel_count);
+        camera->film()->download(command_buffer, (*buffer).data());
+        command_buffer << compute::synchronize();
+        camera->film()->release();
+    }
 };
 
 luisa::unique_ptr<Integrator::Instance> AuxiliaryBufferPathTracing::build(

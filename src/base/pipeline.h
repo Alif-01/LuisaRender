@@ -223,7 +223,7 @@ public:
     [[nodiscard]] const Filter::Instance *build_filter(CommandBuffer &command_buffer, const Filter *filter) noexcept;
     [[nodiscard]] const PhaseFunction::Instance *build_phasefunction(CommandBuffer &command_buffer, const PhaseFunction *phasefunction) noexcept;
     void scene_update(Stream &stream, Scene &scene, float time) noexcept;
-    [[nodiscard]] bool update(CommandBuffer &command_buffer, float time) noexcept;
+    bool update(CommandBuffer &command_buffer, float time) noexcept;
     void render(Stream &stream) noexcept;
     [[nodiscard]] luisa::unique_ptr<luisa::vector<float4>> render_to_buffer(Stream &stream, uint camera_index) noexcept;
     [[nodiscard]] uint named_id(luisa::string_view name) const noexcept;

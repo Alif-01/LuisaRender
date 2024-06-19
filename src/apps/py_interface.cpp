@@ -16,17 +16,21 @@ using namespace luisa::render;
 struct CameraStorage {
     CameraStorage(uint index, Device* device, uint pixel_count) noexcept:
         index{index},
-        hdr_buffer{device->create_buffer<float>(pixel_count)},
-        denoised_buffer{device->create_buffer<float>(pixel_count)} {} 
+        // hdr_buffer{device->create_buffer<float>(pixel_count)},
+        // denoised_buffer{device->create_buffer<float>(pixel_count)} {} 
+        color_buffer{device->create_buffer<float4>(pixel_count)},
+        denoised_buffer{device->create_buffer<float4>(pixel_count)} {} 
     uint index;
-    Buffer<float> hdr_buffer;
-    Buffer<float> denoised_buffer;
+    // Buffer<float> hdr_buffer;
+    // Buffer<float> denoised_buffer;
+    Buffer<float4> color_buffer;
+    Buffer<float4> denoised_buffer;
 };
 
 luisa::unique_ptr<Stream> stream;
 luisa::unique_ptr<Device> device;
 luisa::unique_ptr<Context> context;
-luisa::unique_ptr<DenoiserExt::DenoiserMode> mode;
+// luisa::unique_ptr<DenoiserExt::DenoiserMode> mode;
 DenoiserExt *denoiser_ext = nullptr;
 
 luisa::unique_ptr<Pipeline> pipeline;
@@ -57,7 +61,7 @@ void init(
     /* build denoiser */
     stream = luisa::make_unique<Stream>(device->create_stream(StreamTag::COMPUTE));
     denoiser_ext = device->extension<DenoiserExt>();
-    mode = luisa::make_unique<DenoiserExt::DenoiserMode>();
+    // mode = luisa::make_unique<DenoiserExt::DenoiserMode>();
 
     /* build scene and pipeline */
     auto scene_info = RawSceneInfo {
@@ -104,31 +108,10 @@ void update_camera(const PyCamera &camera) noexcept {
     uint camera_id = scene->cameras().size();
     auto camera_node = scene->update_camera(camera_info);
     if (auto it = camera_storage.find(camera_info.name); it == camera_storage.end()) {
-        uint pixel_count = camera_info.resolution.x * camera_info.resolution.y * 4;
+        uint pixel_count = camera_info.resolution.x * camera_info.resolution.y;
         camera_storage[camera_info.name] = luisa::make_unique<CameraStorage>(camera_id, device.get(), pixel_count);
     }
 }
-
-// void update_camera(
-//     std::string_view name, PyTransform &pose,
-//     float fov, uint spp, const PyUIntArr &resolution
-// ) noexcept {
-//     auto camera_info = RawCameraInfo{
-//         luisa::string(name),
-//         std::move(pose.transform_info),
-//         fov, uint(spp),
-//         pyarray_to_pack<uint, 2>(resolution),
-//         1.0
-//     };
-
-//     LUISA_INFO("Update: {}", camera_info.get_info());
-//     uint camera_id = scene->cameras().size();
-//     auto camera = scene->update_camera(camera_info);
-//     if (auto it = camera_storage.find(camera_info.name); it == camera_storage.end()) {
-//         uint pixel_count = camera_info.resolution.x * camera_info.resolution.y * 4;
-//         camera_storage[camera_info.name] = luisa::make_unique<CameraStorage>(camera_id, device.get(), pixel_count);
-//     }
-// }
 
 void update_shape(const PyShape &shape) noexcept {
     LUISA_INFO("Update: {}", shape.shape_info.get_info());
@@ -150,8 +133,9 @@ PyFloatArr render_frame(
     auto idx = camera_store->index;
     auto resolution = scene->cameras()[idx]->film()->resolution();
     std::filesystem::path exr_path = path;
-    auto picture = pipeline->render_to_buffer(*stream, idx);
-    auto buffer = reinterpret_cast<float *>((*picture).data());
+    luisa::vector<float4> buffer;
+    pipeline->render_to_buffer(*stream, idx, buffer);
+    auto buffer_p = reinterpret_cast<float *>(buffer.data());
     stream->synchronize();
 
     /* denoise image */
@@ -160,41 +144,59 @@ PyFloatArr render_frame(
         if (save_picture) {
             std::filesystem::path origin_path(exr_path);
             origin_path.replace_filename(origin_path.stem().string() + "_ori" + origin_path.extension().string());
-            save_image(origin_path, buffer, resolution);
+            save_image(origin_path, buffer_p, resolution);
         }
 
-        Buffer<float> &hdr_buffer = camera_store->hdr_buffer;
-        Buffer<float> &denoised_buffer = camera_store->denoised_buffer;
-        (*stream) << hdr_buffer.copy_from(buffer);
-        stream->synchronize();
+        // auto color_buffer = device.create_buffer<float4>(pixel_count);
+        // auto output_buffer = device.create_buffer<float4>(pixel_count);
+        auto &color_buffer = camera_store->color_buffer;
+        auto &denoised_buffer = camera_store->denoised_buffer;
+        auto denoiser = denoiser_ext->create(*stream);
+        {
+            auto input = DenoiserExt::DenoiserInput{resolution.x, resolution.y};
+            input.push_noisy_image(
+                color_buffer.view(), output_buffer.view(),
+                DenoiserExt::ImageFormat::FLOAT3,
+                DenoiserExt::ImageColorSpace::HDR
+            );
+            input.noisy_features = false;
+            input.filter_quality = DenoiserExt::FilterQuality::DEFAULT;
+            input.prefilter_mode = DenoiserExt::PrefilterMode::NONE;
+            denoiser->init(input);
+        }
+        (*stream) << color_buffer.copy_from(buffer_p) << synchronize();
+        denoiser->execute(true);
+        (*stream) << output_buffer.copy_to(buffer_p) << synchronize();
 
-        DenoiserExt::DenoiserInput data;
-        data.beauty = &hdr_buffer;
-        denoiser_ext->init(*stream, *mode, data, resolution);
-        denoiser_ext->process(*stream, data);
-        denoiser_ext->get_result(*stream, denoised_buffer);
-        stream->synchronize();
+        // (*stream) << hdr_buffer.copy_from(buffer);
+        // stream->synchronize();
+        // DenoiserExt::DenoiserInput data;
+        // data.beauty = &hdr_buffer;
+        // denoiser_ext->init(*stream, *mode, data, resolution);
+        // denoiser_ext->process(*stream, data);
+        // denoiser_ext->get_result(*stream, denoised_buffer);
+        // stream->synchronize();
 
-        (*stream) << denoised_buffer.copy_to(buffer);
-        stream->synchronize();
-        denoiser_ext->destroy(*stream);
-        stream->synchronize();
+        // (*stream) << denoised_buffer.copy_to(buffer);
+        // stream->synchronize();
+        // denoiser_ext->destroy(*stream);
+        // stream->synchronize();
     }
 
     /* save image */
-    if (save_picture) save_image(exr_path, buffer, resolution);
+    if (save_picture) save_image(exr_path, buffer_p, resolution);
 
-    apply_gamma(buffer, resolution);
+    apply_gamma(buffer_p, resolution);
 
     if (save_picture && render_png) {
         std::filesystem::path png_path = path;
         png_path.replace_extension(".png");
-        auto int_buffer = convert_to_int_pixel(buffer, resolution);
+        auto int_buffer = convert_to_int_pixel(buffer_p, resolution);
         save_image(png_path, (*int_buffer).data(), resolution);
     }
 
     auto array_buffer = PyFloatArr(resolution.x * resolution.y * 4);
-    std::memcpy(array_buffer.mutable_data(), buffer, array_buffer.size() * sizeof(float));
+    std::memcpy(array_buffer.mutable_data(), buffer_p, array_buffer.size() * sizeof(float));
     return array_buffer;
 }
 

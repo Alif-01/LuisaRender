@@ -15,6 +15,7 @@ public:
         : Texture{scene, desc},
           _uv_map{scene->load_texture(desc->property_node_or_default("uv_map"))},
           _texture{scene->load_texture(desc->property_node_or_default("texture"))} {}
+
     // is_black() and is_constant is not precise
     [[nodiscard]] bool is_black() const noexcept override {
         return _texture == nullptr || _texture->is_black();
@@ -22,6 +23,7 @@ public:
     [[nodiscard]] bool is_constant() const noexcept override {
         return _texture == nullptr || _texture->is_constant();
     }
+    [[nodiscard]] uint2 resolution() const noexcept override { return _uv_map->resolution(); }
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] uint channels() const noexcept override {
         return _texture == nullptr ? 4u : _texture->channels();
@@ -41,19 +43,18 @@ public:
                              const Texture::Instance *uv_map, const Texture::Instance *texture) noexcept
         : Texture::Instance{pipeline, node}, _uv_map{uv_map}, _texture{texture} {}
     [[nodiscard]] Float4 evaluate(const Interaction &it,
-                                  const SampledWavelengths &swl,
                                   Expr<float> time) const noexcept override {
         if (_texture == nullptr) {
             return make_float4(0.f);
         }
         if (_uv_map == nullptr) {
-            return _texture->evaluate(it, swl, time);
+            return _texture->evaluate(it, time);
         }
 
-        auto mapped_uv = _uv_map->evaluate(it, swl, time).xy();
+        auto mapped_uv = _uv_map->evaluate(it, time).xy();
         auto mapped_it = it;
         mapped_it.set_uv(mapped_uv);
-        return _texture->evaluate(mapped_it, swl, time);
+        return _texture->evaluate(mapped_it, time);
     }
 };
 
