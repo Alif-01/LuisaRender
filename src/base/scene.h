@@ -47,6 +47,7 @@ struct RawEnvironmentInfo;
 struct RawSurfaceInfo;
 struct RawTransformInfo;
 struct RawFilmInfo;
+struct RawFilterInfo;
 struct RawCameraInfo;
 struct RawShapeInfo;
 struct RawSceneInfo;

@@ -108,7 +108,7 @@ void update_camera(const PyCamera &camera) noexcept {
     uint camera_id = scene->cameras().size();
     auto camera_node = scene->update_camera(camera_info);
     if (auto it = camera_storage.find(camera_info.name); it == camera_storage.end()) {
-        uint pixel_count = camera_info.resolution.x * camera_info.resolution.y;
+        uint pixel_count = camera_info.film_info.resolution.x * camera_info.film_info.resolution.y;
         camera_storage[camera_info.name] = luisa::make_unique<CameraStorage>(camera_id, device.get(), pixel_count);
     }
 }
@@ -155,7 +155,7 @@ PyFloatArr render_frame(
         {
             auto input = DenoiserExt::DenoiserInput{resolution.x, resolution.y};
             input.push_noisy_image(
-                color_buffer.view(), output_buffer.view(),
+                color_buffer.view(), denoised_buffer.view(),
                 DenoiserExt::ImageFormat::FLOAT3,
                 DenoiserExt::ImageColorSpace::HDR
             );
@@ -166,7 +166,7 @@ PyFloatArr render_frame(
         }
         (*stream) << color_buffer.copy_from(buffer_p) << synchronize();
         denoiser->execute(true);
-        (*stream) << output_buffer.copy_to(buffer_p) << synchronize();
+        (*stream) << denoised_buffer.copy_to(buffer_p) << synchronize();
 
         // (*stream) << hdr_buffer.copy_from(buffer);
         // stream->synchronize();

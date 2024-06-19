@@ -183,7 +183,7 @@ struct PyCamera {
         PyCamera camera(
             luisa::string(name), RawTransformInfo(),
             RawFilmInfo(pyarray_to_pack<uint, 2>(resolution)),
-            RawFilterInfo(1.0), spp, 
+            RawFilterInfo(1.0), spp
         );
         camera.camera_info.build_pinhole(0.0);
         return camera;
@@ -195,7 +195,7 @@ struct PyCamera {
         PyCamera camera(
             luisa::string(name), RawTransformInfo(),
             RawFilmInfo(pyarray_to_pack<uint, 2>(resolution)),
-            RawFilterInfo(1.0), spp,
+            RawFilterInfo(1.0), spp
         );
         camera.camera_info.build_thinlens(0.0, 0.0, 0.0);
         return camera;

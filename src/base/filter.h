@@ -7,6 +7,7 @@
 #include <array>
 
 #include <base/scene_node.h>
+#include <base/raw_type.h>
 #include <base/sampler.h>
 
 namespace luisa::render {

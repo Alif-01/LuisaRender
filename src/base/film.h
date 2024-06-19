@@ -5,6 +5,7 @@
 #pragma once
 
 #include <util/spec.h>
+#include <base/raw_type.h>
 #include <base/scene_node.h>
 
 namespace luisa::render {
