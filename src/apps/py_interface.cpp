@@ -16,13 +16,9 @@ using namespace luisa::render;
 struct CameraStorage {
     CameraStorage(uint index, Device* device, uint pixel_count) noexcept:
         index{index},
-        // hdr_buffer{device->create_buffer<float>(pixel_count)},
-        // denoised_buffer{device->create_buffer<float>(pixel_count)} {} 
         color_buffer{device->create_buffer<float4>(pixel_count)},
         denoised_buffer{device->create_buffer<float4>(pixel_count)} {} 
     uint index;
-    // Buffer<float> hdr_buffer;
-    // Buffer<float> denoised_buffer;
     Buffer<float4> color_buffer;
     Buffer<float4> denoised_buffer;
 };
@@ -30,7 +26,6 @@ struct CameraStorage {
 luisa::unique_ptr<Stream> stream;
 luisa::unique_ptr<Device> device;
 luisa::unique_ptr<Context> context;
-// luisa::unique_ptr<DenoiserExt::DenoiserMode> mode;
 DenoiserExt *denoiser_ext = nullptr;
 
 luisa::unique_ptr<Pipeline> pipeline;
@@ -45,6 +40,7 @@ void init(
 ) noexcept {
     /* add device */
     context_storage = context_path;
+    Clock clock;
     switch (log_level) {
         case VERBOSE: log_level_verbose(); break; 
         case INFO: log_level_info(); break;
@@ -61,7 +57,6 @@ void init(
     /* build denoiser */
     stream = luisa::make_unique<Stream>(device->create_stream(StreamTag::COMPUTE));
     denoiser_ext = device->extension<DenoiserExt>();
-    // mode = luisa::make_unique<DenoiserExt::DenoiserMode>();
 
     /* build scene and pipeline */
     auto scene_info = RawSceneInfo {
@@ -70,10 +65,12 @@ void init(
         clamp_normal
     };
     scene = Scene::create(*context, scene_info);
-    LUISA_INFO("Scene created!");
+    auto scene_create_time = clock.toc();
+    LUISA_INFO("Scene created in {} ms.", scene_create_time);
 
     pipeline = Pipeline::create(*device, *stream, *scene);
-    LUISA_INFO("Pipeline created!");   
+    auto pipeline_create_time = clock.toc();
+    LUISA_INFO("Pipeline created in {} ms.", pipeline_create_time - scene_create_time);
 }
 
 void add_environment(
@@ -122,6 +119,7 @@ PyFloatArr render_frame(
     std::string_view name, std::string_view path,
     bool denoise, bool save_picture, bool render_png
 ) noexcept {
+    Clock clock;
     LUISA_INFO("Start rendering camera {}, saving {}", name, save_picture);
     pipeline->scene_update(*stream, *scene, 0);
 
@@ -140,7 +138,6 @@ PyFloatArr render_frame(
 
     /* denoise image */
     if (denoise) {
-        LUISA_INFO("Start denoising...");
         if (save_picture) {
             std::filesystem::path origin_path(exr_path);
             origin_path.replace_filename(origin_path.stem().string() + "_ori" + origin_path.extension().string());
@@ -167,20 +164,7 @@ PyFloatArr render_frame(
         (*stream) << color_buffer.copy_from(buffer_p) << synchronize();
         denoiser->execute(true);
         (*stream) << denoised_buffer.copy_to(buffer_p) << synchronize();
-
-        // (*stream) << hdr_buffer.copy_from(buffer);
-        // stream->synchronize();
-        // DenoiserExt::DenoiserInput data;
-        // data.beauty = &hdr_buffer;
-        // denoiser_ext->init(*stream, *mode, data, resolution);
-        // denoiser_ext->process(*stream, data);
-        // denoiser_ext->get_result(*stream, denoised_buffer);
-        // stream->synchronize();
-
-        // (*stream) << denoised_buffer.copy_to(buffer);
-        // stream->synchronize();
-        // denoiser_ext->destroy(*stream);
-        // stream->synchronize();
+        LUISA_INFO("Start denoising...");
     }
 
     /* save image */

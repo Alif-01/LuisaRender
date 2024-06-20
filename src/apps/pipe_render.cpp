@@ -58,10 +58,7 @@ int main(int argc, char *argv[]) {
     luisa::vector<float4> buffer;
     auto buffer_p = reinterpret_cast<float *>(buffer.data());
     pipeline->render_to_buffer(stream, 0, buffer);
-    // auto buffer_p = reinterpret_cast<float *>((*buffer).data());
 
-    // auto hdr_buffer = device.create_buffer<float>(pixel_count);
-    LUISA_INFO("Start denoising...");
     auto color_buffer = device.create_buffer<float4>(pixel_count);
     auto output_buffer = device.create_buffer<float4>(pixel_count);
     auto denoiser = denoiser_ext->create(stream);
@@ -80,18 +77,8 @@ int main(int argc, char *argv[]) {
     stream << color_buffer.copy_from(buffer_p) << synchronize();
     denoiser->execute(true);
     stream << output_buffer.copy_to(buffer_p) << synchronize();
-
-    // auto denoised_buffer = device.create_buffer<float>(pixel_count);
-    // stream << hdr_buffer.copy_from(buffer);
-    // stream.synchronize();
-    // DenoiserExt::DenoiserInput data;
-    // data.beauty = &hdr_buffer;
-    // denoiser_ext->init(stream, mode, data, resolution);
-    // denoiser_ext->process(stream, data);
-    // denoiser_ext->get_result(stream, denoised_buffer);
-    // stream.synchronize();
-    // stream << denoised_buffer.copy_to(buffer);
-    // stream.synchronize();
+    auto denoise_time = clock.toc();
+    LUISA_INFO("Denoised image in {} ms.", denoise_time - parse_time);
 
     if (render_png) {
         apply_gamma(buffer_p, resolution);
