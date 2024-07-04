@@ -30,4 +30,9 @@ SceneNode::SceneNode(const Scene *scene, const SceneNodeDesc *desc, SceneNodeTag
 
 SceneNode::SceneNode(const Scene *scene, SceneNodeTag tag) noexcept
     : _scene{reinterpret_cast<intptr_t>(scene)}, _tag{tag} {}
+
+void SceneNode::update(Scene *scene, const SceneNodeDesc *desc) noexcept {
+    LUISA_NOT_IMPLEMENTED();
+}
+
 }

@@ -42,10 +42,21 @@ private:
     Tag _tag : 8u;
 
 public:
+    template <typename T>
+    [[nodiscard]] static bool update_value(T &value, T new_value) noexcept {
+        if (value == new_value) return false;
+        else {
+            value = new_value;
+            return true;
+        }
+    }
+
+public:
     SceneNode(const Scene *scene, const SceneNodeDesc *desc, Tag tag) noexcept;
     SceneNode(const Scene *scene, Tag tag) noexcept;
     SceneNode(SceneNode &&) noexcept = delete;
     SceneNode(const SceneNode &) noexcept = delete;
+    virtual void update(Scene *scene, const SceneNodeDesc *desc) noexcept;
     SceneNode &operator=(SceneNode &&) noexcept = delete;
     SceneNode &operator=(const SceneNode &) noexcept = delete;
     virtual ~SceneNode() noexcept = default;

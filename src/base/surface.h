@@ -101,8 +101,8 @@ public:
         [[nodiscard]] virtual luisa::optional<Float> eta() const noexcept { return nullopt; }         // nullopt if never possible to be transmissive
         [[nodiscard]] virtual luisa::optional<Bool> is_dispersive() const noexcept { return nullopt; }// nullopt if never possible to be dispersive
         [[nodiscard]] virtual const Interaction &it() const noexcept = 0;
-        [[nodiscard]] virtual SampledSpectrum albedo() const noexcept = 0;// albedo, might not be exact, for AOV only
-        [[nodiscard]] virtual Float2 roughness() const noexcept = 0;      // roughness, might not be exact, for AOV only
+        [[nodiscard]] virtual SampledSpectrum albedo() const noexcept = 0;  // albedo, might not be exact, for AOV only
+        [[nodiscard]] virtual Float2 roughness() const noexcept = 0;        // roughness, might not be exact, for AOV only
     };
 
     class Instance {
@@ -209,10 +209,9 @@ public:
                       return desc->property_node_or_default("opacity");
                   })));
           }(scene, desc)} {}
-    OpacitySurfaceWrapper(Scene *scene, const RawSurfaceInfo &surface_info) noexcept
-        : BaseSurface{scene, surface_info},
-          _opacity{scene->add_texture("surface_opacity",
-                RawTextureInfo::constant({surface_info.opacity}))} {}
+    OpacitySurfaceWrapper(Scene *scene, const RawSurfaceInfo &surface_info) noexcept:
+        BaseSurface{scene, surface_info},
+        _opacity{scene->add_texture(surface_info.name_opacity, surface_info.opacity)} {}
 
 protected:
     [[nodiscard]] luisa::unique_ptr<Surface::Instance> _build(
@@ -271,14 +270,16 @@ private:
     float _strength;
 
 public:
-    NormalMapWrapper(Scene *scene, const SceneNodeDesc *desc) noexcept
-        : BaseSurface{scene, desc},
-          _normal_map{[](auto scene, auto desc) noexcept {
-              return scene->load_texture(desc->property_node_or_default("normal_map"));
-          }(scene, desc)},
-          _strength{desc->property_float_or_default("normal_map_strength", 1.f)} {}
-    NormalMapWrapper(Scene *scene, const RawSurfaceInfo &surface_info) noexcept
-        : BaseSurface{scene, surface_info}, _normal_map{nullptr}, _strength{1.f} {}
+    NormalMapWrapper(Scene *scene, const SceneNodeDesc *desc) noexcept:
+        BaseSurface{scene, desc},
+        _normal_map{[](auto scene, auto desc) noexcept {
+            return scene->load_texture(desc->property_node_or_default("normal_map"));
+        }(scene, desc)},
+        _strength{desc->property_float_or_default("normal_map_strength", 1.f)} {}
+    NormalMapWrapper(Scene *scene, const RawSurfaceInfo &surface_info) noexcept:
+        BaseSurface{scene, surface_info},
+        _normal_map{scene->add_texture(surface_info.name_normal_map, surface_info.normal_map)},
+        _strength{1.f} {}
 
 protected:
     [[nodiscard]] luisa::unique_ptr<Surface::Instance> _build(

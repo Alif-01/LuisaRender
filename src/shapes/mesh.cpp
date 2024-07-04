@@ -15,13 +15,20 @@ private:
 public:
     Mesh(Scene *scene, const SceneNodeDesc *desc) noexcept :
         Shape{scene, desc},
-        _geometry{MeshGeometry::create(
-            desc->property_path("file"),
-            desc->property_uint_or_default("subdivision", 0u),
-            desc->property_bool_or_default("flip_uv", false),
-            desc->property_bool_or_default("drop_normal", false),
-            desc->property_bool_or_default("drop_uv", false)
-        )} { }
+        _geometry{[&]{
+            return desc->has_property("file") ?
+            MeshGeometry::create(
+                desc->property_path("file"),
+                desc->property_uint_or_default("subdivision", 0u),
+                desc->property_bool_or_default("flip_uv", false),
+                desc->property_bool_or_default("drop_normal", false),
+                desc->property_bool_or_default("drop_uv", false)) :
+            MeshGeometry::create(
+                desc->property_float_list("positions"),
+                desc->property_uint_list("indices"),
+                desc->property_float_list_or_default("normals"),
+                desc->property_float_list_or_default("uvs"))
+        }()} { }
 
     Mesh(Scene *scene, const RawShapeInfo &shape_info) noexcept :
         Shape{scene, shape_info} {
@@ -44,7 +51,11 @@ public:
         }
     }
 
-    void update_shape(Scene *scene, const RawShapeInfo& shape_info) noexcept override {
+    [[nodiscard]] bool update(Scene *scene, const SceneNodeDesc *desc) noexcept override {
+        return Shape::update_shape(scene, desc);
+    }
+
+    void update_shape(Scene *scene, const RawShapeInfo &shape_info) noexcept override {
         Shape::update_shape(scene, shape_info);
     }
     

@@ -63,8 +63,7 @@ public:
 
     PlasticSurface(Scene *scene, const RawSurfaceInfo &surface_info) noexcept
         : Surface{scene},
-          _roughness{scene->add_texture("plastic_roughness",
-                RawTextureInfo::constant({surface_info.roughness}))},
+          _roughness{scene->add_texture(surface_info.name_roughness, surface_info.roughness)},
           _sigma_a{nullptr}, _thickness{nullptr}, _remap_roughness{true} {
 
         if (surface_info.plastic_info == nullptr) [[unlikely]]

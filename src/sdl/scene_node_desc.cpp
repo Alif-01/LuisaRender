@@ -9,14 +9,27 @@
 
 namespace luisa::render {
 
-void SceneNodeDesc::add_property(luisa::string_view name, SceneNodeDesc::value_list value) noexcept {
-    if (!_properties.emplace(luisa::string{name}, std::move(value)).second) {
+void SceneNodeDesc::set_identifier(luisa::string identifier) noexcept {
+    if (is_defined()) [[unlikely]] {
         LUISA_ERROR(
-            "Redefinition of property '{}' in "
+            "Cannot set identifier '{}' to a defined"
             "scene description node '{}'. [{}]",
-            name, _identifier, _location.string());
+            identifier, _identifier, _location.string());
     }
+    _identifier = std::move(identifier);
 }
+
+void SceneNodeDesc::add_property(luisa::string_view name, SceneNodeDesc::value_list value) noexcept {
+    _properties[luisa::string{name}] = std::move(value);
+}
+// void SceneNodeDesc::add_property(luisa::string_view name, SceneNodeDesc::value_list value) noexcept {
+//     if (!_properties.emplace(luisa::string{name}, std::move(value)).second) {
+//         LUISA_ERROR(
+//             "Redefinition of property '{}' in "
+//             "scene description node '{}'. [{}]",
+//             name, _identifier, _location.string());
+//     }
+// }
 
 void SceneNodeDesc::set_property(luisa::string_view name, SceneNodeDesc::value_list value) noexcept {
     if (!_properties.contains(luisa::string{name})) {

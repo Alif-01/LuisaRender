@@ -28,6 +28,11 @@ Shape::Shape(Scene *scene, const RawShapeInfo &shape_info) noexcept :
         luisa::format("{}_transform", shape_info.name), shape_info.transform_info)
     },
     _medium{dynamic_cast<Medium *>(scene->load_node_from_name(shape_info.medium))} {}
+
+bool Shape::update(Scene *scene, const SceneNodeDesc *desc) noexcept override {
+    return true | update_value(_transform,
+        scene->load_transform(desc->property_node_or_default("transform")));
+}
       
 void Shape::update_shape(Scene *scene, const RawShapeInfo &shape_info) noexcept {
     if (shape_info.transform_info.get_type() != "None") _transform = scene->update_transform(

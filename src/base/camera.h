@@ -90,7 +90,7 @@ public:
 private:
     const Film *_film;
     const Filter *_filter;
-    const Transform *_transform;
+    Transform *_transform;
     float2 _shutter_span;
     uint _shutter_samples;
     uint _spp;
@@ -101,6 +101,7 @@ public:
     Camera(Scene *scene, const SceneNodeDesc *desc) noexcept;
     Camera(Scene *scene, const RawCameraInfo &camera_info) noexcept;
     [[nodiscard]] virtual bool update_camera(Scene *scene, const RawCameraInfo &camera_info) noexcept;
+    [[nodiscard]] virtual bool update(Scene *scene, const SceneNodeDesc *desc) noexcept override;
     [[nodiscard]] auto film() const noexcept { return _film; }
     [[nodiscard]] auto filter() const noexcept { return _filter; }
     [[nodiscard]] auto transform() const noexcept { return _transform; }

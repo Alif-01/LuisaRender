@@ -331,12 +331,18 @@ struct RawGlassInfo {
 };
 
 struct RawSurfaceInfo {
-    RawSurfaceInfo(StringArr name, float roughness, float opacity) noexcept:
-        name{name}, roughness{roughness}, opacity{opacity} {}
+    RawSurfaceInfo(
+        StringArr name, RawTextureInfo roughness, RawTextureInfo opacity, RawTextureInfo normal_map
+    ) noexcept:
+        name{name},
+        name_roughness{luisa::format("{}_roughness", name)},
+        name_opacity{luisa::format("{}_opacity", name)},
+        name_normal_map{luisa::format("{}_name_normal_map", name)},
+        roughness{std::move(roughness)}, opacity{std::move(opacity)}, normal_map{std::move(normal_map)} {}
 
     [[nodiscard]] StringArr get_info() const noexcept {
-        return luisa::format("Surface {} <material={}, roughness={}, opacity={}>",
-            name, get_type(), roughness, opacity);
+        return luisa::format("Surface {} <material={}, roughness={}, opacity={}, normal_map={}>",
+            name, get_type(), roughness.get_info(), opacity.get_info(), normal_map.get_info());
     }
 
     [[nodiscard]] StringArr get_type() const noexcept {
@@ -358,8 +364,10 @@ struct RawSurfaceInfo {
     }
 
     StringArr name;
-    float roughness;
-    float opacity;
+    StringArr name_roughness, name_opacity, name_normal_map;
+    RawTextureInfo roughness;
+    RawTextureInfo opacity;
+    RawTextureInfo normal_map;
     UniquePtr<RawMetalInfo> metal_info;
     UniquePtr<RawPlasticInfo> plastic_info;
     UniquePtr<RawGlassInfo> glass_info;

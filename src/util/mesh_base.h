@@ -118,11 +118,11 @@ class SphereGroupGeometry : public ShapeGeometry {
 public:
     SphereGroupGeometry(
         const luisa::vector<float> &centers,
-        float radius, uint subdiv
+        const luisa::vector<float> &radii, uint subdiv
     ) noexcept;
     [[nodiscard]] static std::shared_future<SphereGroupGeometry> create(
         const luisa::vector<float> &centers,
-        float radius, uint subdiv
+        const luisa::vector<float> &radii, uint subdiv
     ) noexcept;
 };
 

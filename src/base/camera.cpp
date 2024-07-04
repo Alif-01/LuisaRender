@@ -161,6 +161,11 @@ Camera::Camera(Scene *scene, const RawCameraInfo &camera_info) noexcept:
     }
 }
 
+bool Camera::update(Scene *scene, const SceneNodeDesc *desc) noexcept {
+    return update_value(_transform,
+        scene->load_transform(desc->property_node_or_default("transform")));
+}
+
 bool Camera::update_camera(Scene *scene, const RawCameraInfo &camera_info) noexcept {
     bool updated = false;
 
@@ -171,13 +176,6 @@ bool Camera::update_camera(Scene *scene, const RawCameraInfo &camera_info) noexc
             _transform = new_transform;
             updated = true;
         }
-    }
-
-    auto film_name = luisa::format("{}_film", camera_info.name);
-    auto new_film = scene->update_film(film_name, camera_info.film_info);
-    if (_film != new_film) {
-        _film = new_film;
-        updated = true;
     }
     return updated;
 }

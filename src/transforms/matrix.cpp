@@ -60,6 +60,12 @@ public:
                all(_matrix[2] == make_float4(0.0f, 0.0f, 1.0f, 0.0f)) &&
                all(_matrix[3] == make_float4(0.0f, 0.0f, 0.0f, 1.0f));
     }
+
+    bool update(Scene *scene, const SceneNodeDesc *desc) noexcept override {
+        _build_matrix(desc->property_float_list_or_default("m"));
+        return true;
+    }
+
     void update_transform(Scene *scene, const RawTransformInfo &transform_info) noexcept override {
         if (transform_info.matrix_info == nullptr) [[unlikely]]
             LUISA_ERROR_WITH_LOCATION("Invalid matrix info!");

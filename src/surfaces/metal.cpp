@@ -112,8 +112,7 @@ public:
 
     MetalSurface(Scene *scene, const RawSurfaceInfo &surface_info) noexcept
         : Surface{scene},
-          _roughness{scene->add_texture("metal_roughness",
-                RawTextureInfo::constant({surface_info.roughness}))},
+          _roughness{scene->add_texture(surface_info.name_roughness, surface_info.roughness)},
           _remap_roughness{true} {
             
         if (surface_info.metal_info == nullptr) [[unlikely]]

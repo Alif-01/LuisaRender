@@ -137,7 +137,7 @@ public:
         return static_cast<uint>(tex3d_id);
     }
 
-    void register_transform(const Transform *transform) noexcept;
+    void register_transform(Transform *transform) noexcept;
 
     [[nodiscard]] uint register_surface(CommandBuffer &command_buffer, const Surface *surface) noexcept;
     [[nodiscard]] uint register_light(CommandBuffer &command_buffer, const Light *light) noexcept;

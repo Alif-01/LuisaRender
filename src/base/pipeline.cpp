@@ -85,9 +85,6 @@ luisa::unique_ptr<Pipeline> Pipeline::create(Device &device, Stream &stream, Sce
     if (auto environment_medium = scene.environment_medium(); environment_medium != nullptr) {
         pipeline->_environment_medium_tag = pipeline->register_medium(command_buffer, environment_medium);
     }
-    // if (pipeline->_lights.empty() && pipeline->_environment == nullptr) [[unlikely]] {
-    //     LUISA_WARNING_WITH_LOCATION("No lights or environment found in the scene.");
-    // }
     update_bindless_if_dirty();
     pipeline->_integrator = scene.integrator()->build(*pipeline, command_buffer);
 
@@ -126,7 +123,7 @@ void Pipeline::scene_update(
     };
     update_bindless_if_dirty();
 
-    if (scene.cameras_updated() || scene.film_updated()) {
+    if (scene.cameras_updated()) {
         _cameras.clear();
         _cameras.reserve(scene.cameras().size());
 
@@ -143,7 +140,7 @@ void Pipeline::scene_update(
     }
     
     bool environment_updated = false;
-    if (scene.environment_updated() && !scene.environment()->is_black()) {
+    if (scene.environment_updated()) {
         _environment = scene.environment()->build(*this, command_buffer);
         environment_updated = true;
         update_bindless_if_dirty();
@@ -220,9 +217,10 @@ const PhaseFunction::Instance *Pipeline::build_phasefunction(CommandBuffer &comm
     return _phasefunctions.emplace(phasefunction, std::move(pf)).first->second.get();
 }
 
-void Pipeline::register_transform(const Transform *transform) noexcept {
+void Pipeline::register_transform(Transform *transform) noexcept {
     if (transform == nullptr) { return; }
     if (!_transform_to_id.contains(transform)) {
+        transform->set_registered();
         auto transform_id = static_cast<uint>(_transforms.size());
         LUISA_ASSERT(transform_id < transform_matrix_buffer_size,
                      "Transform matrix buffer overflows.");

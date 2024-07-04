@@ -159,6 +159,7 @@ public:
     SceneNodeDesc &operator=(SceneNodeDesc &&) noexcept = delete;
     SceneNodeDesc &operator=(const SceneNodeDesc &) noexcept = delete;
     [[nodiscard]] auto identifier() const noexcept { return luisa::string_view{_identifier}; }
+    void set_identifier(luisa::string identifier) noexcept;
     [[nodiscard]] auto tag() const noexcept { return _tag; }
     [[nodiscard]] auto impl_type() const noexcept { return luisa::string_view{_impl_type}; }
     [[nodiscard]] auto source_location() const noexcept { return _location; }

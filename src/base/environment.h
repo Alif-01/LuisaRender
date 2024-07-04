@@ -50,11 +50,12 @@ public:
     };
 
 private:
-    const Transform *_transform;
+    Transform *_transform;
 
 public:
     Environment(Scene *scene, const SceneNodeDesc *desc) noexcept;
     Environment(Scene *scene, const RawEnvironmentInfo &environment_info) noexcept;
+    [[nodiscard]] virtual bool update(Scene *scene, const SceneNodeDesc *desc) noexcept override;
     [[nodiscard]] auto transform() const noexcept { return _transform; }
     [[nodiscard]] virtual bool is_black() const noexcept = 0;
     [[nodiscard]] virtual luisa::unique_ptr<Instance> build(

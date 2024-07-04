@@ -86,10 +86,11 @@ std::shared_future<SphereGeometry> SphereGeometry::create(uint subdiv) noexcept 
 }
 
 SphereGroupGeometry::SphereGroupGeometry(
-    const luisa::vector<float> &centers, float radius, uint subdiv
+    const luisa::vector<float> &centers, const luisa::vector<float> &radii, uint subdiv
 ) noexcept {
-    if (centers.size() % 3u != 0u) {
-        LUISA_ERROR_WITH_LOCATION("Invalid center count.");
+    if (centers.size() % 3u != 0u ||
+        radii.size() * 3u != centers.size() && radii.size() != 1u) {
+        LUISA_ERROR_WITH_LOCATION("Invalid center or radius count.");
     }
 
     auto sphere_geom = SphereGeometry::create(subdiv).get();
@@ -98,6 +99,7 @@ SphereGroupGeometry::SphereGroupGeometry(
     uint vertex_count = single_vertices.size();
     uint triangle_count = single_triangles.size();
     uint center_count = centers.size() / 3u;
+    bool global_radius = radii.size() == 1u;
     
     _vertices.reserve(center_count * vertex_count);
     _triangles.reserve(center_count * triangle_count);
@@ -106,6 +108,7 @@ SphereGroupGeometry::SphereGroupGeometry(
         auto center = make_float3(
             centers[i * 3u + 0u], centers[i * 3u + 1u], centers[i * 3u + 2u]
         );
+        auto radius = global_radius ? radii[0] : radii[i];
         for (auto v: single_vertices) {
             _vertices.emplace_back(Vertex::encode(
                 v.position() * radius + center, v.normal(), v.uv())
@@ -122,11 +125,11 @@ SphereGroupGeometry::SphereGroupGeometry(
 }
 
 std::shared_future<SphereGroupGeometry> SphereGroupGeometry::create(
-    const luisa::vector<float> &centers, float radius, uint subdiv
+    const luisa::vector<float> &centers, const luisa::vector<float> &radii, uint subdiv
 ) noexcept {
     return global_thread_pool().async(
-        [&centers, radius, subdiv] { 
-            return SphereGroupGeometry(centers, radius, subdiv);
+        [&centers, radii, subdiv] { 
+            return SphereGroupGeometry(centers, radii, subdiv);
         }
     );
 }

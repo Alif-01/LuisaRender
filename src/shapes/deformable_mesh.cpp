@@ -16,14 +16,14 @@ public:
     DeformableMesh(Scene *scene, const SceneNodeDesc *desc) noexcept :
         Shape{scene, desc},
         _geometry{MeshGeometry::create(
-            desc->property_float_list("positions"),
-            desc->property_uint_list("indices"),
+            desc->property_float_list_or_default("positions"),
+            desc->property_uint_list_or_default("indices"),
             desc->property_float_list_or_default("normals"),
             desc->property_float_list_or_default("uvs")
-        )} { }
+        )} { _geometry.wait(); }
 
-    DeformableMesh(Scene *scene, const RawShapeInfo &shape_info) noexcept
-        : Shape{scene, shape_info} {
+    DeformableMesh(Scene *scene, const RawShapeInfo &shape_info) noexcept:
+        Shape{scene, shape_info} {
         LUISA_ASSERT(shape_info.get_type() == "deformablemesh", "Invalid deformable info.");
         auto mesh_info = shape_info.mesh_info.get();
         _geometry = MeshGeometry::create(
@@ -33,6 +33,17 @@ public:
             mesh_info->uvs
         );
         _geometry.wait();
+    }
+
+    [[nodiscard]] bool update(Scene *scene, const SceneNodeDesc *desc) noexcept override {
+        _geometry = MeshGeometry::create(
+            desc->property_float_list_or_default("positions"),
+            desc->property_uint_list_or_default("indices"),
+            desc->property_float_list_or_default("normals"),
+            desc->property_float_list_or_default("uvs")
+        );
+        _geometry.wait();
+        return true;
     }
 
     void update_shape(Scene *scene, const RawShapeInfo &shape_info) noexcept override {

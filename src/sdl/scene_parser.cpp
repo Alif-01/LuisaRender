@@ -262,7 +262,9 @@ inline void SceneParser::_skip_blanks() noexcept {
 }
 
 inline void SceneParser::_parse_root_node(SceneNodeDesc::SourceLocation l) noexcept {
-    _parse_node_body(_desc.define_root(l));
+    _parse_node_body(_desc.define(
+        SceneDesc::root_node_identifier, SceneNodeTag::ROOT, 
+        SceneDesc::root_node_identifier, l));
 }
 
 inline void SceneParser::_parse_global_node(SceneNodeDesc::SourceLocation l, std::string_view tag_desc) noexcept {
