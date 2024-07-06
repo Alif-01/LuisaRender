@@ -99,7 +99,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
 
     // Surface
     py::class_<PyMetal, PySurface>(m, "MetalSurface")
-        .def(py::init<std::string_view, PyTexture*, PyTexture*, PyTexture*, std::string_view>(),
+        .def(py::init<std::string_view, PyTexture*, PyTexture*, PyTexture*, PyTexture*, std::string_view>(),
             py::arg("name"),
             py::arg("roughness").none(true) = py::none(),
             py::arg("opacity").none(true) = py::none(),
@@ -107,7 +107,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
             py::arg("kd").none(true) = py::none(),
             py::arg("eta").none(true) = py::none());
     py::class_<PyPlastic, PySurface>(m, "PlasticSurface")
-        .def(py::init<std::string_view, PyTexture*, PyTexture*, PyTexture*, PyTexture*, PyTexture*>(),
+        .def(py::init<std::string_view, PyTexture*, PyTexture*, PyTexture*, PyTexture*, PyTexture*, PyTexture*>(),
             py::arg("name"),
             py::arg("roughness").none(true) = py::none(),
             py::arg("opacity").none(true) = py::none(),
@@ -116,7 +116,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
             py::arg("ks").none(true) = py::none(),
             py::arg("eta").none(true) = py::none());
     py::class_<PyGlass, PySurface>(m, "GlassSurface")
-        .def(py::init<std::string_view, PyTexture*, PyTexture*, PyTexture*, PyTexture*, PyTexture*>(),
+        .def(py::init<std::string_view, PyTexture*, PyTexture*, PyTexture*, PyTexture*, PyTexture*, PyTexture*>(),
             py::arg("name"),
             py::arg("roughness").none(true) = py::none(),
             py::arg("opacity").none(true) = py::none(),
@@ -227,7 +227,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
             py::arg("transform").none(true) = py::none());
 
     // Integrator
-    py::class_<PyWavePath, Py>(m, "WavePathIntegrator")
+    py::class_<PyWavePath, PyIntegrator>(m, "WavePathIntegrator")
         .def(py::init<LogLevel, uint>(),
             py::arg("log_level") = LogLevel::WARNING,
             py::arg("max_depth") = 32u);

@@ -257,7 +257,7 @@ public:
 class PySurface: public PyDesc {
 public:
     PySurface(
-        std::string_view name, PyTexture *roughness, PyTexture *opacity, PyTexture *normal_map,
+        std::string_view name, PyTexture *roughness, PyTexture *opacity, PyTexture *normal_map
     ) noexcept: PyDesc{name} {
         add_property_node("roughness", roughness);
         add_property_node("opacity", opacity);

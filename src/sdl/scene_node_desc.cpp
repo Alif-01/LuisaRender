@@ -23,7 +23,7 @@ void SceneNodeDesc::update_properties(SceneNodeDesc *node) noexcept {
     for (auto& kv : node->_properties) {
         _properties[kv.first] = std::move(kv.second);
     }
-    node->properties.clear();
+    node->_properties.clear();
 }
 
 void SceneNodeDesc::add_property(luisa::string_view name, SceneNodeDesc::value_list value) noexcept {

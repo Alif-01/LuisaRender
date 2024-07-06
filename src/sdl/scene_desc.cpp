@@ -70,7 +70,7 @@ SceneNodeDesc *SceneDesc::define(
                 "Different from node ({}::{})",
                 node->identifier(), scene_node_tag_description(node->tag()), node->impl_type(),
                 scene_node_tag_description(node_ptr->tag()), impl_type
-            )
+            );
         LUISA_INFO_WITH_LOCATION(
             "Update scene node description: '{}' ({}::{})",
             node->identifier(), scene_node_tag_description(node->tag()), impl_type
