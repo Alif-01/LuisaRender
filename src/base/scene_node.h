@@ -56,7 +56,7 @@ public:
     SceneNode(const Scene *scene, Tag tag) noexcept;
     SceneNode(SceneNode &&) noexcept = delete;
     SceneNode(const SceneNode &) noexcept = delete;
-    virtual void update(Scene *scene, const SceneNodeDesc *desc) noexcept;
+    virtual bool update(Scene *scene, const SceneNodeDesc *desc) noexcept;
     SceneNode &operator=(SceneNode &&) noexcept = delete;
     SceneNode &operator=(const SceneNode &) noexcept = delete;
     virtual ~SceneNode() noexcept = default;

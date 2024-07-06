@@ -65,7 +65,7 @@ luisa::unique_ptr<Pipeline> Pipeline::create(Device &device, Stream &stream, Sce
     pipeline->_spectrum = scene.spectrum()->build(*pipeline, command_buffer);
     update_bindless_if_dirty();
 
-    if (scene.cameras_updated() || scene.film_updated()) {
+    if (scene.cameras_updated()) {
         pipeline->_cameras.reserve(scene.cameras().size());
         for (auto camera : scene.cameras()) {
             pipeline->_cameras.emplace_back(camera->build(*pipeline, command_buffer));

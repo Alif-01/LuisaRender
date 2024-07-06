@@ -42,15 +42,15 @@ private:
         });
     }
     
-    void _load_image(const RawImageInfo *image_info) noexcept {
-        _image = global_thread_pool().async([image_info] {
+    void _load_image(
+        const luisa::vector<float> &image_data,
+        const uint2 &resolution, uint channel
+    ) noexcept {
+        _image = global_thread_pool().async([&] {
             return LoadedImage::load(
-                image_info->image_data,
-                image_info->resolution,
-                image_info->channel
+                image_data, resolution, channel
             );
         });
-        _image.wait();
     }
 
     [[nodiscard]]luisa::string _get_encoding(const std::filesystem::path &path) noexcept {
@@ -65,8 +65,8 @@ private:
     void _generate_mipmaps_sRGB(Pipeline &pipeline, CommandBuffer &command_buffer, Image<float> &image) const noexcept;
 
 public:
-    ImageTexture(Scene *scene, const SceneNodeDesc *desc) noexcept
-        : Texture{scene, desc} {
+    ImageTexture(Scene *scene, const SceneNodeDesc *desc) noexcept:
+        Texture{scene, desc} {
             
         auto filter = desc->property_string_or_default("filter", "bilinear");
         auto address = desc->property_string_or_default("address", "repeat");
@@ -92,6 +92,7 @@ public:
                 "Invalid texture filter mode '{}'. [{}]",
                 filter, desc->source_location().string());
         }();
+        
         _sampler = {filter_mode, address_mode};
         _uv_scale = desc->property_float2_or_default(
             "uv_scale", lazy_construct([desc] {
@@ -101,7 +102,8 @@ public:
             "uv_offset", lazy_construct([desc] {
                 return make_float2(desc->property_float_or_default("uv_offset", 0.0f));
             }));
-        auto path = desc->property_path("file");
+
+        auto path = desc->property_path_or_default("file");
         auto encoding = desc->property_string_or_default(
             "encoding", lazy_construct([&path, this]() noexcept -> luisa::string { return _get_encoding(path); })
         );
@@ -130,28 +132,35 @@ public:
         _mipmaps = desc->property_uint_or_default(
             "mipmaps", filter_mode == TextureSampler::Filter::ANISOTROPIC ? 0u : 1u);
         if (filter_mode == TextureSampler::Filter::POINT) { _mipmaps = 1u; }
-        _load_image(path);
+        if (path.string().empty()) {
+            _load_image(path);
+        } else {
+            _load_image(
+                desc->property_float_list("image_data"),
+                desc->property_uint2("resolution"),
+                desc->property_uint("channel")
+            );
+        }
     }
     
-    ImageTexture(Scene *scene, const RawTextureInfo &texture_info) noexcept
-        : Texture{scene},
-          _sampler{TextureSampler::Filter::LINEAR_POINT, TextureSampler::Address::REPEAT},
-          _uv_scale{make_float2(1.0f)}, _uv_offset{make_float2(0.0f)}, _mipmaps{1u} {
+    ImageTexture(Scene *scene, const RawTextureInfo &texture_info) noexcept:
+        Texture{scene},
+        _sampler{TextureSampler::Filter::LINEAR_POINT, TextureSampler::Address::REPEAT},
+        _uv_scale{make_float2(1.0f)}, _uv_offset{make_float2(0.0f)}, _mipmaps{1u} {
         
         if (texture_info.image_info == nullptr) [[unlikely]]
             LUISA_ERROR_WITH_LOCATION("Invalid image info!");
         auto image_info = texture_info.image_info.get();
 
-        luisa::vector<float> s(image_info->scale);
-        _scale = build_constant(s).xyz();
+        _scale = build_constant(image_info->scale).first.xyz();
         std::filesystem::path path = image_info->image;
         auto encoding = _get_encoding(path);
         for (auto &c : encoding) { c = static_cast<char>(tolower(c)); }
         if (encoding == "srgb") _encoding = Encoding::SRGB;
         else _encoding = Encoding::LINEAR;
 
-        if (!image_info->image_data.empty()) {
-            _load_image(image_info);
+        if (path.string().empty()) {
+            _load_image(image_info->image_data, image_info->resolution, image_info->channel);
         } else {
             _load_image(path);
         }

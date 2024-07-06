@@ -19,28 +19,29 @@ private:
     bool _should_inline;
 
 public:
-    ConstantTexture(Scene *scene, const SceneNodeDesc *desc) noexcept
-        : Texture{scene, desc},
-          _should_inline{desc->property_bool_or_default("inline", true)} {
-        auto scale = desc->property_float_or_default("scale", 1.f);
-        auto v = desc->property_float_list_or_default("v");
+    ConstantTexture(Scene *scene, const SceneNodeDesc *desc) noexcept:
+        Texture{scene, desc},
+        _should_inline{desc->property_bool_or_default("inline", true)} {
         
-        _v = build_constant(v, scale);
+        auto p = build_constant(
+            desc->property_float_list_or_default("v"),
+            desc->property_float_or_default("scale", 1.f));
+        _channels = p.second;
+        _v = std::move(p.first);
         _black = all(_v == 0.f);
-        _channels = v.size();
     }
     
-    ConstantTexture(Scene *scene, const RawTextureInfo &texture_info) noexcept
-        : Texture{scene}, _should_inline{true} {
+    ConstantTexture(Scene *scene, const RawTextureInfo &texture_info) noexcept:
+        Texture{scene}, _should_inline{true} {
             
         if (texture_info.constant_info == nullptr) [[unlikely]]
             LUISA_ERROR_WITH_LOCATION("Invalid color info!");
         auto constant_info = texture_info.constant_info.get();
 
-        luisa::vector<float> v(constant_info->constant);
-        _v = build_constant(v);
+        auto p = build_constant(constant_info->constant);
+        _channels = p.second;
+        _v = std::move(p.first);
         _black = all(_v == 0.f);
-        _channels = constant_info->constant.size();
     }
     
     [[nodiscard]] auto v() const noexcept { return _v; }

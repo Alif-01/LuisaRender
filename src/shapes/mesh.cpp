@@ -13,7 +13,7 @@ private:
     std::shared_future<MeshGeometry> _geometry;
 
 public:
-    Mesh(Scene *scene, const SceneNodeDesc *desc) noexcept :
+    Mesh(Scene *scene, const SceneNodeDesc *desc) noexcept:
         Shape{scene, desc},
         _geometry{[&]{
             return desc->has_property("file") ?
@@ -27,10 +27,10 @@ public:
                 desc->property_float_list("positions"),
                 desc->property_uint_list("indices"),
                 desc->property_float_list_or_default("normals"),
-                desc->property_float_list_or_default("uvs"))
+                desc->property_float_list_or_default("uvs"));
         }()} { }
 
-    Mesh(Scene *scene, const RawShapeInfo &shape_info) noexcept :
+    Mesh(Scene *scene, const RawShapeInfo &shape_info) noexcept:
         Shape{scene, shape_info} {
         LUISA_ASSERT(shape_info.get_type() == "mesh", "Invalid rigid info.");
 
@@ -52,7 +52,7 @@ public:
     }
 
     [[nodiscard]] bool update(Scene *scene, const SceneNodeDesc *desc) noexcept override {
-        return Shape::update_shape(scene, desc);
+        return Shape::update(scene, desc);
     }
 
     void update_shape(Scene *scene, const RawShapeInfo &shape_info) noexcept override {

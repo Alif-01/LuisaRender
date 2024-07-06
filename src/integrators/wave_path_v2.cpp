@@ -71,13 +71,13 @@ public:
           _test_case{desc->property_bool_or_default("test_case", false)},
           _compact{desc->property_bool_or_default("compact", true)} {}
 
-    WavefrontPathTracingv2(Scene *scene, const RawIntegratorInfo &integrator_info) noexcept
-        : ProgressiveIntegrator{scene, integrator_info},
-          _max_depth{std::max(integrator_info.max_depth, 1u)},
-          _rr_depth{std::max(integrator_info.rr_depth, 0u)},
-          _rr_threshold{std::max(integrator_info.rr_threshold, 0.05f)},
-          _state_limit{std::max(integrator_info.state_limit, 1u)},
-          _gathering{true}, _test_case{false}, _compact{true} {}
+    // WavefrontPathTracingv2(Scene *scene, const RawIntegratorInfo &integrator_info) noexcept
+    //     : ProgressiveIntegrator{scene, integrator_info},
+    //       _max_depth{std::max(integrator_info.max_depth, 1u)},
+    //       _rr_depth{std::max(integrator_info.rr_depth, 0u)},
+    //       _rr_threshold{std::max(integrator_info.rr_threshold, 0.05f)},
+    //       _state_limit{std::max(integrator_info.state_limit, 1u)},
+    //       _gathering{true}, _test_case{false}, _compact{true} {}
           
     [[nodiscard]] auto max_depth() const noexcept { return _max_depth; }
     [[nodiscard]] auto use_tag_sort() const noexcept { return _use_tag_sort; }
@@ -1372,8 +1372,3 @@ void WavefrontPathTracingv2Instance::_render_one_camera(
 }// namespace luisa::render
 
 LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::WavefrontPathTracingv2)
-
-LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
-    luisa::render::Scene *scene, const luisa::render::RawIntegratorInfo &integrator_info) LUISA_NOEXCEPT {
-    return luisa::new_with_allocator<luisa::render::WavefrontPathTracingv2>(scene, integrator_info);
-}

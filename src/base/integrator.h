@@ -52,7 +52,7 @@ private:
 
 public:
     Integrator(Scene *scene, const SceneNodeDesc *desc) noexcept;
-    Integrator(Scene *scene, const RawIntegratorInfo &integrator_info) noexcept;
+    // Integrator(Scene *scene, const RawIntegratorInfo &integrator_info) noexcept;
     [[nodiscard]] auto sampler() const noexcept { return _sampler; }
     [[nodiscard]] auto light_sampler() const noexcept { return _light_sampler; }
     [[nodiscard]] virtual luisa::unique_ptr<Instance> build(
@@ -81,7 +81,7 @@ public:
 
 public:
     ProgressiveIntegrator(Scene *scene, const SceneNodeDesc *desc) noexcept;
-    ProgressiveIntegrator(Scene *scene, const RawIntegratorInfo &integrator_info) noexcept;
+    // ProgressiveIntegrator(Scene *scene, const RawIntegratorInfo &integrator_info) noexcept;
 };
 
 }// namespace luisa::render

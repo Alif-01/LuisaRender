@@ -39,7 +39,7 @@ public:
         : Camera{scene, camera_info},
           _fov{radians(std::clamp(camera_info.pinhole_info->fov, 1e-3f, 180.f - 1e-3f))} {}
     [[nodiscard]] bool update(Scene *scene, const SceneNodeDesc *desc) noexcept override {
-        return Camera::update_camera(scene, desc) |
+        return Camera::update(scene, desc) |
             update_value(_fov, radians(std::clamp(
                 desc->property_float_or_default("fov", 35.0f), 1e-3f, 180.f - 1e-3f)));
     }

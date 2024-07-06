@@ -46,29 +46,43 @@ SceneNodeDesc *SceneDesc::define(
             "Defining internal or declaration node "
             "as a global node is not allowed.");
     }
-    if (_global_nodes.find(node_ptr->identifier()) != _global_nodes.cend()) [[unlikely]] {
+    // if (_global_nodes.find(node_ptr->identifier()) != _global_nodes.cend()) [[unlikely]] {
+    //     LUISA_ERROR_WITH_LOCATION(
+    //         "Node '{}' already exists in unique_ptr definition.",
+    //         node_ptr->identifier()
+    //     );
+    // }
+
+    if (node_ptr->is_defined()) [[unlikely]] {
         LUISA_ERROR_WITH_LOCATION(
-            "Node '{}' already exists in unique_ptr definition.",
-            node_ptr->identifier()
+            "Incoming node '{}' ({}::{}) has been defined.",
+            node_ptr->identifier(), scene_node_tag_description(node_ptr->tag()), impl_type
         );
     }
 
     std::scoped_lock lock{_mutex};
     auto [iter, _] = _global_nodes.emplace(std::move(node_ptr));
     auto node = iter->get();
-    if (node->is_defined()) [[unlikely]] {
-        LUISA_ERROR_WITH_LOCATION(
-            "Redefinition of node '{}' ({}::{}) in scene description.",
-            node->identifier(),
-            scene_node_tag_description(node->tag()),
-            node->impl_type());
+    if (node->is_defined()) {
+        if (node->tag() != node_ptr->tag() || node->impl_type() != impl_type) [[unlikely]]
+            LUISA_ERROR_WITH_LOCATION(
+                "A different node '{}' ({}::{}) has been defined in scene description. "
+                "Different from node ({}::{})",
+                node->identifier(), scene_node_tag_description(node->tag()), node->impl_type(),
+                scene_node_tag_description(node_ptr->tag()), impl_type
+            )
+        LUISA_INFO_WITH_LOCATION(
+            "Update scene node description: '{}' ({}::{})",
+            node->identifier(), scene_node_tag_description(node->tag()), impl_type
+        );
+        node->update_properties(node_ptr.get());
+    } else {
+        node->define(node->tag(), impl_type);
     }
-    node->define(tag, impl_type);
 
     if (node->tag() == SceneNodeTag::ROOT) {
         if (_root) [[unlikely]] {
-            LUISA_ERROR_WITH_LOCATION(
-                "Redefinition of root node in scene description.");
+            LUISA_ERROR_WITH_LOCATION("Redefinition of root node in scene description.");
         }
         _root = node;
     }

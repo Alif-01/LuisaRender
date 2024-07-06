@@ -6,11 +6,11 @@
 #include <string>
 
 #include <luisa/core/stl/format.h>
-#include <cxxopts.hpp>
 #include <sdl/scene_parser.h>
+#include <cxxopts.hpp>
 
 using namespace luisa;
-using namespace luisa::compute;
+// using namespace luisa::compute;
 using namespace luisa::render;
 namespace fs = std::filesystem;
 

@@ -45,12 +45,12 @@ public:
           _rr_threshold{std::max(desc->property_float_or_default("rr_threshold", 0.95f), 0.05f)},
           _samples_per_pass{std::max(desc->property_uint_or_default("samples_per_pass", 16u), 1u)} {}
 
-    WavefrontPathTracing(Scene *scene, const RawIntegratorInfo &integrator_info) noexcept
-        : ProgressiveIntegrator{scene, integrator_info},
-          _max_depth{std::max(integrator_info.max_depth, 1u)},
-          _rr_depth{std::max(integrator_info.rr_depth, 0u)},
-          _rr_threshold{std::max(integrator_info.rr_threshold, 0.05f)},
-          _samples_per_pass{16u} {}
+    // WavefrontPathTracing(Scene *scene, const RawIntegratorInfo &integrator_info) noexcept
+    //     : ProgressiveIntegrator{scene, integrator_info},
+    //       _max_depth{std::max(integrator_info.max_depth, 1u)},
+    //       _rr_depth{std::max(integrator_info.rr_depth, 0u)},
+    //       _rr_threshold{std::max(integrator_info.rr_threshold, 0.05f)},
+    //       _samples_per_pass{16u} {}
           
     [[nodiscard]] auto max_depth() const noexcept { return _max_depth; }
     [[nodiscard]] auto rr_depth() const noexcept { return _rr_depth; }
@@ -578,8 +578,3 @@ void WavefrontPathTracingInstance::_render_one_camera(
 }// namespace luisa::render
 
 LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::WavefrontPathTracing)
-
-LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
-    luisa::render::Scene *scene, const luisa::render::RawIntegratorInfo &integrator_info) LUISA_NOEXCEPT {
-    return luisa::new_with_allocator<luisa::render::WavefrontPathTracing>(scene, integrator_info);
-}

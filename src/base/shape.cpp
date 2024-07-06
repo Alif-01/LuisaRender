@@ -29,9 +29,9 @@ Shape::Shape(Scene *scene, const RawShapeInfo &shape_info) noexcept :
     },
     _medium{dynamic_cast<Medium *>(scene->load_node_from_name(shape_info.medium))} {}
 
-bool Shape::update(Scene *scene, const SceneNodeDesc *desc) noexcept override {
+bool Shape::update(Scene *scene, const SceneNodeDesc *desc) noexcept {
     return true | update_value(_transform,
-        scene->load_transform(desc->property_node_or_default("transform")));
+        (const Transform *)scene->load_transform(desc->property_node_or_default("transform")));
 }
       
 void Shape::update_shape(Scene *scene, const RawShapeInfo &shape_info) noexcept {

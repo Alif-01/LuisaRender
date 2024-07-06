@@ -18,11 +18,11 @@ Integrator::Integrator(Scene *scene, const SceneNodeDesc *desc) noexcept
           "light_sampler", SceneNodeDesc::shared_default_light_sampler("uniform")))},
       _use_progress{desc->property_bool_or_default("use_progress", true)} {}
 
-Integrator::Integrator(Scene *scene, const RawIntegratorInfo &integrator_info) noexcept
-    : SceneNode{scene, SceneNodeTag::INTEGRATOR},
-      _sampler{scene->add_sampler(integrator_info.sampler_info)},
-      _light_sampler{scene->load_light_sampler(SceneNodeDesc::shared_default_light_sampler("uniform"))},
-      _use_progress{integrator_info.use_progress} {}
+// Integrator::Integrator(Scene *scene, const RawIntegratorInfo &integrator_info) noexcept
+//     : SceneNode{scene, SceneNodeTag::INTEGRATOR},
+//       _sampler{scene->add_sampler(integrator_info.sampler_info)},
+//       _light_sampler{scene->load_light_sampler(SceneNodeDesc::shared_default_light_sampler("uniform"))},
+//       _use_progress{integrator_info.use_progress} {}
 
 Integrator::Instance::Instance(Pipeline &pipeline, CommandBuffer &command_buffer, const Integrator *integrator) noexcept
     : _pipeline{pipeline}, _integrator{integrator},
@@ -142,7 +142,7 @@ Float3 ProgressiveIntegrator::Instance::Li(const Camera::Instance *camera, Expr<
 ProgressiveIntegrator::ProgressiveIntegrator(Scene *scene, const SceneNodeDesc *desc) noexcept
     : Integrator{scene, desc} {}
 
-ProgressiveIntegrator::ProgressiveIntegrator(Scene *scene, const RawIntegratorInfo &integrator_info) noexcept
-    : Integrator{scene, integrator_info} {}
+// ProgressiveIntegrator::ProgressiveIntegrator(Scene *scene, const RawIntegratorInfo &integrator_info) noexcept
+//     : Integrator{scene, integrator_info} {}
 
 }// namespace luisa::render

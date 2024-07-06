@@ -33,13 +33,13 @@ void init(
     luisa::string backend = "CUDA";
     compute::DeviceConfig config;
     config.device_index = cuda_device;      // Please ensure that cuda:cuda_device has enough space
-    device_ptr = luisa::make_unique<Device>(context->create_device(backend, &config));
-    stream_ptr = luisa::make_unique<Stream>(device->create_stream(StreamTag::COMPUTE));
+    device_ptr = luisa::make_unique<Device>(context_ptr->create_device(backend, &config));
+    stream_ptr = luisa::make_unique<Stream>(device_ptr->create_stream(StreamTag::COMPUTE));
 }
 
 PyScene *create_scene() noexcept {
     std::scoped_lock lock{mutex};
-    scenes.emplace_back(*context, *device, *stream);
+    scenes.emplace_back(*device_ptr, *context_ptr, *stream_ptr);
     return &scenes.back();
 }
 
@@ -51,13 +51,14 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
         .value("INFO", LogLevel::INFO)
         .value("WARNING", LogLevel::WARNING);
 
+    // Transform
     py::class_<PyMatrix, PyTransform>(m, "MatrixTransform")  // Specify base class
-        .def(py::init<const PyFloatArr&>(),
+        .def(py::init<const PyDoubleArr&>(),
             py::arg("matrix"))
         .def("update", &PyMatrix::update,
             py::arg("matrix"));
     py::class_<PySRT, PyTransform>(m, "SRTTransform")
-        .def(py::init<const PyFloatArr&, const PyFloatArr&, const PyFloatArr&>(),
+        .def(py::init<const PyDoubleArr&, const PyDoubleArr&, const PyDoubleArr&>(),
             py::arg("translate"),
             py::arg("rotate"),
             py::arg("scale"))
@@ -66,7 +67,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
             py::arg("rotate"),
             py::arg("scale"));
     py::class_<PyView, PyTransform>(m, "ViewTransform")
-        .def(py::init<const PyFloatArr&, const PyFloatArr&, const PyFloatArr&>(),
+        .def(py::init<const PyDoubleArr&, const PyDoubleArr&, const PyDoubleArr&>(),
             py::arg("position"),
             py::arg("front"),
             py::arg("up"))
@@ -75,76 +76,82 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
             py::arg("front"),
             py::arg("up"));
 
+    // Texture
     py::class_<PyColor, PyTexture>(m, "ColorTexture")
-        .def(py::init<const PyFloatArr&>(),
+        .def(py::init<const PyDoubleArr&>(),
             py::arg("color"));
     py::class_<PyImage, PyTexture>(m, "ImageTexture")
-        .def(py::init<std::string_view, const PyFloatArr&, const PyFloatArr&>(),
+        .def(py::init<std::string_view, const PyDoubleArr&, const PyDoubleArr&>(),
             py::arg("file") = "",
-            py::arg("image_data") = PyFloatArr(),
-            py::arg("scale") = PyFloatArr());
+            py::arg("image_data") = PyDoubleArr(),
+            py::arg("scale") = PyDoubleArr());
     py::class_<PyChecker, PyTexture>(m, "CheckerTexture")
         .def(py::init<PyTexture*, PyTexture*, float>(),
-            py::arg("on").none(true) = py::none,
-            py::arg("off").none(true) = py::none,
+            py::arg("on").none(true) = py::none(),
+            py::arg("off").none(true) = py::none(),
             py::arg("scale") = 1.0f);
 
+    // Light
     py::class_<PyLight>(m, "Light")
-        .def(py::init<std::string_view name, PyTexture*>(),
+        .def(py::init<std::string_view, PyTexture*>(),
             py::arg("name"),
-            py::arg("emission").none(true) = py::none);
+            py::arg("emission").none(true) = py::none());
 
+    // Surface
     py::class_<PyMetal, PySurface>(m, "MetalSurface")
         .def(py::init<std::string_view, PyTexture*, PyTexture*, PyTexture*, std::string_view>(),
             py::arg("name"),
-            py::arg("roughness").none(true) = py::none,
-            py::arg("opacity").none(true) = py::none,
-            py::arg("kd").none(true) = py::none,
-            py::arg("eta").none(true) = py::none);
+            py::arg("roughness").none(true) = py::none(),
+            py::arg("opacity").none(true) = py::none(),
+            py::arg("normal_map").none(true) = py::none(),
+            py::arg("kd").none(true) = py::none(),
+            py::arg("eta").none(true) = py::none());
     py::class_<PyPlastic, PySurface>(m, "PlasticSurface")
         .def(py::init<std::string_view, PyTexture*, PyTexture*, PyTexture*, PyTexture*, PyTexture*>(),
             py::arg("name"),
-            py::arg("roughness").none(true) = py::none,
-            py::arg("opacity").none(true) = py::none,
-            py::arg("kd").none(true) = py::none,
-            py::arg("ks").none(true) = py::none,
-            py::arg("eta").none(true) = py::none);
+            py::arg("roughness").none(true) = py::none(),
+            py::arg("opacity").none(true) = py::none(),
+            py::arg("normal_map").none(true) = py::none(),
+            py::arg("kd").none(true) = py::none(),
+            py::arg("ks").none(true) = py::none(),
+            py::arg("eta").none(true) = py::none());
     py::class_<PyGlass, PySurface>(m, "GlassSurface")
         .def(py::init<std::string_view, PyTexture*, PyTexture*, PyTexture*, PyTexture*, PyTexture*>(),
             py::arg("name"),
-            py::arg("roughness").none(true) = py::none,
-            py::arg("opacity").none(true) = py::none,
-            py::arg("ks").none(true) = py::none,
-            py::arg("kt").none(true) = py::none,
-            py::arg("eta").none(true) = py::none);
+            py::arg("roughness").none(true) = py::none(),
+            py::arg("opacity").none(true) = py::none(),
+            py::arg("normal_map").none(true) = py::none(),
+            py::arg("ks").none(true) = py::none(),
+            py::arg("kt").none(true) = py::none(),
+            py::arg("eta").none(true) = py::none());
 
+    // Shape
     py::class_<PyRigid, PyShape>(m, "RigidShape")
         .def(py::init<std::string_view, std::string_view,
-                      const PyFloatArr&, const PyUIntArr&, const PyFloatArr&, const PyFloatArr&,
-                      PyTransform*, std::string_view, std::string_view, std::string_view, float>(),
+            const PyDoubleArr&, const PyUIntArr&, const PyDoubleArr&, const PyDoubleArr&,
+            PyTransform*, std::string_view, std::string_view, std::string_view, float>(),
             py::arg("name"),
             py::arg("obj_path") = "",
-            py::arg("vertices") = PyFloatArr(),
+            py::arg("vertices") = PyDoubleArr(),
             py::arg("triangles") = PyUIntArr(),
-            py::arg("normals") = PyFloatArr(),
-            py::arg("uvs") = PyFloatArr(),
-            py::arg("transform").none(true) = py::none,
+            py::arg("normals") = PyDoubleArr(),
+            py::arg("uvs") = PyDoubleArr(),
+            py::arg("transform").none(true) = py::none(),
             py::arg("surface") = "",
             py::arg("emission") = "",
             py::arg("medium") = "",
             py::arg("clamp_normal") = -1.f)
         .def("update", &PyRigid::update,
-            py::arg("transform").none(false) = py::none);
+            py::arg("transform").none(false) = py::none());
     py::class_<PyDeformable, PyShape>(m, "DeformableShape")
-        .def(py::init(&PyDeformable::PyDeformable),
-            // <std::string_view,
-            // const PyFloatArr&, const PyUIntArr&, const PyFloatArr&, const PyFloatArr&,
-            // std::string_view, std::string_view, std::string_view, float>(),
+        .def(py::init<std::string_view,
+            const PyDoubleArr&, const PyUIntArr&, const PyDoubleArr&, const PyDoubleArr&,
+            std::string_view, std::string_view, std::string_view, float>(),
             py::arg("name"),
-            py::arg("vertices") = PyFloatArr(),
+            py::arg("vertices") = PyDoubleArr(),
             py::arg("triangles") = PyUIntArr(),
-            py::arg("normals") = PyFloatArr(),
-            py::arg("uvs") = PyFloatArr(),
+            py::arg("normals") = PyDoubleArr(),
+            py::arg("uvs") = PyDoubleArr(),
             py::arg("surface") = "",
             py::arg("emission") = "",
             py::arg("medium") = "",
@@ -152,88 +159,97 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
         .def("update", &PyDeformable::update,
             py::arg("vertices"),
             py::arg("triangles"),
-            py::arg("normals") = PyFloatArr(),
-            py::arg("uvs") = PyFloatArr());
+            py::arg("normals") = PyDoubleArr(),
+            py::arg("uvs") = PyDoubleArr());
     py::class_<PyParticles, PyShape>(m, "ParticlesShape")
-        .def(py::init(&PyParticles::PyParticles),
+        .def(py::init<std::string_view,
+            const PyDoubleArr&, const PyDoubleArr&, uint,
+            std::string_view, std::string_view, std::string_view, float>(),
             py::arg("name"),
-            py::arg("centers") = PyFloatArr(),
-            py::arg("radii") = PyFloatArr(),
+            py::arg("centers") = PyDoubleArr(),
+            py::arg("radii") = PyDoubleArr(),
             py::arg("subdivision") = 0u,
             py::arg("surface") = "",
             py::arg("emission") = "",
             py::arg("medium") = "",
             py::arg("clamp_normal") = -1.f)
         .def("update", &PyParticles::update,
-            py::arg("centers") = PyFloatArr(),
-            py::arg("radii") = PyFloatArr());
+            py::arg("centers") = PyDoubleArr(),
+            py::arg("radii") = PyDoubleArr());
 
+    // Film
     py::class_<PyFilm>(m, "Film")
         .def(py::init<const PyUIntArr&>(),
             py::arg("resolution"));
 
+    // Filter
     py::class_<PyFilter>(m, "Filter")
         .def(py::init<float>(),
             py::arg("radius") = 1.0f)
         .def("update", &PyFilter::update,
             py::arg("radius") = 1.0f);
 
+    // Camera
     py::class_<PyPinhole, PyCamera>(m, "PinholeCamera")
-        .def(py::init(&PyPinhole::PyPinhole),
+        .def(py::init<std::string_view,
+            PyTransform*, PyFilm *, PyFilter*, uint, float>(),
             py::arg("name"),
-            py::arg("pose").none(true) = py::none,
+            py::arg("pose").none(true) = py::none(),
             py::arg("film").none(false),
-            py::arg("filter").none(true) = py::none,
+            py::arg("filter").none(true) = py::none(),
             py::arg("spp"),
             py::arg("fov"))
         .def("update", &PyPinhole::update,
-            py::arg("pose").none(true) = py::none,
+            py::arg("pose").none(true) = py::none(),
             py::arg("fov"));
     py::class_<PyThinLens, PyCamera>(m, "ThinLensCamera")
-        .def(py::init(&PyThinLens::PyThinLens),
+        .def(py::init<std::string_view,
+            PyTransform*, PyFilm *, PyFilter*, uint, float, float, float>(),
             py::arg("name"),
-            py::arg("pose").none(true) = py::none,
+            py::arg("pose").none(true) = py::none(),
             py::arg("film").none(false),
-            py::arg("filter").none(true) = py::none,
+            py::arg("filter").none(true) = py::none(),
             py::arg("spp"),
             py::arg("aperture"),
-            py::arg("focal_length"),
-            py::arg("focus_distance"))
+            py::arg("focal_len"),
+            py::arg("focus_dis"))
         .def("update", &PyThinLens::update,
-            py::arg("pose").none(true) = py::none,
+            py::arg("pose").none(true) = py::none(),
             py::arg("aperture"),
             py::arg("focal_length"),
             py::arg("focus_distance"));
 
+    // Environment
     py::class_<PyEnvironment>(m, "Environment")
         .def(py::init<std::string_view, PyTexture*, PyTransform*>(),
             py::arg("name"),
-            py::arg("emission").none(true) = py::none,
-            py::arg("transform").none(true) = py::none);
+            py::arg("emission").none(true) = py::none(),
+            py::arg("transform").none(true) = py::none());
 
-    py::class_<PyWavePath, PyIntegrator>(m, "WavePathIntegrator")
+    // Integrator
+    py::class_<PyWavePath, Py>(m, "WavePathIntegrator")
         .def(py::init<LogLevel, uint>(),
             py::arg("log_level") = LogLevel::WARNING,
             py::arg("max_depth") = 32u);
     py::class_<PyWavePathV2, PyIntegrator>(m, "WavePathV2Integrator")
         .def(py::init<LogLevel, uint, uint>(),
-            py::arg("log_level") = LogLevel::WARNING,,
+            py::arg("log_level") = LogLevel::WARNING,
             py::arg("max_depth") = 32u,
             py::arg("state_limit") =  512u * 512u * 32u);
 
     // Spectrum
     py::class_<PyHero, PySpectrum>(m, "HeroSpectrum")
         .def(py::init<uint>(), py::arg("dimension") = 4u);
-    py::class_<PySRGB, PySpectrum>(m, "PySRGB")
+    py::class_<PySRGB, PySpectrum>(m, "SRGBSpectrum")
         .def(py::init<>());
 
     // Render
-    py::class_<PyRender>(m, "PyRender")
+    py::class_<PyRender>(m, "Render")
         .def(py::init<std::string_view, PySpectrum*, PyIntegrator*, float>(),
             py::arg("name"),
             py::arg("spectrum"),
             py::arg("integrator"),
-            py::arg("clamp_normal") = 1.f);
+            py::arg("clamp_normal") = -1.f);
 
     py::class_<PyScene>(m, "Scene")
         .def("init", &PyScene::init,
@@ -248,7 +264,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
             py::arg("shape").none(false))
         .def("update_camera", &PyScene::update_camera,
             py::arg("camera").none(false),
-            py::arg("denoise"));
+            py::arg("denoise"))
         .def("render_frame", &PyScene::render_frame,
             py::arg("camera").none(false),
             py::arg("time"));

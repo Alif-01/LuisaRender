@@ -41,7 +41,6 @@ struct Scene::Config {
     luisa::vector<Shape *> shapes;
 
     bool environment_updated{false};
-    // bool film_updated{false};
     bool cameras_updated{false};
     bool shapes_updated{false};
     bool transforms_updated{false};
@@ -60,13 +59,11 @@ float Scene::clamp_normal_factor() const noexcept { return _config->clamp_normal
 bool Scene::environment_updated() const noexcept { return _config->environment_updated; }
 bool Scene::shapes_updated() const noexcept { return _config->shapes_updated; }
 bool Scene::cameras_updated() const noexcept { return _config->cameras_updated; }
-// bool Scene::film_updated() const noexcept { return _config->film_updated; }
 bool Scene::transforms_updated() const noexcept { return _config->transforms_updated; }
 void Scene::clear_update() noexcept {
     _config->environment_updated = false;
     _config->shapes_updated = false;
     _config->cameras_updated = false;
-    // _config->film_updated = false;
     _config->transforms_updated = false;
 }
 
@@ -130,8 +127,10 @@ inline Scene::Scene(const Context &ctx) noexcept
     : _context{ctx},
       _config{luisa::make_unique<Scene::Config>()} {}
 
+template <typename Callable>
 SceneNode *Scene::load_node(
-    SceneNodeTag tag, const SceneNodeDesc *desc, void (*updated_callback)(SceneNode *)
+    // SceneNodeTag tag, const SceneNodeDesc *desc, void (*updated_callback)(SceneNode *)
+    SceneNodeTag tag, const SceneNodeDesc *desc, Callable &&updated_callback
 ) noexcept {
     if (desc == nullptr) { return nullptr; }
     if (!desc->is_defined()) [[unlikely]] {
@@ -146,7 +145,7 @@ SceneNode *Scene::load_node(
     if (desc->is_internal()) {
         NodeHandle node_handle = handle_creater(this, desc);
         std::scoped_lock lock{_mutex};
-        auto node = _config->internal_nodes.emplace_back(std::move(node)).get();
+        auto node = _config->internal_nodes.emplace_back(std::move(node_handle)).get();
         updated_callback(node);
         return node;
     }
@@ -192,123 +191,109 @@ SceneNode *Scene::load_node_from_name(luisa::string_view name) noexcept {
 }
 
 Camera *Scene::load_camera(const SceneNodeDesc *desc) noexcept {
-    return dynamic_cast<Camera *>(load_node(
-        SceneNodeTag::CAMERA, desc, [this]{ _config->cameras_updated = true; }
+    return dynamic_cast<Camera *>(load_node(SceneNodeTag::CAMERA, desc,
+        [this](SceneNode *){ _config->cameras_updated = true; }
     ));
 }
 
 Film *Scene::load_film(const SceneNodeDesc *desc) noexcept {
-    return dynamic_cast<Film *>(load_node(SceneNodeTag::FILM, desc, []{}));
+    return dynamic_cast<Film *>(load_node(SceneNodeTag::FILM, desc, [](SceneNode *){}));
 }
 
 Filter *Scene::load_filter(const SceneNodeDesc *desc) noexcept {
-    return dynamic_cast<Filter *>(load_node(SceneNodeTag::FILTER, desc, []{}));
+    return dynamic_cast<Filter *>(load_node(SceneNodeTag::FILTER, desc, [](SceneNode *){}));
 }
 
 Integrator *Scene::load_integrator(const SceneNodeDesc *desc) noexcept {
-    return dynamic_cast<Integrator *>(load_node(SceneNodeTag::INTEGRATOR, desc, []{}));
+    return dynamic_cast<Integrator *>(load_node(SceneNodeTag::INTEGRATOR, desc, [](SceneNode *){}));
 }
 
 Surface *Scene::load_surface(const SceneNodeDesc *desc) noexcept {
-    auto node = load_node(SceneNodeTag::SURFACE, desc, []{});
-    return dynamic_cast<Surface *>(node);
+    return dynamic_cast<Surface *>(load_node(SceneNodeTag::SURFACE, desc, [](SceneNode *){}));
 }
 
 Light *Scene::load_light(const SceneNodeDesc *desc) noexcept {
-    auto node = load_node(SceneNodeTag::LIGHT, desc, []{});
-    return dynamic_cast<Light *>(node);
+    return dynamic_cast<Light *>(load_node(SceneNodeTag::LIGHT, desc, [](SceneNode *){}));
 }
 
 Sampler *Scene::load_sampler(const SceneNodeDesc *desc) noexcept {
-    auto node = load_node(SceneNodeTag::SAMPLER, desc, []{});
-    return dynamic_cast<Sampler *>(node);
+    return dynamic_cast<Sampler *>(load_node(SceneNodeTag::SAMPLER, desc, [](SceneNode *){}));
 }
 
 Shape *Scene::load_shape(const SceneNodeDesc *desc) noexcept {
-    auto node = load_node(SceneNodeTag::SHAPE, desc, [this]{ _config->shapes_updated = true; });
-    return dynamic_cast<Shape *>(node);
+    return dynamic_cast<Shape *>(load_node(SceneNodeTag::SHAPE, desc,
+        [this](SceneNode *){ _config->shapes_updated = true; }));
 }
 
 Transform *Scene::load_transform(const SceneNodeDesc *desc) noexcept {
-    return dynamic_cast<Transform *>(load_node(
-        SceneNodeTag::TRANSFORM, desc, 
+    return dynamic_cast<Transform *>(load_node(SceneNodeTag::TRANSFORM, desc, 
         [this](SceneNode *node){
-            if (dynamic_cast<Tranform *>(node)->is_registered())
-                _config->transform_updated = true;
+            if (dynamic_cast<Transform *>(node)->is_registered())
+                _config->transforms_updated = true;
         }
     ));
 }
 
 LightSampler *Scene::load_light_sampler(const SceneNodeDesc *desc) noexcept {
-    auto node = load_node(SceneNodeTag::LIGHT_SAMPLER, []{});
-    return dynamic_cast<LightSampler *>(node);
+    return dynamic_cast<LightSampler *>(load_node(SceneNodeTag::LIGHT_SAMPLER, desc, [](SceneNode *node){}));
 }
 
 Environment *Scene::load_environment(const SceneNodeDesc *desc) noexcept {
-    return dynamic_cast<Environment *>(load_node(
-        SceneNodeTag::ENVIRONMENT, desc, [this]{ _config->environment_updated = true; }
+    return dynamic_cast<Environment *>(load_node(SceneNodeTag::ENVIRONMENT, desc,
+        [this](SceneNode *node){ _config->environment_updated = true; }
     ));
 }
 
 Texture *Scene::load_texture(const SceneNodeDesc *desc) noexcept {
-    auto node = load_node(SceneNodeTag::TEXTURE, desc, first_def_callback, updated_callback);
-    return dynamic_cast<Texture *>(node);
+    return dynamic_cast<Texture *>(load_node(SceneNodeTag::TEXTURE, desc, [](SceneNode *node){}));
 }
 
 TextureMapping *Scene::load_texture_mapping(const SceneNodeDesc *desc) noexcept {
-    auto node = load_node(SceneNodeTag::TEXTURE_MAPPING, desc, first_def_callback, updated_callback);
-    return dynamic_cast<TextureMapping *>(node);
+    return dynamic_cast<TextureMapping *>(load_node(SceneNodeTag::TEXTURE_MAPPING, desc, [](SceneNode *node){}));
 }
 
 Spectrum *Scene::load_spectrum(const SceneNodeDesc *desc) noexcept {
-    auto node = load_node(SceneNodeTag::SPECTRUM, desc, first_def_callback, updated_callback);
-    return dynamic_cast<Spectrum *>(node);
+    return dynamic_cast<Spectrum *>(load_node(SceneNodeTag::SPECTRUM, desc, [](SceneNode *node){}));
 }
 
 Medium *Scene::load_medium(const SceneNodeDesc *desc) noexcept {
-    auto node = load_node(SceneNodeTag::MEDIUM, desc, first_def_callback, updated_callback);
-    return dynamic_cast<Medium *>(node);
+    return dynamic_cast<Medium *>(load_node(SceneNodeTag::MEDIUM, desc, [](SceneNode *node){}));
 }
 
 PhaseFunction *Scene::load_phase_function(const SceneNodeDesc *desc) noexcept {
-    auto node = load_node(SceneNodeTag::PHASE_FUNCTION, desc, first_def_callback, updated_callback);
-    return dynamic_cast<PhaseFunction *>(node);
+    return dynamic_cast<PhaseFunction *>(load_node(SceneNodeTag::PHASE_FUNCTION, desc, [](SceneNode *node){}));
 }
 
-// Film *Scene::update_film(luisa::string_view name, const RawFilmInfo &film_info) noexcept {
-//     using NodeCreater = SceneNode *(Scene *, const RawFilmInfo &);
-//     auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::FILM, "color", "create_raw");
-//     NodeHandle color_film = handle_creater(this, film_info);
+Film *Scene::update_film(luisa::string_view name, const RawFilmInfo &film_info) noexcept {
+    using NodeCreater = SceneNode *(Scene *, const RawFilmInfo &);
+    auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::FILM, "color", "create_raw");
+    NodeHandle color_film = handle_creater(this, film_info);
 
-//     auto [node, first_def] = load_from_nodes(name, handle_creater, this, film_info);
-//     Film *film = dynamic_cast<Film *>(node);
+    auto [node, first_def] = load_from_nodes(name, handle_creater, this, film_info);
+    Film *film = dynamic_cast<Film *>(node);
+    return film;
+}
 
-//     if (!first_def) {
-//         _config->film_updated |= film->update_film(this, film_info);
-//     }
-//     return film;
-// }
+Filter *Scene::add_filter(luisa::string_view name, const RawFilterInfo &filter_info) noexcept {
+    using NodeCreater = SceneNode *(Scene *, const RawFilterInfo &);
+    auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::FILTER, "gaussian", "create_raw");
+    NodeHandle handle = handle_creater(this, filter_info);
 
-// Filter *Scene::add_filter(luisa::string_view name, const RawFilterInfo &filter_info) noexcept {
-//     using NodeCreater = SceneNode *(Scene *, const RawFilterInfo &);
-//     auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::FILTER, "gaussian", "create_raw");
-//     NodeHandle handle = handle_creater(this, filter_info);
+    std::scoped_lock lock{_mutex};
+    return dynamic_cast<Filter *>(_config->internal_nodes.emplace_back(std::move(handle)).get());
+}
 
-//     std::scoped_lock lock{_mutex};
-//     return dynamic_cast<Filter *>(_config->internal_nodes.emplace_back(std::move(handle)).get());
-// }
+Sampler *Scene::add_sampler(const RawSamplerInfo &sampler_info) noexcept {
+    luisa::string impl_type = sampler_info.get_type();
+    if (impl_type == "None") return nullptr;
 
-// Sampler *Scene::add_sampler(const RawSamplerInfo &sampler_info) noexcept {
-//     luisa::string impl_type = sampler_info.get_type();
-//     if (impl_type == "None") return nullptr;
+    using NodeCreater = SceneNode *(Scene *, const RawSamplerInfo &);
+    auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::SAMPLER, impl_type, "create_raw");
+    NodeHandle handle = handle_creater(this, sampler_info);
 
-//     using NodeCreater = SceneNode *(Scene *, const RawSamplerInfo &);
-//     auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::SAMPLER, impl_type, "create_raw");
-//     NodeHandle handle = handle_creater(this, sampler_info);
-
-//     std::scoped_lock lock{_mutex};
-//     return dynamic_cast<Sampler *>(_config->internal_nodes.emplace_back(std::move(handle)).get());
-// }
+    std::scoped_lock lock{_mutex};
+    return dynamic_cast<Sampler *>(_config->internal_nodes.emplace_back(std::move(handle)).get());
+}
 
 // Spectrum *Scene::add_spectrum(const RawSpectrumInfo &spectrum_info) noexcept {
 //     luisa::string impl_type = spectrum_info.get_type();
@@ -367,33 +352,33 @@ Environment *Scene::update_environment(const SceneNodeDesc *desc) noexcept {
 //     return light;
 // }
 
-// Texture *Scene::add_texture(luisa::string_view name, const RawTextureInfo &texture_info) noexcept {
-//     luisa::string impl_type = texture_info.get_type();
-//     if (impl_type == "None") return nullptr;
+Texture *Scene::add_texture(luisa::string_view name, const RawTextureInfo &texture_info) noexcept {
+    luisa::string impl_type = texture_info.get_type();
+    if (impl_type == "None") return nullptr;
 
-//     using NodeCreater = SceneNode *(Scene *, const RawTextureInfo &);
-//     auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::TEXTURE, impl_type, "create_raw");
-//     NodeHandle handle = handle_creater(this, texture_info);
+    using NodeCreater = SceneNode *(Scene *, const RawTextureInfo &);
+    auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::TEXTURE, impl_type, "create_raw");
+    NodeHandle handle = handle_creater(this, texture_info);
     
-//     std::scoped_lock lock{_mutex};
-//     return dynamic_cast<Texture *>(_config->internal_nodes.emplace_back(std::move(handle)).get());
-// }
+    std::scoped_lock lock{_mutex};
+    return dynamic_cast<Texture *>(_config->internal_nodes.emplace_back(std::move(handle)).get());
+}
 
-// Transform *Scene::update_transform(luisa::string_view name, const RawTransformInfo &transform_info) noexcept {
-//     luisa::string impl_type = transform_info.get_type();
-//     if (impl_type == "None") return nullptr;
+Transform *Scene::update_transform(luisa::string_view name, const RawTransformInfo &transform_info) noexcept {
+    luisa::string impl_type = transform_info.get_type();
+    if (impl_type == "None") return nullptr;
 
-//     using NodeCreater = SceneNode *(Scene *, const RawTransformInfo &);
-//     auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::TRANSFORM, impl_type, "create_raw");
-//     auto [node, first_def] = load_from_nodes(luisa::format("{}_{}", name, impl_type), handle_creater, this, transform_info);
-//     Transform *transform = dynamic_cast<Transform *>(node);
+    using NodeCreater = SceneNode *(Scene *, const RawTransformInfo &);
+    auto handle_creater = get_handle_creater<NodeCreater>(SceneNodeTag::TRANSFORM, impl_type, "create_raw");
+    auto [node, first_def] = load_from_nodes(luisa::format("{}_{}", name, impl_type), handle_creater, this, transform_info);
+    Transform *transform = dynamic_cast<Transform *>(node);
 
-//     if (!first_def) {
-//         transform->update_transform(this, transform_info);
-//         _config->transforms_updated = true;
-//     }
-//     return transform;
-// }
+    if (!first_def) {
+        transform->update_transform(this, transform_info);
+        _config->transforms_updated = true;
+    }
+    return transform;
+}
 
 // Camera *Scene::update_camera(const RawCameraInfo &camera_info) noexcept {
 std::pair<Camera *, uint> Scene::update_camera(const SceneNodeDesc *desc, bool first_def) noexcept {
@@ -494,19 +479,19 @@ luisa::unique_ptr<Scene> Scene::create(const Context &ctx, const SceneDesc *desc
     return scene;
 }
 
-luisa::unique_ptr<Scene> Scene::create(const Context &ctx, const RawSceneInfo &scene_info) noexcept {
-    auto scene = luisa::make_unique<Scene>(ctx);
-    scene->_config->shadow_terminator = 0.f;
-    scene->_config->intersection_offset = 0.f;
-    scene->_config->clamp_normal = scene_info.clamp_normal;
-    scene->_config->spectrum = scene->add_spectrum(scene_info.spectrum_info);
-    scene->_config->integrator = scene->add_integrator(scene_info.integrator_info);
-    scene->_config->environment = nullptr;
-    scene->_config->environment_medium = nullptr;
+// luisa::unique_ptr<Scene> Scene::create(const Context &ctx, const RawSceneInfo &scene_info) noexcept {
+//     auto scene = luisa::make_unique<Scene>(ctx);
+//     scene->_config->shadow_terminator = 0.f;
+//     scene->_config->intersection_offset = 0.f;
+//     scene->_config->clamp_normal = scene_info.clamp_normal;
+//     scene->_config->spectrum = scene->add_spectrum(scene_info.spectrum_info);
+//     scene->_config->integrator = scene->add_integrator(scene_info.integrator_info);
+//     scene->_config->environment = nullptr;
+//     scene->_config->environment_medium = nullptr;
 
-    global_thread_pool().synchronize();
-    return scene;
-}
+//     global_thread_pool().synchronize();
+//     return scene;
+// }
 
 Scene::~Scene() noexcept = default;
 

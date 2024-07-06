@@ -47,7 +47,7 @@ private:
 public:
     Shape(Scene *scene, const SceneNodeDesc *desc) noexcept;
     Shape(Scene *scene, const RawShapeInfo &shape_info) noexcept;
-    virtual void update(Scene *scene, const SceneNodeDesc *desc) noexcept;
+    virtual bool update(Scene *scene, const SceneNodeDesc *desc) noexcept override;
     virtual void update_shape(Scene *scene, const RawShapeInfo &shape_info) noexcept;
     [[nodiscard]] const Surface *surface() const noexcept;
     [[nodiscard]] const Light *light() const noexcept;

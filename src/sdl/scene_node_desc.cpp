@@ -19,8 +19,15 @@ void SceneNodeDesc::set_identifier(luisa::string identifier) noexcept {
     _identifier = std::move(identifier);
 }
 
+void SceneNodeDesc::update_properties(SceneNodeDesc *node) noexcept {
+    for (auto& kv : node->_properties) {
+        _properties[kv.first] = std::move(kv.second);
+    }
+    node->properties.clear();
+}
+
 void SceneNodeDesc::add_property(luisa::string_view name, SceneNodeDesc::value_list value) noexcept {
-    _properties[luisa::string{name}] = std::move(value);
+    _properties[luisa::string(name)] = std::move(value);
 }
 // void SceneNodeDesc::add_property(luisa::string_view name, SceneNodeDesc::value_list value) noexcept {
 //     if (!_properties.emplace(luisa::string{name}, std::move(value)).second) {
@@ -31,15 +38,15 @@ void SceneNodeDesc::add_property(luisa::string_view name, SceneNodeDesc::value_l
 //     }
 // }
 
-void SceneNodeDesc::set_property(luisa::string_view name, SceneNodeDesc::value_list value) noexcept {
-    if (!_properties.contains(luisa::string{name})) {
-        LUISA_ERROR(
-            "Property '{}' unfound in "
-            "scene description node '{}'. [{}]",
-            name, _identifier, _location.string());
-    }
-    _properties[luisa::string{name}] = std::move(value);
-}
+// void SceneNodeDesc::set_property(luisa::string_view name, SceneNodeDesc::value_list value) noexcept {
+//     if (!_properties.contains(luisa::string{name})) {
+//         LUISA_ERROR(
+//             "Property '{}' unfound in "
+//             "scene description node '{}'. [{}]",
+//             name, _identifier, _location.string());
+//     }
+//     _properties[luisa::string{name}] = std::move(value);
+// }
 
 void SceneNodeDesc::define(SceneNodeTag tag, luisa::string_view t,
                            SceneNodeDesc::SourceLocation l, const SceneNodeDesc *base) noexcept {

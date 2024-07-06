@@ -43,7 +43,7 @@ public:
         auto pipeline_create_time = clock.toc();
         LUISA_INFO("Pipeline created in {} ms.", pipeline_create_time - scene_create_time);
 
-        denoiser_ext = device.extension<DenoiserExt>();        // build denoiser
+        denoiser_ext = _device.extension<DenoiserExt>();        // build denoiser
     }
 
     void update_environment(PyEnvironment *environment) noexcept {
@@ -98,7 +98,7 @@ public:
         }
     }
 
-    PyFloatArr render_frame(PyCamera *camera, float time) noexcept {
+    PyDoubleArr render_frame(PyCamera *camera, float time) noexcept {
         // _scene->update(_scene_desc.get());
         _pipeline->scene_update(_stream, *_scene, time);
 
@@ -112,13 +112,13 @@ public:
 
         if (camera->denoise) {  // denoise image 
             Clock clock;
-            auto &color_buffer = camera->color_buffer;
-            auto &denoised_buffer = camera->denoised_buffer;
+            auto color_buffer = camera->color_buffer.get();
+            auto denoised_buffer = camera->denoised_buffer.get();
             auto denoiser = denoiser_ext->create(_stream);
             {
                 auto input = DenoiserExt::DenoiserInput{resolution.x, resolution.y};
                 input.push_noisy_image(
-                    color_buffer.view(), denoised_buffer.view(),
+                    color_buffer->view(), denoised_buffer->view(),
                     DenoiserExt::ImageFormat::FLOAT3,
                     DenoiserExt::ImageColorSpace::HDR
                 );
@@ -127,15 +127,15 @@ public:
                 input.prefilter_mode = DenoiserExt::PrefilterMode::NONE;
                 denoiser->init(input);
             }
-            _stream << color_buffer.copy_from(buffer_p) << synchronize();
+            _stream << color_buffer->copy_from(buffer_p) << synchronize();
             denoiser->execute(true);
-            _stream << denoised_buffer.copy_to(buffer_p) << synchronize();
+            _stream << denoised_buffer->copy_to(buffer_p) << synchronize();
             auto denoise_time = clock.toc();
             LUISA_INFO("Denoised image in {} ms", denoise_time);
         }
 
         apply_gamma(buffer_p, resolution);
-        auto array_buffer = PyFloatArr(resolution.x * resolution.y * 4);
+        auto array_buffer = PyDoubleArr(resolution.x * resolution.y * 4);
         std::memcpy(array_buffer.mutable_data(), buffer_p, array_buffer.size() * sizeof(float));
         return array_buffer;
     }

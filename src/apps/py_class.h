@@ -18,9 +18,16 @@ using namespace luisa::render;
 
 namespace py = pybind11;
 using namespace py::literals;
-using PyFloatArr = py::array_t<float>;
+// using PyFloatArr = py::array_t<float>;
+using PyDoubleArr = py::array_t<double>;
 using PyUIntArr = py::array_t<uint>;
 
+template <typename T1, typename T2>
+luisa::vector<T2> pyarray_to_vector(const py::array_t<T1> &array) noexcept {
+    auto pd = array.data();
+    luisa::vector<T2> v(pd, pd + array.size());
+    return v;
+}
 template <typename T>
 luisa::vector<T> pyarray_to_vector(const py::array_t<T> &array) noexcept {
     auto pd = array.data();
@@ -52,17 +59,17 @@ class PyDesc {
 public:
     using ref_pair = std::pair<luisa::string, luisa::string>;
     struct cache {
+        cache(luisa::string_view name, SceneNodeTag tag, luisa::string_view impl_type) noexcept:
+            node{luisa::make_unique<SceneNodeDesc>(luisa::string(name), tag)},
+            name{luisa::string(name)},
+            impl_type{luisa::string(impl_type)} { }
         luisa::unique_ptr<SceneNodeDesc> node;
         luisa::string name, impl_type;
         luisa::vector<ref_pair> references;
     };
 
-    PyDesc(std::string_view name) noexcept {
-        _node_cache.emplace_back(
-            luisa::make_unique<SceneNodeDesc>(name, tag()), luisa::string{name}, impl_type(), {}
-        );
-        _node = _node_cache.back().get();
-    }
+    PyDesc(std::string_view name) noexcept: 
+        _node{_node_cache.emplace_back(name, tag(), impl_type()).node.get()} { }
     
     [[nodiscard]] virtual SceneNodeTag tag() const noexcept = 0;
     [[nodiscard]] virtual luisa::string_view impl_type() const noexcept = 0;
@@ -118,7 +125,7 @@ public:
     // }
 
 protected:
-    SceneNodeDesc *_node{nullptr};
+    SceneNodeDesc *_node;
     luisa::vector<cache> _node_cache;
 };
 
@@ -131,47 +138,50 @@ public:
 };
 
 class PyMatrix: public PyTransform {
-    PyMatrix(const PyFloatArr &matrix) noexcept: PyTransform{} {
-        _node->add_property("m", pyarray_to_vector<float>(matrix));
+public:
+    PyMatrix(const PyDoubleArr &matrix) noexcept: PyTransform{} {
+        _node->add_property("m", pyarray_to_vector<double>(matrix));
         // for (auto row = 0u; row < 4u; ++row) {
         //     for (auto col = 0u; col < 4u; ++col) {
         //         arr[col][row] = vec[row * 4u + col];
         //     }
         // }
     }
-    void update(const PyFloatArr &matrix) noexcept {
-        _node->add_property("m", pyarray_to_vector<float>(matrix));
+    void update(const PyDoubleArr &matrix) noexcept {
+        _node->add_property("m", pyarray_to_vector<double>(matrix));
     }
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return "matrix"; }
 };
 
 class PySRT: public PyTransform {
-    PySRT(const PyFloatArr &translate, const PyFloatArr &rotate, const PyFloatArr &scale) noexcept:
+public:
+    PySRT(const PyDoubleArr &translate, const PyDoubleArr &rotate, const PyDoubleArr &scale) noexcept:
         PyTransform{} {
-        _node->add_property("translate", pyarray_to_vector<float>(translate));
-        _node->add_property("rotate", pyarray_to_vector<float>(rotate));
-        _node->add_property("scale", pyarray_to_vector<float>(scale));
+        _node->add_property("translate", pyarray_to_vector<double>(translate));
+        _node->add_property("rotate", pyarray_to_vector<double>(rotate));
+        _node->add_property("scale", pyarray_to_vector<double>(scale));
     }
-    void update(const PyFloatArr &translate, const PyFloatArr &rotate, const PyFloatArr &scale) noexcept {
-        _node->add_property("translate", pyarray_to_vector<float>(translate));
-        _node->add_property("rotate", pyarray_to_vector<float>(rotate));
-        _node->add_property("scale", pyarray_to_vector<float>(scale));
+    void update(const PyDoubleArr &translate, const PyDoubleArr &rotate, const PyDoubleArr &scale) noexcept {
+        _node->add_property("translate", pyarray_to_vector<double>(translate));
+        _node->add_property("rotate", pyarray_to_vector<double>(rotate));
+        _node->add_property("scale", pyarray_to_vector<double>(scale));
     }
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return "srt"; }
 };
 
 class PyView: public PyTransform {
-    // PyView(const PyFloatArr &position, const PyFloatArr &look_at, const PyFloatArr &up) noexcept {
-    PyView(const PyFloatArr &position, const PyFloatArr &front, const PyFloatArr &up) noexcept:
+public:
+    // PyView(const PyDoubleArr &position, const PyDoubleArr &look_at, const PyDoubleArr &up) noexcept {
+    PyView(const PyDoubleArr &position, const PyDoubleArr &front, const PyDoubleArr &up) noexcept:
         PyTransform{} {
-        _node->add_property("origin", pyarray_to_vector<float>(position));
-        _node->add_property("front", pyarray_to_vector<float>(front));
-        _node->add_property("up", pyarray_to_vector<float>(up));
+        _node->add_property("origin", pyarray_to_vector<double>(position));
+        _node->add_property("front", pyarray_to_vector<double>(front));
+        _node->add_property("up", pyarray_to_vector<double>(up));
     }
-    void update(const PyFloatArr &position, const PyFloatArr &front, const PyFloatArr &up) noexcept {
-        _node->add_property("origin", pyarray_to_vector<float>(position));
-        _node->add_property("front", pyarray_to_vector<float>(front));
-        _node->add_property("up", pyarray_to_vector<float>(up));
+    void update(const PyDoubleArr &position, const PyDoubleArr &front, const PyDoubleArr &up) noexcept {
+        _node->add_property("origin", pyarray_to_vector<double>(position));
+        _node->add_property("front", pyarray_to_vector<double>(front));
+        _node->add_property("up", pyarray_to_vector<double>(up));
     }
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return "view"; }
 };
@@ -186,31 +196,35 @@ public:
 
 class PyColor: public PyTexture {
 public:
-    PyColor(const PyFloatArr &color) noexcept: PyTexture() {
-        _node->add_property("v", pyarray_to_vector<float>(color));
+    PyColor(const PyDoubleArr &color) noexcept: PyTexture() {
+        _node->add_property("v", pyarray_to_vector<double>(color));
     }
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return "constant"; }
 };
 
 class PyImage: public PyTexture {
+public:
     PyImage(
-        std::string_view file, const PyFloatArr &image_data, const PyFloatArr &scale
+        std::string_view file, const PyDoubleArr &image_data, const PyDoubleArr &scale
     ) noexcept: PyTexture{} {
-        if (file.empty() && !image_data.empty()) {
+        if (file.empty() && !image_data.size() == 0) {
             uint channel;
             if (image_data.ndim() == 2) channel = 1;
             else if (image_data.ndim() == 3) channel = image_data.shape(2);
             else LUISA_ERROR_WITH_LOCATION("Invalid image dim!");
-            _node->add_property("resolution", {image_data.shape(1), image_data.shape(0)});
-            _node->add_property("channel", channel);
-            _node->add_property("image_data", pyarray_to_vector<float>(image_data));
-            _node->add_property("scale", pyarray_to_vector<float>(scale));
-        } else if (!file.empty() && image_data.empty()) {
+            _node->add_property("resolution", luisa::vector<double>{
+                static_cast<double>(image_data.shape(1)),
+                static_cast<double>(image_data.shape(0))
+            });
+            _node->add_property("channel", double(channel));
+            _node->add_property("image_data", pyarray_to_vector<double>(image_data));
+            _node->add_property("scale", pyarray_to_vector<double>(scale));
+        } else if (!file.empty() && image_data.size() == 0) {
             _node->add_property("file", luisa::string(file));
-            _node->add_property("scale", pyarray_to_vector<float>(scale));
-        } else if (file.empty() && image_data.empty()) [[unlikely]] {
+            _node->add_property("scale", pyarray_to_vector<double>(scale));
+        } else [[unlikely]] if (file.empty() && image_data.size() == 0)  {
             LUISA_ERROR_WITH_LOCATION("Cannot set both file image and inline image empty.");
-        } else [[unlikely]] {
+        } else {
             LUISA_ERROR_WITH_LOCATION("Cannot set both file image and inline image.");
         }
     }
@@ -218,6 +232,7 @@ class PyImage: public PyTexture {
 };
 
 class PyChecker: public PyTexture {
+public:
     PyChecker(PyTexture *on, PyTexture *off, float scale) noexcept: PyTexture{} {
         add_property_node("on", on);
         add_property_node("off", off);
@@ -229,6 +244,7 @@ class PyChecker: public PyTexture {
 
 // Lights
 class PyLight: public PyDesc {
+public:
     PyLight(std::string_view name, PyTexture *emission) noexcept: PyDesc{name} {
         add_property_node("emission", emission);
     }
@@ -241,10 +257,11 @@ class PyLight: public PyDesc {
 class PySurface: public PyDesc {
 public:
     PySurface(
-        std::string_view name, PyTexture *roughness, PyTexture *opacity
+        std::string_view name, PyTexture *roughness, PyTexture *opacity, PyTexture *normal_map,
     ) noexcept: PyDesc{name} {
         add_property_node("roughness", roughness);
         add_property_node("opacity", opacity);
+        add_property_node("normal_map", normal_map);
     }
     [[nodiscard]] SceneNodeTag tag() const noexcept override { return SceneNodeTag::SURFACE; }
 };
@@ -252,9 +269,9 @@ public:
 class PyMetal: public PySurface {
 public:
     PyMetal(
-        std::string_view name, PyTexture *roughness, PyTexture *opacity,
+        std::string_view name, PyTexture *roughness, PyTexture *opacity, PyTexture *normal_map,
         PyTexture *kd, std::string_view eta
-    ) noexcept: PySurface{name, roughness, opacity} {
+    ) noexcept: PySurface{name, roughness, opacity, normal_map} {
         add_property_node("Kd", kd);
         _node->add_property("eta", luisa::string(eta));
     }
@@ -264,9 +281,9 @@ public:
 class PyPlastic: public PySurface {
 public:
     PyPlastic(
-        std::string_view name, PyTexture *roughness, PyTexture *opacity,
+        std::string_view name, PyTexture *roughness, PyTexture *opacity, PyTexture *normal_map,
         PyTexture *kd, PyTexture *ks, PyTexture *eta
-    ) noexcept: PySurface{name, roughness, opacity} {
+    ) noexcept: PySurface{name, roughness, opacity, normal_map} {
         add_property_node("Kd", kd);
         add_property_node("Ks", ks);
         add_property_node("eta", eta);
@@ -277,9 +294,9 @@ public:
 class PyGlass: public PySurface {
 public:
     PyGlass(
-        std::string_view name, PyTexture *roughness, PyTexture *opacity,
+        std::string_view name, PyTexture *roughness, PyTexture *opacity, PyTexture *normal_map,
         PyTexture *ks, PyTexture *kt, PyTexture *eta
-    ) noexcept: PySurface{name, roughness, opacity} {
+    ) noexcept: PySurface{name, roughness, opacity, normal_map} {
         add_property_node("Ks", ks);
         add_property_node("Kt", kt);
         add_property_node("eta", eta);
@@ -310,22 +327,23 @@ public:
     PyRigid(
         std::string_view name,
         std::string_view obj_path,
-        const PyFloatArr &vertices, const PyUIntArr &triangles,
-        const PyFloatArr &normals, const PyFloatArr &uvs,
+        const PyDoubleArr &vertices, const PyUIntArr &triangles,
+        const PyDoubleArr &normals, const PyDoubleArr &uvs,
         PyTransform *transform,
         std::string_view surface, std::string_view emission,
         std::string_view medium, float clamp_normal
     ) noexcept: PyShape(name, surface, emission, medium, clamp_normal) {
-        if (!obj_path.empty() && vertices.empty() && triangles.empty()) {   // file
+        if (!obj_path.size() == 0 && vertices.size() == 0 && triangles.size() == 0) {   // file
             _node->add_property("file", luisa::string(obj_path));
-        } else if (obj_path.empty() && !vertices.empty() && !triangles.empty()) {   // inline
-            _node->add_property("positions", pyarray_to_vector<float>(vertices));
-            _node->add_property("indices", pyarray_to_vector<uint>(triangles));
-            _node->add_property("normals", pyarray_to_vector<float>(normals));
-            _node->add_property("uvs", pyarray_to_vector<float>(uvs));
-        } else if (obj_path.empty() && vertices.empty() && triangles.empty()) [[unlikely]] {
+        } else if (obj_path.size() == 0 && !vertices.size() == 0 && !triangles.size() == 0) {   // inline
+            _node->add_property("positions", pyarray_to_vector<double>(vertices));
+            // _node->add_property("indices", pyarray_to_vector<uint>(triangles));
+            _node->add_property("indices", pyarray_to_vector<uint, double>(triangles));
+            _node->add_property("normals", pyarray_to_vector<double>(normals));
+            _node->add_property("uvs", pyarray_to_vector<double>(uvs));
+        } else [[unlikely]] if (obj_path.size() == 0 && vertices.size() == 0 && triangles.size() == 0) {
             LUISA_ERROR_WITH_LOCATION("Cannot set both file mesh and inline mesh empty.");
-        } else [[unlikely]] {
+        } else {
             LUISA_ERROR_WITH_LOCATION("Cannot set both file mesh and inline mesh.");
         }
         add_property_node("transform", transform);
@@ -340,24 +358,24 @@ class PyDeformable: public PyShape {
 public:
     PyDeformable(
         std::string_view name,
-        const PyFloatArr &vertices, const PyUIntArr &triangles,
-        const PyFloatArr &normals, const PyFloatArr &uvs,
+        const PyDoubleArr &vertices, const PyUIntArr &triangles,
+        const PyDoubleArr &normals, const PyDoubleArr &uvs,
         std::string_view surface, std::string_view emission,
         std::string_view medium, float clamp_normal
     ) noexcept: PyShape(name, surface, emission, medium, clamp_normal) {
-        _node->add_property("positions", pyarray_to_vector<float>(vertices));
-        _node->add_property("indices", pyarray_to_vector<uint>(triangles));
-        _node->add_property("normals", pyarray_to_vector<float>(normals));
-        _node->add_property("uvs", pyarray_to_vector<float>(uvs));
+        _node->add_property("positions", pyarray_to_vector<double>(vertices));
+        _node->add_property("indices", pyarray_to_vector<uint, double>(triangles));
+        _node->add_property("normals", pyarray_to_vector<double>(normals));
+        _node->add_property("uvs", pyarray_to_vector<double>(uvs));
     }
     void update(
-        const PyFloatArr &vertices, const PyUIntArr &triangles,
-        const PyFloatArr &normals, const PyFloatArr &uvs
+        const PyDoubleArr &vertices, const PyUIntArr &triangles,
+        const PyDoubleArr &normals, const PyDoubleArr &uvs
     ) noexcept {
-        _node->add_property("positions", pyarray_to_vector<float>(vertices));
-        _node->add_property("indices", pyarray_to_vector<uint>(triangles));
-        _node->add_property("normals", pyarray_to_vector<float>(normals));
-        _node->add_property("uvs", pyarray_to_vector<float>(uvs));
+        _node->add_property("positions", pyarray_to_vector<double>(vertices));
+        _node->add_property("indices", pyarray_to_vector<uint, double>(triangles));
+        _node->add_property("normals", pyarray_to_vector<double>(normals));
+        _node->add_property("uvs", pyarray_to_vector<double>(uvs));
     }
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return "deformablemesh"; }
 };
@@ -366,17 +384,17 @@ class PyParticles: public PyShape {
 public:
     PyParticles(
         std::string_view name,
-        const PyFloatArr &centers, const PyFloatArr &radii, uint subdivision,
+        const PyDoubleArr &centers, const PyDoubleArr &radii, uint subdivision,
         std::string_view surface, std::string_view emission,
         std::string_view medium, float clamp_normal
     ) noexcept: PyShape(name, surface, emission, medium, clamp_normal) {
-        _node->add_property("centers", pyarray_to_vector<float>(centers));
-        _node->add_property("radii", pyarray_to_vector<float>(radii));
-        _node->add_property("subdivision", subdivision);
+        _node->add_property("centers", pyarray_to_vector<double>(centers));
+        _node->add_property("radii", pyarray_to_vector<double>(radii));
+        _node->add_property("subdivision", double(subdivision));
     }
-    void update(const PyFloatArr &centers, const PyFloatArr &radii) noexcept {
-        _node->add_property("centers", pyarray_to_vector<float>(centers));
-        _node->add_property("radii", pyarray_to_vector<float>(radii));
+    void update(const PyDoubleArr &centers, const PyDoubleArr &radii) noexcept {
+        _node->add_property("centers", pyarray_to_vector<double>(centers));
+        _node->add_property("radii", pyarray_to_vector<double>(radii));
     }
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return "spheregroup"; }
 };
@@ -386,7 +404,7 @@ public:
 class PyFilm: public PyDesc {
 public:
     PyFilm(const PyUIntArr &resolution) noexcept: PyDesc{""} {
-        _node->add_property("resolution", pyarray_to_vector<uint>(resolution));
+        _node->add_property("resolution", pyarray_to_vector<uint, double>(resolution));
     }
     [[nodiscard]] SceneNodeTag tag() const noexcept override { return SceneNodeTag::FILM; }
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return "color"; }
@@ -402,7 +420,7 @@ public:
     void update(float radius) noexcept {
         _node->add_property("radius", radius);
     }
-    [[nodiscard]] SceneNodeTag tag() const noexcept override { return SceneNodeTag::Filter; }
+    [[nodiscard]] SceneNodeTag tag() const noexcept override { return SceneNodeTag::FILTER; }
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return "gaussian"; }
 };
 
@@ -417,7 +435,7 @@ public:
         add_property_node("transform", pose);
         add_property_node("film", film);
         add_property_node("filter", filter);
-        _node->add_property("spp", spp);
+        _node->add_property("spp", double(spp));
     }
     void update(PyTransform *pose) noexcept {
         add_property_node("transform", pose);
@@ -472,6 +490,7 @@ public:
 
 // Environment
 class PyEnvironment: public PyDesc {
+public:
     PyEnvironment(
         std::string_view name,
         PyTexture *emission, PyTransform *transform
@@ -494,9 +513,9 @@ public:
 
 
 // Sampler
-class PySamepler: public PyDesc {
+class PySampler: public PyDesc {
 public:
-    PySamepler() noexcept: PyDesc{""} { }
+    PySampler() noexcept: PyDesc{""} { }
     [[nodiscard]] SceneNodeTag tag() const noexcept override { return SceneNodeTag::SAMPLER; }
 };
 
@@ -519,7 +538,7 @@ public:
     // rr: Russian Roulette, a technique to control the average depth of ray tracing.
     PyIntegrator(LogLevel log_level, uint max_depth) noexcept: PyDesc{""} {
         _node->add_property("use_progress", log_level != LogLevel::WARNING);
-        _node->add_property("depth", max_depth);
+        _node->add_property("depth", double(max_depth));
     }
     [[nodiscard]] SceneNodeTag tag() const noexcept override { return SceneNodeTag::INTEGRATOR; }
 };
@@ -535,7 +554,7 @@ class PyWavePathV2: public PyIntegrator {
 public:
     PyWavePathV2(LogLevel log_level, uint max_depth, uint state_limit) noexcept:
         PyIntegrator{log_level, max_depth} {
-        _node->add_property("state_limit", state_limit);
+        _node->add_property("state_limit", double(state_limit));
     }
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return "wavepath_v2"; }
 };
@@ -551,7 +570,7 @@ public:
 class PyHero: public PySpectrum {
 public:
     PyHero(uint dimension) noexcept: PySpectrum{} {
-        _node->add_property("dimension", dimension);
+        _node->add_property("dimension", double(dimension));
     }
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return "hero"; }
 };

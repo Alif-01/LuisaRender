@@ -163,7 +163,7 @@ public:
     [[nodiscard]] auto tag() const noexcept { return _tag; }
     [[nodiscard]] auto impl_type() const noexcept { return luisa::string_view{_impl_type}; }
     [[nodiscard]] auto source_location() const noexcept { return _location; }
-    void define(SceneNodeTag tag, luisa::string_view t, SourceLocation l, const SceneNodeDesc *base = nullptr) noexcept;
+    void define(SceneNodeTag tag, luisa::string_view t, SourceLocation l = {}, const SceneNodeDesc *base = nullptr) noexcept;
     [[nodiscard]] auto &properties() const noexcept { return _properties; }
     [[nodiscard]] bool has_property(luisa::string_view prop) const noexcept;
     void add_property(luisa::string_view name, value_list values) noexcept;
@@ -172,7 +172,8 @@ public:
     void add_property(luisa::string_view name, string_type value) noexcept { add_property(name, string_list{std::move(value)}); }
     void add_property(luisa::string_view name, const char *value) noexcept { add_property(name, string_list{value}); }
     void add_property(luisa::string_view name, node_type value) noexcept { add_property(name, node_list{value}); }
-    void set_property(luisa::string_view name, value_list values) noexcept;
+    void update_properties(SceneNodeDesc *node) noexcept;
+    // void set_property(luisa::string_view name, value_list values) noexcept;
     [[nodiscard]] SceneNodeDesc *define_internal(
         luisa::string_view impl_type, SourceLocation location = {}, const SceneNodeDesc *base = nullptr) noexcept;
     [[nodiscard]] auto is_root() const noexcept { return _tag == SceneNodeTag::ROOT; }
