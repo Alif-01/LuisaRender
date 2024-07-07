@@ -42,7 +42,7 @@ private:
         luisa::vector<float> image_data, uint2 resolution, uint channel
     ) noexcept {
         _image = global_thread_pool().async(
-            [image_data = std::move(image_data), resolution = std::move(resolution), channel] {
+            [image_data = std::move(image_data), resolution = std::move(resolution), channel = channel] {
                 return LoadedImage::load(image_data, resolution, channel);
         });
     }

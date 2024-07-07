@@ -121,8 +121,8 @@ public:
         const luisa::vector<float> &radii, uint subdiv
     ) noexcept;
     [[nodiscard]] static std::shared_future<SphereGroupGeometry> create(
-        const luisa::vector<float> &centers,
-        const luisa::vector<float> &radii, uint subdiv
+        luisa::vector<float> centers,
+        luisa::vector<float> radii, uint subdiv
     ) noexcept;
 };
 
@@ -140,10 +140,10 @@ public:
         const luisa::vector<float> &uvs
     ) noexcept;
     [[nodiscard]] static std::shared_future<MeshGeometry> create(
-        const luisa::vector<float> &positions,
-        const luisa::vector<uint> &triangles,
-        const luisa::vector<float> &normals,
-        const luisa::vector<float> &uvs
+        luisa::vector<float> positions,
+        luisa::vector<uint> triangles,
+        luisa::vector<float> normals,
+        luisa::vector<float> uvs
     ) noexcept;
 
     MeshGeometry(

@@ -127,8 +127,11 @@ SphereGroupGeometry::SphereGroupGeometry(
 std::shared_future<SphereGroupGeometry> SphereGroupGeometry::create(
     luisa::vector<float> centers, luisa::vector<float> radii, uint subdiv
 ) noexcept {
+
+    LUISA_INFO("Subdivision: {}", subdiv);
+
     return global_thread_pool().async(
-        [centers = std::move(centers), radii = std::move(radii), subdiv] { 
+        [centers = std::move(centers), radii = std::move(radii), subdiv = subdiv] { 
             return SphereGroupGeometry(centers, radii, subdiv);
         }
     );
@@ -250,7 +253,7 @@ std::shared_future<MeshGeometry> MeshGeometry::create(
     if (auto m = loaded_meshes.at(key)) { return *m; }
 
     auto future = global_thread_pool().async(
-        [path = std::move(path), subdiv, flip_uv, drop_normal, drop_uv] { 
+        [path = std::move(path), subdiv = subdiv, flip_uv = flip_uv, drop_normal = drop_normal, drop_uv = drop_uv] { 
             return MeshGeometry(path, subdiv, flip_uv, drop_normal, drop_uv); 
     });
     loaded_meshes.emplace(key, future);
@@ -311,7 +314,8 @@ std::shared_future<MeshGeometry> MeshGeometry::create(
     luisa::vector<float> uvs
 ) noexcept {
     auto future = global_thread_pool().async(
-        [positions = std::move(positions), triangles = std::move(triangles), normals = std::move(normals), uvs = std::move(uvs)] {
+        [positions = std::move(positions), triangles = std::move(triangles),
+         normals = std::move(normals), uvs = std::move(uvs)] {
             return MeshGeometry(positions, triangles, normals, uvs);
     });
     return future;
