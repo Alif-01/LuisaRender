@@ -52,7 +52,8 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
         .value("WARNING", LogLevel::WARNING);
 
     // Transform
-    py::class_<PyMatrix, PyTransform>(m, "MatrixTransform")  // Specify base class
+    py::class_<PyTransform>(m, "Transform");
+    py::class_<PyMatrix, PyTransform>(m, "MatrixTransform")
         .def(py::init<const PyDoubleArr&>(),
             py::arg("matrix"))
         .def("update", &PyMatrix::update,
@@ -77,6 +78,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
             py::arg("up"));
 
     // Texture
+    py::class_<PyTexture>(m, "Texture");
     py::class_<PyColor, PyTexture>(m, "ColorTexture")
         .def(py::init<const PyDoubleArr&>(),
             py::arg("color"));
@@ -98,6 +100,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
             py::arg("emission").none(true) = py::none());
 
     // Surface
+    py::class_<PySurface>(m, "Surface");
     py::class_<PyMetal, PySurface>(m, "MetalSurface")
         .def(py::init<std::string_view, PyTexture*, PyTexture*, PyTexture*, PyTexture*, std::string_view>(),
             py::arg("name"),
@@ -126,6 +129,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
             py::arg("eta").none(true) = py::none());
 
     // Shape
+    py::class_<PyShape>(m, "Shape");
     py::class_<PyRigid, PyShape>(m, "RigidShape")
         .def(py::init<std::string_view, std::string_view,
             const PyDoubleArr&, const PyUIntArr&, const PyDoubleArr&, const PyDoubleArr&,
@@ -190,6 +194,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
             py::arg("radius") = 1.0f);
 
     // Camera
+    py::class_<PyCamera>(m, "Camera");
     py::class_<PyPinhole, PyCamera>(m, "PinholeCamera")
         .def(py::init<std::string_view,
             PyTransform*, PyFilm *, PyFilter*, uint, float>(),
@@ -227,6 +232,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
             py::arg("transform").none(true) = py::none());
 
     // Integrator
+    py::class_<PyIntegrator>(m, "Integrator");
     py::class_<PyWavePath, PyIntegrator>(m, "WavePathIntegrator")
         .def(py::init<LogLevel, uint>(),
             py::arg("log_level") = LogLevel::WARNING,
@@ -238,6 +244,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
             py::arg("state_limit") =  512u * 512u * 32u);
 
     // Spectrum
+    py::class_<PySpectrum>(m, "Spectrum");
     py::class_<PyHero, PySpectrum>(m, "HeroSpectrum")
         .def(py::init<uint>(), py::arg("dimension") = 4u);
     py::class_<PySRGB, PySpectrum>(m, "SRGBSpectrum")

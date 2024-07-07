@@ -34,22 +34,16 @@ private:
 private:
     void _load_image(std::filesystem::path path) noexcept {
         _image = global_thread_pool().async([path = std::move(path)] {
-            auto image = LoadedImage::load(path);
-            LUISA_ASSERT(all(image.size() > 0u),
-                         "Invalid image resolution for '{}'.",
-                         path.string());
-            return image;
+            return LoadedImage::load(path);
         });
     }
     
     void _load_image(
-        const luisa::vector<float> &image_data,
-        const uint2 &resolution, uint channel
+        luisa::vector<float> image_data, uint2 resolution, uint channel
     ) noexcept {
-        _image = global_thread_pool().async([&] {
-            return LoadedImage::load(
-                image_data, resolution, channel
-            );
+        _image = global_thread_pool().async(
+            [image_data = std::move(image_data), resolution = std::move(resolution), channel] {
+                return LoadedImage::load(image_data, resolution, channel);
         });
     }
 
@@ -133,13 +127,13 @@ public:
             "mipmaps", filter_mode == TextureSampler::Filter::ANISOTROPIC ? 0u : 1u);
         if (filter_mode == TextureSampler::Filter::POINT) { _mipmaps = 1u; }
         if (path.string().empty()) {
-            _load_image(path);
-        } else {
             _load_image(
                 desc->property_float_list("image_data"),
                 desc->property_uint2("resolution"),
                 desc->property_uint("channel")
             );
+        } else {
+            _load_image(path);
         }
     }
     

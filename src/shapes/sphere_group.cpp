@@ -34,7 +34,9 @@ public:
         _geometry(SphereGroupGeometry::create(
             desc->property_float_list("centers"),
             desc->property_float_list("radii"), _subdiv
-        )) { _geometry.wait(); }
+        )) { 
+            // _geometry.wait();
+        }
     
     // SphereGroup(Scene *scene, const RawShapeInfo &shape_info) noexcept :
     //     Shape{scene, shape_info} {
@@ -50,7 +52,7 @@ public:
             desc->property_float_list("centers"),
             desc->property_float_list("radii"), _subdiv
         );
-        _geometry.wait();
+        // _geometry.wait();
         return true;
     }
 

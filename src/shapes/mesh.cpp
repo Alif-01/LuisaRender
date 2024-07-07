@@ -14,21 +14,30 @@ private:
 
 public:
     Mesh(Scene *scene, const SceneNodeDesc *desc) noexcept:
-        Shape{scene, desc},
-        _geometry{[&]{
-            return desc->has_property("file") ?
-            MeshGeometry::create(
-                desc->property_path("file"),
-                desc->property_uint_or_default("subdivision", 0u),
-                desc->property_bool_or_default("flip_uv", false),
-                desc->property_bool_or_default("drop_normal", false),
-                desc->property_bool_or_default("drop_uv", false)) :
-            MeshGeometry::create(
+        Shape{scene, desc} {
+
+        if (desc->property_string_or_default("file").empty()) {
+            // auto positions = desc->property_float_list("positions");
+            // auto indices = desc->property_uint_list("indices");
+            // auto normals = desc->property_float_list_or_default("normals");
+            // auto uvs = desc->property_float_list_or_default("uvs");
+            // _geometry = MeshGeometry::create(positions, indices, normals, uvs);
+            _geometry = MeshGeometry::create(
                 desc->property_float_list("positions"),
                 desc->property_uint_list("indices"),
                 desc->property_float_list_or_default("normals"),
                 desc->property_float_list_or_default("uvs"));
-        }()} { }
+            // _geometry.wait();
+        } else {
+            _geometry = MeshGeometry::create(
+                desc->property_path("file"),
+                desc->property_uint_or_default("subdivision", 0u),
+                desc->property_bool_or_default("flip_uv", false),
+                desc->property_bool_or_default("drop_normal", false),
+                desc->property_bool_or_default("drop_uv", false));
+            // _geometry.wait();
+        }
+    }
 
     Mesh(Scene *scene, const RawShapeInfo &shape_info) noexcept:
         Shape{scene, shape_info} {

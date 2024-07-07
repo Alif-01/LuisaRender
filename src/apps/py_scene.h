@@ -73,10 +73,7 @@ public:
         shape->define_in_scene(_scene_desc.get());
         auto shape_node = _scene->update_shape(shape->node(), !shape->loaded);
         if (!shape->loaded) shape->loaded = true;
-        // shapes.emplace_back(shape->node());
-        // auto shape_node = _scene->load_shape(shape->node());
         // LUISA_INFO("Update: {}", shape.shape_info.get_info());
-        // auto shape_node = scene->update_shape(shape.shape_info);
     }
 
     void update_camera(PyCamera *camera, bool denoise) noexcept {

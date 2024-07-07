@@ -125,10 +125,10 @@ SphereGroupGeometry::SphereGroupGeometry(
 }
 
 std::shared_future<SphereGroupGeometry> SphereGroupGeometry::create(
-    const luisa::vector<float> &centers, const luisa::vector<float> &radii, uint subdiv
+    luisa::vector<float> centers, luisa::vector<float> radii, uint subdiv
 ) noexcept {
     return global_thread_pool().async(
-        [&centers, radii, subdiv] { 
+        [centers = std::move(centers), radii = std::move(radii), subdiv] { 
             return SphereGroupGeometry(centers, radii, subdiv);
         }
     );
@@ -269,7 +269,11 @@ MeshGeometry::MeshGeometry(
         uvs.size() % 2u != 0u ||
         (!normals.empty() && normals.size() != positions.size()) ||
         (!uvs.empty() && uvs.size() / 2u != positions.size() / 3u)) [[unlikely]] {
-        LUISA_ERROR_WITH_LOCATION("Invalid vertex or triangle count.");
+        LUISA_ERROR_WITH_LOCATION(
+            "Invalid vertex or triangle count: "
+            "vertices={}, triangles={}, normals={}, uvs={}",
+            positions.size(), triangles.size(), normals.size(), uvs.size()
+        );
     }
     _has_normal = !normals.empty();
     _has_uv = !uvs.empty();
@@ -277,15 +281,17 @@ MeshGeometry::MeshGeometry(
     auto triangle_count = triangles.size() / 3u;
     auto vertex_count = positions.size() / 3u;
     _triangles.resize(triangle_count);
-    for (auto i = 0u; i < triangle_count; i++) {
+    for (auto i = 0u; i < triangle_count; ++i) {
         auto t0 = triangles[i * 3u + 0u];
         auto t1 = triangles[i * 3u + 1u];
         auto t2 = triangles[i * 3u + 2u];
-        assert(t0 < vertex_count && t1 < vertex_count && t2 < vertex_count);
+        if (t0 >= vertex_count || t1 >= vertex_count || t2 >= vertex_count) [[unlikely]] {
+            LUISA_ERROR("Triangle ({}, {}, {}) indices exceed {}", t0, t1, t2, vertex_count);
+        }
         _triangles[i] = Triangle{t0, t1, t2};
     }
     _vertices.resize(vertex_count);
-    for (auto i = 0u; i < vertex_count; i++) {
+    for (auto i = 0u; i < vertex_count; ++i) {
         auto p0 = positions[i * 3u + 0u];
         auto p1 = positions[i * 3u + 1u];
         auto p2 = positions[i * 3u + 2u];
@@ -299,13 +305,14 @@ MeshGeometry::MeshGeometry(
 }
 
 std::shared_future<MeshGeometry> MeshGeometry::create(
-    const luisa::vector<float> &positions,
-    const luisa::vector<uint> &triangles,
-    const luisa::vector<float> &normals,
-    const luisa::vector<float> &uvs
+    luisa::vector<float> positions,
+    luisa::vector<uint> triangles,
+    luisa::vector<float> normals,
+    luisa::vector<float> uvs
 ) noexcept {
-    auto future = global_thread_pool().async([&] {
-        return MeshGeometry(positions, triangles, normals, uvs);
+    auto future = global_thread_pool().async(
+        [positions = std::move(positions), triangles = std::move(triangles), normals = std::move(normals), uvs = std::move(uvs)] {
+            return MeshGeometry(positions, triangles, normals, uvs);
     });
     return future;
 }
