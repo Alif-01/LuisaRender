@@ -43,14 +43,6 @@ public:
         _build_matrix(m);
     }
 
-    // MatrixTransform(Scene *scene, const RawTransformInfo &transform_info) noexcept
-    //     : Transform{scene} {
-
-    //     if (transform_info.matrix_info == nullptr) [[unlikely]]
-    //         LUISA_ERROR_WITH_LOCATION("Invalid matrix info!");
-    //     _matrix = transform_info.matrix_info->matrix;
-    // }
-
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] float4x4 matrix(float) const noexcept override { return _matrix; }
     [[nodiscard]] bool is_static() const noexcept override { return true; }
@@ -65,19 +57,8 @@ public:
         _build_matrix(desc->property_float_list_or_default("m"));
         return true;
     }
-
-    void update_transform(Scene *scene, const RawTransformInfo &transform_info) noexcept override {
-        if (transform_info.matrix_info == nullptr) [[unlikely]]
-            LUISA_ERROR_WITH_LOCATION("Invalid matrix info!");
-        _matrix = transform_info.matrix_info->matrix;
-    }
 };
 
 }// namespace luisa::render
 
 LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::MatrixTransform)
-
-// LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
-//     luisa::render::Scene *scene, const luisa::render::RawTransformInfo &transform_info) LUISA_NOEXCEPT {
-//     return luisa::new_with_allocator<luisa::render::MatrixTransform>(scene, transform_info);
-// }

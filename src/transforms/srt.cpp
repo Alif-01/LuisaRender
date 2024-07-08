@@ -25,31 +25,6 @@ public:
                   luisa::scaling(scaling);
     }
 
-    // ScaleRotateTranslate(Scene *scene, const RawTransformInfo &transform_info) noexcept
-    //     : Transform{scene} {
-    //     if (transform_info.srt_info == nullptr) [[unlikely]]
-    //         LUISA_ERROR_WITH_LOCATION("Invalid SRT info!");
-    //     auto srt_info = transform_info.srt_info.get();
-    //     auto translation = srt_info->translate;
-    //     auto rotation = srt_info->rotate;
-    //     auto scaling = srt_info->scale;
-    //     _matrix = luisa::translation(translation) *
-    //               luisa::rotation(normalize(rotation.xyz()), radians(rotation.w)) *
-    //               luisa::scaling(scaling);
-    // }
-
-    // void update_transform(Scene *scene, const RawTransformInfo &transform_info) noexcept override {
-    //     if (transform_info.srt_info == nullptr) [[unlikely]]
-    //         LUISA_ERROR_WITH_LOCATION("Invalid SRT info!");
-    //     auto srt_info = transform_info.srt_info.get();
-    //     auto translation = srt_info->translate;
-    //     auto rotation = srt_info->rotate;
-    //     auto scaling = srt_info->scale;
-    //     _matrix = luisa::translation(translation) *
-    //               luisa::rotation(normalize(rotation.xyz()), radians(rotation.w)) *
-    //               luisa::scaling(scaling);
-    // }
-
     bool update(Scene *scene, const SceneNodeDesc *desc) noexcept override {
         auto scaling = desc->property_float3_or_default("scale", lazy_construct([desc]{
             return make_float3(desc->property_float_or_default("scale", 1.0f));

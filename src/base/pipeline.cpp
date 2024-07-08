@@ -123,10 +123,6 @@ void Pipeline::scene_update(
     };
     update_bindless_if_dirty();
 
-    LUISA_INFO("cameras:{}, shapes:{}, environments:{}, lights:{}, transforms:{},{}",
-        scene.cameras_updated(), scene.shapes_updated(), scene.environment_updated(),
-        _lights_updated, scene.transforms_updated(), _transforms_updated);
-
     if (scene.cameras_updated()) {
         _cameras.clear();
         _cameras.reserve(scene.cameras().size());
@@ -137,19 +133,11 @@ void Pipeline::scene_update(
         update_bindless_if_dirty();
     }
 
-    LUISA_INFO("cameras:{}, shapes:{}, environments:{}, lights:{}, transforms:{},{}",
-        scene.cameras_updated(), scene.shapes_updated(), scene.environment_updated(),
-        _lights_updated, scene.transforms_updated(), _transforms_updated);
-
     if (scene.shapes_updated()) {
         _geometry = luisa::make_unique<Geometry>(*this);
         _geometry->build(command_buffer, scene.shapes(), time);
         update_bindless_if_dirty();
     }
-    
-    LUISA_INFO("cameras:{}, shapes:{}, environments:{}, lights:{}, transforms:{},{}",
-        scene.cameras_updated(), scene.shapes_updated(), scene.environment_updated(),
-        _lights_updated, scene.transforms_updated(), _transforms_updated);
 
     bool environment_updated = false;
     if (scene.environment_updated()) {
@@ -157,20 +145,12 @@ void Pipeline::scene_update(
         environment_updated = true;
         update_bindless_if_dirty();
     }
-    
-    LUISA_INFO("cameras:{}, shapes:{}, environments:{}, lights:{}, transforms:{},{}",
-        scene.cameras_updated(), scene.shapes_updated(), scene.environment_updated(),
-        _lights_updated, scene.transforms_updated(), _transforms_updated);
 
     if (environment_updated || _lights_updated) {
         _integrator = scene.integrator()->build(*this, command_buffer);
         _lights_updated = false;
         update_bindless_if_dirty();
     }
-
-    LUISA_INFO("cameras:{}, shapes:{}, environments:{}, lights:{}, transforms:{},{}",
-        scene.cameras_updated(), scene.shapes_updated(), scene.environment_updated(),
-        _lights_updated, scene.transforms_updated(), _transforms_updated);
 
     if (scene.transforms_updated() || _transforms_updated) {
 

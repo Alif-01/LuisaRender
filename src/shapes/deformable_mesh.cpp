@@ -22,19 +22,6 @@ public:
             desc->property_float_list_or_default("uvs")
         )} { }
 
-    // DeformableMesh(Scene *scene, const RawShapeInfo &shape_info) noexcept:
-    //     Shape{scene, shape_info} {
-    //     LUISA_ASSERT(shape_info.get_type() == "deformablemesh", "Invalid deformable info.");
-    //     auto mesh_info = shape_info.mesh_info.get();
-    //     _geometry = MeshGeometry::create(
-    //         mesh_info->vertices, 
-    //         mesh_info->triangles,
-    //         mesh_info->normals,
-    //         mesh_info->uvs
-    //     );
-    //     // _geometry.wait();
-    // }
-
     [[nodiscard]] bool update(Scene *scene, const SceneNodeDesc *desc) noexcept override {
         _geometry = MeshGeometry::create(
             desc->property_float_list_or_default("positions"),
@@ -42,22 +29,8 @@ public:
             desc->property_float_list_or_default("normals"),
             desc->property_float_list_or_default("uvs")
         );
-        // _geometry.wait();
         return true;
     }
-
-    // void update_shape(Scene *scene, const RawShapeInfo &shape_info) noexcept override {
-    //     Shape::update_shape(scene, shape_info);
-    //     LUISA_ASSERT(shape_info.get_type() == "deformablemesh", "Invalid deformable info.");
-    //     auto mesh_info = shape_info.mesh_info.get();
-    //     _geometry = MeshGeometry::create(
-    //         mesh_info->vertices, 
-    //         mesh_info->triangles,
-    //         mesh_info->normals,
-    //         mesh_info->uvs
-    //     );
-    //     _geometry.wait();
-    // }
 
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] bool is_mesh() const noexcept override { return true; }

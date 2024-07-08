@@ -20,23 +20,9 @@ Shape::Shape(Scene *scene, const SceneNodeDesc *desc) noexcept :
     _transform{scene->load_transform(desc->property_node_or_default("transform"))},
     _medium{scene->load_medium(desc->property_node_or_default("medium"))} {}
 
-// Shape::Shape(Scene *scene, const RawShapeInfo &shape_info) noexcept :
-//     SceneNode{scene, SceneNodeTag::SHAPE},
-//     _surface{dynamic_cast<Surface *>(scene->load_node_from_name(shape_info.surface))},
-//     _light{dynamic_cast<Light *>(scene->load_node_from_name(shape_info.light))},
-//     _transform{scene->update_transform(
-//         luisa::format("{}_transform", shape_info.name), shape_info.transform_info)
-//     },
-//     _medium{dynamic_cast<Medium *>(scene->load_node_from_name(shape_info.medium))} {}
-
 bool Shape::update(Scene *scene, const SceneNodeDesc *desc) noexcept {
     return true | update_value(_transform,
         (const Transform *)scene->load_transform(desc->property_node_or_default("transform")));
-}
-      
-// void Shape::update_shape(Scene *scene, const RawShapeInfo &shape_info) noexcept {
-//     if (shape_info.transform_info.get_type() != "None") _transform = scene->update_transform(
-//         luisa::format("{}_transform", shape_info.name), shape_info.transform_info);
 }
 
 AccelOption Shape::build_option() const noexcept { return {}; }

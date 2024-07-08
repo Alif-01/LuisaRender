@@ -34,34 +34,13 @@ public:
         }
     }
 
-    // Mesh(Scene *scene, const RawShapeInfo &shape_info) noexcept:
-    //     Shape{scene, shape_info} {
-    //     LUISA_ASSERT(shape_info.get_type() == "mesh", "Invalid rigid info.");
-
-    //     if (shape_info.file_info != nullptr) {
-    //         auto file_info = shape_info.file_info.get();
-    //         _geometry = MeshGeometry::create(file_info->file, 0u, false, false, false);
-    //     } else if (shape_info.mesh_info != nullptr) {
-    //         auto mesh_info = shape_info.mesh_info.get();
-    //         _geometry = MeshGeometry::create(
-    //             mesh_info->vertices, 
-    //             mesh_info->triangles,
-    //             mesh_info->normals,
-    //             mesh_info->uvs
-    //         );
-    //         _geometry.wait();
-    //     } else {
-    //         LUISA_ERROR_WITH_LOCATION("Invalid rigid info!");
-    //     }
-    // }
-
     [[nodiscard]] bool update(Scene *scene, const SceneNodeDesc *desc) noexcept override {
         return Shape::update(scene, desc);
     }
 
-    void update_shape(Scene *scene, const RawShapeInfo &shape_info) noexcept override {
-        Shape::update_shape(scene, shape_info);
-    }
+    // void update_shape(Scene *scene, const RawShapeInfo &shape_info) noexcept override {
+    //     Shape::update_shape(scene, shape_info);
+    // }
     
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] bool is_mesh() const noexcept override { return true; }
