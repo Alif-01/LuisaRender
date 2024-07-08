@@ -38,7 +38,6 @@ public:
         auto scene_create_time = clock.toc();
         LUISA_INFO("Scene created in {} ms.", scene_create_time);
 
-        // std::scoped_lock lock{_stream_mutex};
         _pipeline = Pipeline::create(_device, _stream, *_scene);
         auto pipeline_create_time = clock.toc();
         LUISA_INFO("Pipeline created in {} ms.", pipeline_create_time - scene_create_time);
@@ -49,17 +48,12 @@ public:
     void update_environment(PyEnvironment *environment) noexcept {
         environment->define_in_scene(_scene_desc.get());
         auto environment_node = _scene->update_environment(environment->node());
-        // _scene_desc->root()->add_property("environment", environment->node());
-        // auto environment_node = 
         // LUISA_INFO("Add: {}", environment_info.get_info());
-        // auto environment_node = scene->add_environment(environment_info);
     }
 
     void update_emission(PyLight *light) noexcept {
         light->define_in_scene(_scene_desc.get());
-        // auto light_node = _scene->load_light(light->node());
         // LUISA_INFO("Add: {}", light_info.get_info());
-        // auto light_node = scene->add_light(light_info);
     }
 
     void update_surface(PySurface *surface) noexcept {
@@ -94,7 +88,6 @@ public:
     }
 
     PyFloatArr render_frame(PyCamera *camera, float time) noexcept {
-        // _scene->update(_scene_desc.get());
         _pipeline->scene_update(_stream, *_scene, time);
 
         auto idx = camera->index;
@@ -102,8 +95,6 @@ public:
 
         luisa::vector<float4> buffer;
         _pipeline->render_to_buffer(_stream, idx, buffer);
-
-        LUISA_INFO("buffer:{}, {}, {}, {}", buffer[100], buffer[200], buffer[300], buffer[400]);
 
         _stream.synchronize();
         auto buffer_p = reinterpret_cast<float *>(buffer.data());
@@ -133,9 +124,6 @@ public:
         }
 
         apply_gamma(buffer_p, resolution);
-
-        LUISA_INFO("buffer:{}, {}, {}, {}", buffer[100], buffer[200], buffer[300], buffer[400]);
-
         auto array_buffer = PyFloatArr(resolution.x * resolution.y * 4);
         std::memcpy(array_buffer.mutable_data(), buffer_p, array_buffer.size() * sizeof(float));
         return array_buffer;

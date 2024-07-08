@@ -153,11 +153,7 @@ public:
 
 public:
     SceneNodeDesc(luisa::string identifier, SceneNodeTag tag) noexcept
-        : _identifier{std::move(identifier)}, _tag{tag} {
-
-            LUISA_INFO("{}, {}", _identifier, scene_node_tag_description(tag));
-
-        }
+        : _identifier{std::move(identifier)}, _tag{tag} { }
     SceneNodeDesc(SceneNodeDesc &&) noexcept = delete;
     SceneNodeDesc(const SceneNodeDesc &) noexcept = delete;
     SceneNodeDesc &operator=(SceneNodeDesc &&) noexcept = delete;

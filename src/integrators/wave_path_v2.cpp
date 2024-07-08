@@ -1139,7 +1139,6 @@ void WavefrontPathTracingv2Instance::_render_one_camera(
                 auto valid_count = state_count - aqueue.host_counter(0);
 
                 if (gen) {
-                    //LUISA_INFO("generating");
                     gen_iter++;
                     if (compact) {
                         empty_queue.clear_counter_buffer(command_buffer);
