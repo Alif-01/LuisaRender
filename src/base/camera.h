@@ -99,8 +99,8 @@ private:
 
 public:
     Camera(Scene *scene, const SceneNodeDesc *desc) noexcept;
-    Camera(Scene *scene, const RawCameraInfo &camera_info) noexcept;
-    [[nodiscard]] virtual bool update_camera(Scene *scene, const RawCameraInfo &camera_info) noexcept;
+    // Camera(Scene *scene, const RawCameraInfo &camera_info) noexcept;
+    // [[nodiscard]] virtual bool update_camera(Scene *scene, const RawCameraInfo &camera_info) noexcept;
     [[nodiscard]] virtual bool update(Scene *scene, const SceneNodeDesc *desc) noexcept override;
     [[nodiscard]] auto film() const noexcept { return _film; }
     [[nodiscard]] auto filter() const noexcept { return _filter; }
@@ -139,8 +139,8 @@ public:
         _clip_plane = clamp(_clip_plane, 0.f, 1e10f);
         if (_clip_plane.x > _clip_plane.y) { std::swap(_clip_plane.x, _clip_plane.y); }
     }
-    ClipPlaneCameraWrapper(Scene *scene, const RawCameraInfo &camera_info) noexcept
-        : Base{scene, camera_info}, _clip_plane{make_float2(0.f, 1e10f)} {}
+    // ClipPlaneCameraWrapper(Scene *scene, const RawCameraInfo &camera_info) noexcept
+    //     : Base{scene, camera_info}, _clip_plane{make_float2(0.f, 1e10f)} {}
 
 public:
     class Instance : public BaseInstance {

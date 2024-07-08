@@ -209,9 +209,9 @@ public:
                       return desc->property_node_or_default("opacity");
                   })));
           }(scene, desc)} {}
-    OpacitySurfaceWrapper(Scene *scene, const RawSurfaceInfo &surface_info) noexcept:
-        BaseSurface{scene, surface_info},
-        _opacity{scene->add_texture(surface_info.name_opacity, surface_info.opacity)} {}
+    // OpacitySurfaceWrapper(Scene *scene, const RawSurfaceInfo &surface_info) noexcept:
+    //     BaseSurface{scene, surface_info},
+    //     _opacity{scene->add_texture(surface_info.name_opacity, surface_info.opacity)} {}
 
 protected:
     [[nodiscard]] luisa::unique_ptr<Surface::Instance> _build(
@@ -276,10 +276,10 @@ public:
             return scene->load_texture(desc->property_node_or_default("normal_map"));
         }(scene, desc)},
         _strength{desc->property_float_or_default("normal_map_strength", 1.f)} {}
-    NormalMapWrapper(Scene *scene, const RawSurfaceInfo &surface_info) noexcept:
-        BaseSurface{scene, surface_info},
-        _normal_map{scene->add_texture(surface_info.name_normal_map, surface_info.normal_map)},
-        _strength{1.f} {}
+    // NormalMapWrapper(Scene *scene, const RawSurfaceInfo &surface_info) noexcept:
+    //     BaseSurface{scene, surface_info},
+    //     _normal_map{scene->add_texture(surface_info.name_normal_map, surface_info.normal_map)},
+    //     _strength{1.f} {}
 
 protected:
     [[nodiscard]] luisa::unique_ptr<Surface::Instance> _build(

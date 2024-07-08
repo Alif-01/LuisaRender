@@ -13,45 +13,33 @@ const SceneNodeDesc *SceneDesc::node(luisa::string_view identifier) const noexce
         return iter->get();
     }
     LUISA_ERROR_WITH_LOCATION(
-        "Global node '{}' not found in scene description.",
-        identifier);
+        "Global node '{}' not found in scene description.", identifier);
 }
 
 const SceneNodeDesc *SceneDesc::reference(luisa::string_view identifier) noexcept {
     if (identifier == root_node_identifier) [[unlikely]] {
-        LUISA_ERROR_WITH_LOCATION(
-            "Invalid reference to root node.");
+        LUISA_ERROR_WITH_LOCATION("Invalid reference to root node.");
     }
     std::scoped_lock lock{_mutex};
     auto [iter, _] = _global_nodes.emplace(
         lazy_construct([identifier] {
             return luisa::make_unique<SceneNodeDesc>(
-                luisa::string{identifier},
-                SceneNodeTag::DECLARATION);
+                luisa::string{identifier}, SceneNodeTag::DECLARATION);
         }));
+    // auto [iter, _] = _global_nodes.emplace(
+    //     luisa::make_unique<SceneNodeDesc>(luisa::string{identifier}, SceneNodeTag::DECLARATION)
+    // );
     return iter->get();
 }
 
 SceneNodeDesc *SceneDesc::define(
     luisa::unique_ptr<SceneNodeDesc> node_ptr, luisa::string_view impl_type) noexcept {
-    // if (node_ptr->identifier() == root_node_identifier ||
-    //     node_ptr->tag() == SceneNodeTag::ROOT) [[unlikely]] {
-    //     LUISA_ERROR_WITH_LOCATION(
-    //         "Defining root node as a normal global node is not allowed. "
-    //         "Please use SceneNodeDesc::define_root().");
-    // }
     if (node_ptr->tag() == SceneNodeTag::INTERNAL ||
         node_ptr->tag() == SceneNodeTag::DECLARATION) [[unlikely]] {
         LUISA_ERROR_WITH_LOCATION(
             "Defining internal or declaration node "
             "as a global node is not allowed.");
     }
-    // if (_global_nodes.find(node_ptr->identifier()) != _global_nodes.cend()) [[unlikely]] {
-    //     LUISA_ERROR_WITH_LOCATION(
-    //         "Node '{}' already exists in unique_ptr definition.",
-    //         node_ptr->identifier()
-    //     );
-    // }
 
     if (node_ptr->is_defined()) [[unlikely]] {
         LUISA_ERROR_WITH_LOCATION(
@@ -94,14 +82,6 @@ SceneNodeDesc *SceneDesc::define(
     luisa::string_view identifier, SceneNodeTag tag, luisa::string_view impl_type,
     SceneNodeDesc::SourceLocation location, const SceneNodeDesc *base) noexcept {
 
-    // if (identifier == root_node_identifier ||
-    //     tag == SceneNodeTag::ROOT) [[unlikely]] {
-    //     LUISA_ERROR(
-    //         "Defining root node as a normal "
-    //         "global node is not allowed. "
-    //         "Please use SceneNodeDesc::define_root(). [{}]",
-    //         location.string());
-    // }
     if (tag == SceneNodeTag::INTERNAL ||
         tag == SceneNodeTag::DECLARATION) [[unlikely]] {
         LUISA_ERROR(
@@ -140,34 +120,6 @@ SceneNodeDesc *SceneDesc::define(
 
     return node;
 }
-
-// SceneNodeDesc *SceneDesc::define_root(SceneNodeDesc::SourceLocation location) noexcept {
-//     std::scoped_lock lock{_mutex};
-//     if (!_root) {
-//         _root = luisa::make_unique<SceneNodeDesc>(
-//             luisa::string{root_node_identifier}, SceneNodeTag::ROOT);
-//     }
-//     if (_root->is_defined()) [[unlikely]] {
-//         LUISA_ERROR(
-//             "Redefinition of root node "
-//             "in scene description. [{}]",
-//             location.string());
-//     }
-//     _root->define(SceneNodeTag::ROOT, root_node_identifier, location);
-//     return _root.get();
-// }
-
-// void SceneDesc::define_root(luisa::unique_ptr<SceneNodeDesc> node_ptr) noexcept {
-//     std::scoped_lock lock{_mutex};
-//     if (_root) [[unlikely]] {
-//         LUISA_ERROR_WITH_LOCATION("Root already exists in unique_ptr definition.");
-//     }
-//     if (node_ptr->is_defined()) [[unlikely]] {
-//         LUISA_ERROR_WITH_LOCATION("Redefinition of root node in scene description.");
-//     }
-//     _root = std::move(node_ptr);
-//     _root->define(SceneNodeTag::ROOT, root_node_identifier);
-// }
 
 const std::filesystem::path *SceneDesc::register_path(std::filesystem::path path) noexcept {
     auto p = luisa::make_unique<std::filesystem::path>(std::move(path));

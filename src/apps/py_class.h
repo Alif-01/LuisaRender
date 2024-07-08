@@ -18,7 +18,7 @@ using namespace luisa::render;
 
 namespace py = pybind11;
 using namespace py::literals;
-// using PyFloatArr = py::array_t<float>;
+using PyFloatArr = py::array_t<float>;
 using PyDoubleArr = py::array_t<double>;
 using PyUIntArr = py::array_t<uint>;
 
@@ -66,7 +66,8 @@ public:
         }
         luisa::unique_ptr<SceneNodeDesc> node;
         luisa::string name, impl_type;
-        luisa::vector<ref_pair> references;
+        // luisa::vector<ref_pair> references;
+        luisa::unordered_map<luisa::string, const SceneNodeDesc *> references;
     };
 
     PyDesc(std::string_view name, SceneNodeTag tag, std::string_view impl_type) noexcept {
@@ -95,23 +96,32 @@ public:
     }
     void add_property_node(luisa::string_view name, PyDesc *property) noexcept {
         if (property) {
-            _node->add_property(name, property->_node);
+            // _node->add_property(name, property->_node);
+            add_reference(name, property);
             move_property_cache(property, name);
         }
     }
-    void add_reference(luisa::string name, luisa::string_view reference_name) noexcept {
-        if (!reference_name.empty()) {
-            _node_cache[0].references.emplace_back(
-                std::make_pair(name, luisa::string(reference_name))
-            );
+    // void add_reference(luisa::string name, luisa::string_view reference_name) noexcept {
+    void add_reference(luisa::string_view name, PyDesc *property) noexcept {
+        if (property) {
+            _node_cache[0].references[luisa::string(name)] = property->node();
         }   
+        // if (!reference_name.empty()) {
+        //     _node_cache[0].references.emplace_back(
+        //         std::make_pair(name, luisa::string(reference_name))
+        //     );
+        // }   
     }
     void define_in_scene(SceneDesc *scene_desc) noexcept {
-        for (auto &c: _node_cache) {
+        for (auto i = _node_cache.size(); i-- > 0; ) {
+            auto &c = _node_cache[i];
             auto node = scene_desc->define(std::move(c.node), c.impl_type);
-            for (auto &p: c.references) {
-                node->add_property(p.first, scene_desc->reference(p.second));
+            for (auto &[k, v]: c.references) {
+                node->add_property(k, scene_desc->reference(v->identifier()));
             }
+            // for (auto &p: c.references) {
+            //     node->add_property(p.first, scene_desc->reference(p.second));
+            // }
         }
         _node_cache.clear();
     }
@@ -323,12 +333,10 @@ class PyShape: public PyDesc {
 public:
     PyShape(
         std::string_view name, std::string_view impl_type,
-        std::string_view surface, std::string_view emission,
-        std::string_view medium, float clamp_normal
+        PySurface *surface, PyLight *emission, float clamp_normal
     ) noexcept: PyDesc{name, SceneNodeTag::SHAPE, impl_type} {
-        add_reference("surface", surface);
-        add_reference("light", emission);
-        add_reference("medium", medium);
+        add_property_node("surface", surface);
+        add_property_node("light", emission);
         _node->add_property("clamp_normal", clamp_normal);
     }
     // [[nodiscard]] SceneNodeTag tag() const noexcept override { return SceneNodeTag::SHAPE; }
@@ -343,9 +351,8 @@ public:
         const PyDoubleArr &vertices, const PyUIntArr &triangles,
         const PyDoubleArr &normals, const PyDoubleArr &uvs,
         PyTransform *transform,
-        std::string_view surface, std::string_view emission,
-        std::string_view medium, float clamp_normal
-    ) noexcept: PyShape(name, "mesh", surface, emission, medium, clamp_normal) {
+        PySurface *surface, PyLight *emission, float clamp_normal
+    ) noexcept: PyShape(name, "mesh", surface, emission, clamp_normal) {
         if (!obj_path.size() == 0 && vertices.size() == 0 && triangles.size() == 0) {   // file
             _node->add_property("file", luisa::string(obj_path));
         } else if (obj_path.size() == 0 && !vertices.size() == 0 && !triangles.size() == 0) {   // inline
@@ -380,9 +387,8 @@ public:
         std::string_view name,
         const PyDoubleArr &vertices, const PyUIntArr &triangles,
         const PyDoubleArr &normals, const PyDoubleArr &uvs,
-        std::string_view surface, std::string_view emission,
-        std::string_view medium, float clamp_normal
-    ) noexcept: PyShape(name, "deformablemesh", surface, emission, medium, clamp_normal) {
+        PySurface *surface, PyLight *emission, float clamp_normal
+    ) noexcept: PyShape(name, "deformablemesh", surface, emission, clamp_normal) {
         _node->add_property("positions", pyarray_to_vector<double>(vertices));
         _node->add_property("indices", pyarray_to_vector<uint, double>(triangles));
         _node->add_property("normals", pyarray_to_vector<double>(normals));
@@ -405,9 +411,8 @@ public:
     PyParticles(
         std::string_view name,
         const PyDoubleArr &centers, const PyDoubleArr &radii, uint subdivision,
-        std::string_view surface, std::string_view emission,
-        std::string_view medium, float clamp_normal
-    ) noexcept: PyShape(name, "spheregroup", surface, emission, medium, clamp_normal) {
+        PySurface *surface, PyLight *emission, float clamp_normal
+    ) noexcept: PyShape(name, "spheregroup", surface, emission, clamp_normal) {
         _node->add_property("centers", pyarray_to_vector<double>(centers));
         _node->add_property("radii", pyarray_to_vector<double>(radii));
         _node->add_property("subdivision", double(subdivision));
@@ -462,7 +467,6 @@ public:
     void update(PyTransform *pose) noexcept {
         add_property_node("transform", pose);
     }
-    // [[nodiscard]] SceneNodeTag tag() const noexcept override { return SceneNodeTag::CAMERA; }
     bool loaded{false};
     uint index{0};
     bool denoise{false};

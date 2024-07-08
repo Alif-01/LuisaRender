@@ -61,19 +61,19 @@ public:
           _thickness{scene->load_texture(desc->property_node_or_default("thickness"))},
           _remap_roughness{desc->property_bool_or_default("remap_roughness", true)} {}
 
-    PlasticSurface(Scene *scene, const RawSurfaceInfo &surface_info) noexcept
-        : Surface{scene},
-          _roughness{scene->add_texture(surface_info.name_roughness, surface_info.roughness)},
-          _sigma_a{nullptr}, _thickness{nullptr}, _remap_roughness{true} {
+    // PlasticSurface(Scene *scene, const RawSurfaceInfo &surface_info) noexcept
+    //     : Surface{scene},
+    //       _roughness{scene->add_texture(surface_info.name_roughness, surface_info.roughness)},
+    //       _sigma_a{nullptr}, _thickness{nullptr}, _remap_roughness{true} {
 
-        if (surface_info.plastic_info == nullptr) [[unlikely]]
-            LUISA_ERROR_WITH_LOCATION("Invalid plastic info!");
-        auto plastic_info = surface_info.plastic_info.get();
+    //     if (surface_info.plastic_info == nullptr) [[unlikely]]
+    //         LUISA_ERROR_WITH_LOCATION("Invalid plastic info!");
+    //     auto plastic_info = surface_info.plastic_info.get();
         
-        _kd = scene->add_texture("plastic_kd", plastic_info->kd);
-        _ks = scene->add_texture("plastic_ks", plastic_info->ks);
-        _eta = scene->add_texture("plastic_eta", RawTextureInfo::constant({plastic_info->eta}));
-    }
+    //     _kd = scene->add_texture("plastic_kd", plastic_info->kd);
+    //     _ks = scene->add_texture("plastic_ks", plastic_info->ks);
+    //     _eta = scene->add_texture("plastic_eta", RawTextureInfo::constant({plastic_info->eta}));
+    // }
           
 
     [[nodiscard]] auto remap_roughness() const noexcept { return _remap_roughness; }
@@ -327,8 +327,8 @@ using NormalMapOpacityPlasticSurface = NormalMapWrapper<OpacitySurfaceWrapper<
 
 LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::NormalMapOpacityPlasticSurface)
 
-LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
-    luisa::render::Scene *scene,
-    const luisa::render::RawSurfaceInfo &surface_info) LUISA_NOEXCEPT {
-    return luisa::new_with_allocator<luisa::render::NormalMapOpacityPlasticSurface>(scene, surface_info);
-}
+// LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
+//     luisa::render::Scene *scene,
+//     const luisa::render::RawSurfaceInfo &surface_info) LUISA_NOEXCEPT {
+//     return luisa::new_with_allocator<luisa::render::NormalMapOpacityPlasticSurface>(scene, surface_info);
+// }

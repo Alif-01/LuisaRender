@@ -17,7 +17,8 @@ namespace luisa::render {
 Camera::Camera(Scene *scene, const SceneNodeDesc *desc) noexcept
     : SceneNode{scene, desc, SceneNodeTag::CAMERA},
       _film{scene->load_film(desc->property_node("film"))},
-      _filter{scene->load_filter(desc->property_node_or_default("filter", SceneNodeDesc::shared_default_filter("Box")))},
+    //   _filter{scene->load_filter(desc->property_node_or_default("filter", SceneNodeDesc::shared_default_filter("Box")))},
+      _filter{scene->load_filter(desc->property_node("filter"))},
       _transform{scene->load_transform(desc->property_node_or_default("transform"))},
       _shutter_span{desc->property_float2_or_default(
           "shutter_span", lazy_construct([desc] {
@@ -46,10 +47,14 @@ Camera::Camera(Scene *scene, const SceneNodeDesc *desc) noexcept
                 return normalize(look_at - position);
             }));
         auto up = desc->property_float3_or_default("up", default_up);
-        
-        auto pose_name = luisa::format("{}_pose", desc->identifier());
-        auto pose_info = RawTransformInfo::view(std::move(position), std::move(front), std::move(up));
-        _transform = scene->update_transform(pose_name, pose_info);
+        if (!all(position == default_position && front == default_front && up == default_up)) {
+            SceneNodeDesc d{luisa::format("{}$transform", desc->identifier()), SceneNodeTag::TRANSFORM};
+            d.define(SceneNodeTag::TRANSFORM, "View", desc->source_location());
+            d.add_property("position", SceneNodeDesc::number_list{position.x, position.y, position.z});
+            d.add_property("front", SceneNodeDesc::number_list{front.x, front.y, front.z});
+            d.add_property("up", SceneNodeDesc::number_list{up.x, up.y, up.z});
+            _transform = scene->load_transform(&d);
+        }
     }
 
     if (_shutter_span.y < _shutter_span.x) [[unlikely]] {
@@ -138,47 +143,47 @@ Camera::Camera(Scene *scene, const SceneNodeDesc *desc) noexcept
     }
 }
 
-Camera::Camera(Scene *scene, const RawCameraInfo &camera_info) noexcept:
-    SceneNode{scene, SceneNodeTag::CAMERA},
-    _film{scene->update_film(
-        luisa::format("{}_film", camera_info.name),
-        camera_info.film_info
-    )},
-    _filter{scene->add_filter(
-        luisa::format("{}_filter", camera_info.name),
-        camera_info.filter_info
-    )},
-    _shutter_span{make_float2(0.0f)},
-    _shutter_samples{0u},                     // 0 means default
-    _spp{camera_info.spp},
-    _file{std::filesystem::current_path() / luisa::format("render_{}.exr", camera_info.name)} {
+// Camera::Camera(Scene *scene, const RawCameraInfo &camera_info) noexcept:
+//     SceneNode{scene, SceneNodeTag::CAMERA},
+//     _film{scene->update_film(
+//         luisa::format("{}_film", camera_info.name),
+//         camera_info.film_info
+//     )},
+//     _filter{scene->add_filter(
+//         luisa::format("{}_filter", camera_info.name),
+//         camera_info.filter_info
+//     )},
+//     _shutter_span{make_float2(0.0f)},
+//     _shutter_samples{0u},                     // 0 means default
+//     _spp{camera_info.spp},
+//     _file{std::filesystem::current_path() / luisa::format("render_{}.exr", camera_info.name)} {
 
-    // build transform
-    auto pose_name = luisa::format("{}_pose", camera_info.name);
-    _transform = scene->update_transform(pose_name, camera_info.pose);
-    if (_transform == nullptr) [[unlikely]] {
-        LUISA_ERROR("No camera base pose!");
-    }
-}
+//     // build transform
+//     auto pose_name = luisa::format("{}_pose", camera_info.name);
+//     _transform = scene->update_transform(pose_name, camera_info.pose);
+//     if (_transform == nullptr) [[unlikely]] {
+//         LUISA_ERROR("No camera base pose!");
+//     }
+// }
 
 bool Camera::update(Scene *scene, const SceneNodeDesc *desc) noexcept {
     return update_value(_transform,
         scene->load_transform(desc->property_node_or_default("transform")));
 }
 
-bool Camera::update_camera(Scene *scene, const RawCameraInfo &camera_info) noexcept {
-    bool updated = false;
+// bool Camera::update_camera(Scene *scene, const RawCameraInfo &camera_info) noexcept {
+//     bool updated = false;
 
-    auto pose_name = luisa::format("{}_pose", camera_info.name);
-    auto new_transform = scene->update_transform(pose_name, camera_info.pose);
-    if (new_transform != nullptr) {
-        if (_transform != new_transform) {
-            _transform = new_transform;
-            updated = true;
-        }
-    }
-    return updated;
-}
+//     auto pose_name = luisa::format("{}_pose", camera_info.name);
+//     auto new_transform = scene->update_transform(pose_name, camera_info.pose);
+//     if (new_transform != nullptr) {
+//         if (_transform != new_transform) {
+//             _transform = new_transform;
+//             updated = true;
+//         }
+//     }
+//     return updated;
+// }
 
 auto Camera::shutter_weight(float time) const noexcept -> float {
     if (time < _shutter_span.x || time > _shutter_span.y) { return 0.0f; }

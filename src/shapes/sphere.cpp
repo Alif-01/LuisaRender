@@ -42,9 +42,3 @@ using SphereWrapper = VisibilityShapeWrapper<ShadingShapeWrapper<Sphere>>;
 }// namespace luisa::render
 
 LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::SphereWrapper)
-
-// LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
-//     luisa::render::Scene *scene,
-//     const luisa::render::RawSphereInfo &sphere_info) LUISA_NOEXCEPT {
-//     return luisa::new_with_allocator<luisa::render::SphereWrapper>(scene, sphere_info);
-// }

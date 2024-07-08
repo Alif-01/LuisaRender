@@ -64,9 +64,7 @@ public:
 
     void update_surface(PySurface *surface) noexcept {
         surface->define_in_scene(_scene_desc.get());
-        // auto surface_node = _scene->load_surface(surface->node());
         // LUISA_INFO("Add: {}", surface.surface_info.get_info());
-        // auto surface_node = scene->add_surface(surface.surface_info);
     }
 
     void update_shape(PyShape *shape) noexcept {
@@ -95,7 +93,7 @@ public:
         }
     }
 
-    PyDoubleArr render_frame(PyCamera *camera, float time) noexcept {
+    PyFloatArr render_frame(PyCamera *camera, float time) noexcept {
         // _scene->update(_scene_desc.get());
         _pipeline->scene_update(_stream, *_scene, time);
 
@@ -104,6 +102,9 @@ public:
 
         luisa::vector<float4> buffer;
         _pipeline->render_to_buffer(_stream, idx, buffer);
+
+        LUISA_INFO("buffer:{}, {}, {}, {}", buffer[100], buffer[200], buffer[300], buffer[400]);
+
         _stream.synchronize();
         auto buffer_p = reinterpret_cast<float *>(buffer.data());
 
@@ -132,7 +133,10 @@ public:
         }
 
         apply_gamma(buffer_p, resolution);
-        auto array_buffer = PyDoubleArr(resolution.x * resolution.y * 4);
+
+        LUISA_INFO("buffer:{}, {}, {}, {}", buffer[100], buffer[200], buffer[300], buffer[400]);
+
+        auto array_buffer = PyFloatArr(resolution.x * resolution.y * 4);
         std::memcpy(array_buffer.mutable_data(), buffer_p, array_buffer.size() * sizeof(float));
         return array_buffer;
     }

@@ -81,19 +81,19 @@ public:
         }
     }
 
-    GlassSurface(Scene *scene, const RawSurfaceInfo &surface_info) noexcept
-        : Surface{scene},
-          _roughness{scene->add_texture(surface_info.name_roughness, surface_info.roughness)},
-          _remap_roughness{true} {
+    // GlassSurface(Scene *scene, const RawSurfaceInfo &surface_info) noexcept
+    //     : Surface{scene},
+    //       _roughness{scene->add_texture(surface_info.name_roughness, surface_info.roughness)},
+    //       _remap_roughness{true} {
 
-        if (surface_info.glass_info == nullptr) [[unlikely]]
-            LUISA_ERROR_WITH_LOCATION("Invalid glass info!");
-        auto glass_info = surface_info.glass_info.get();
+    //     if (surface_info.glass_info == nullptr) [[unlikely]]
+    //         LUISA_ERROR_WITH_LOCATION("Invalid glass info!");
+    //     auto glass_info = surface_info.glass_info.get();
 
-        _kr = scene->add_texture("glass_kr", glass_info->ks);
-        _kt = scene->add_texture("glass_kt", glass_info->kt);
-        _eta = scene->add_texture("glass_eta", RawTextureInfo::constant({glass_info->eta}));
-    }
+    //     _kr = scene->add_texture("glass_kr", glass_info->ks);
+    //     _kt = scene->add_texture("glass_kt", glass_info->kt);
+    //     _eta = scene->add_texture("glass_eta", RawTextureInfo::constant({glass_info->eta}));
+    // }
 
     [[nodiscard]] auto remap_roughness() const noexcept { return _remap_roughness; }
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
@@ -316,8 +316,8 @@ using NormalMapGlassSurface = NormalMapWrapper<
 
 LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::NormalMapGlassSurface)
 
-LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
-    luisa::render::Scene *scene,
-    const luisa::render::RawSurfaceInfo &surface_info) LUISA_NOEXCEPT {
-    return luisa::new_with_allocator<luisa::render::NormalMapGlassSurface>(scene, surface_info);
-}
+// LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
+//     luisa::render::Scene *scene,
+//     const luisa::render::RawSurfaceInfo &surface_info) LUISA_NOEXCEPT {
+//     return luisa::new_with_allocator<luisa::render::NormalMapGlassSurface>(scene, surface_info);
+// }

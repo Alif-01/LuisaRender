@@ -38,19 +38,19 @@ class Spectrum;
 class Medium;
 class PhaseFunction;
 
-struct RawTextureInfo;
-struct RawLightInfo;
-struct RawSamplerInfo;
-struct RawSpectrumInfo;
-struct RawIntegratorInfo;
-struct RawEnvironmentInfo;
-struct RawSurfaceInfo;
-struct RawTransformInfo;
-struct RawFilmInfo;
-struct RawFilterInfo;
-struct RawCameraInfo;
-struct RawShapeInfo;
-struct RawSceneInfo;
+// struct RawTextureInfo;
+// struct RawLightInfo;
+// struct RawSamplerInfo;
+// struct RawSpectrumInfo;
+// struct RawIntegratorInfo;
+// struct RawEnvironmentInfo;
+// struct RawSurfaceInfo;
+// struct RawTransformInfo;
+// struct RawFilmInfo;
+// struct RawFilterInfo;
+// struct RawCameraInfo;
+// struct RawShapeInfo;
+// struct RawSceneInfo;
 
 class Scene {
 
@@ -103,17 +103,17 @@ public:
     [[nodiscard]] Medium *load_medium(const SceneNodeDesc *desc) noexcept;
     [[nodiscard]] PhaseFunction *load_phase_function(const SceneNodeDesc *desc) noexcept;
     
-    [[nodiscard]] Film *update_film(luisa::string_view name, const RawFilmInfo &film_info) noexcept;
-    [[nodiscard]] Sampler *add_sampler(const RawSamplerInfo &sampler_info) noexcept;
-    [[nodiscard]] Filter *add_filter(luisa::string_view name, const RawFilterInfo &filter_info) noexcept;
+    // [[nodiscard]] Film *update_film(luisa::string_view name, const RawFilmInfo &film_info) noexcept;
+    // [[nodiscard]] Sampler *add_sampler(const RawSamplerInfo &sampler_info) noexcept;
+    // [[nodiscard]] Filter *add_filter(luisa::string_view name, const RawFilterInfo &filter_info) noexcept;
     // [[nodiscard]] Spectrum *add_spectrum(const RawSpectrumInfo &spectrum_info) noexcept;
     // [[nodiscard]] Integrator *add_integrator(const RawIntegratorInfo &integrator_info) noexcept;
     [[nodiscard]] Environment *update_environment(const SceneNodeDesc *desc) noexcept;
     // [[nodiscard]] Light *add_light(const RawLightInfo &light_info) noexcept;
-    [[nodiscard]] Texture *add_texture(luisa::string_view name, const RawTextureInfo &texture_info) noexcept;
+    // [[nodiscard]] Texture *add_texture(luisa::string_view name, const RawTextureInfo &texture_info) noexcept;
     // [[nodiscard]] Surface *add_surface(const RawSurfaceInfo &surface_info) noexcept;
 
-    [[nodiscard]] Transform *update_transform(luisa::string_view name, const RawTransformInfo &transform_info) noexcept;
+    // [[nodiscard]] Transform *update_transform(luisa::string_view name, const RawTransformInfo &transform_info) noexcept;
     [[nodiscard]] std::pair<Camera *, uint> update_camera(const SceneNodeDesc *desc, bool first_def) noexcept;
     [[nodiscard]] Shape *update_shape(const SceneNodeDesc *desc, bool first_def) noexcept;
 

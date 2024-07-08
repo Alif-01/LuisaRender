@@ -17,7 +17,7 @@ class PMJ02BNSampler final : public Sampler {
 
 public:
     PMJ02BNSampler(Scene *scene, const SceneNodeDesc *desc) noexcept : Sampler{scene, desc} {}
-    PMJ02BNSampler(Scene *scene, const RawSamplerInfo &sampler_info) noexcept : Sampler{scene} {}
+    // PMJ02BNSampler(Scene *scene, const RawSamplerInfo &sampler_info) noexcept : Sampler{scene} {}
     [[nodiscard]] luisa::unique_ptr<Instance> build(
         Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept override;
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
@@ -227,7 +227,7 @@ luisa::unique_ptr<Sampler::Instance> PMJ02BNSampler::build(
 
 LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::PMJ02BNSampler)
 
-LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
-    luisa::render::Scene *scene, const luisa::render::RawSamplerInfo &sampler_info) LUISA_NOEXCEPT {
-    return luisa::new_with_allocator<luisa::render::PMJ02BNSampler>(scene, sampler_info);
-}
+// LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
+//     luisa::render::Scene *scene, const luisa::render::RawSamplerInfo &sampler_info) LUISA_NOEXCEPT {
+//     return luisa::new_with_allocator<luisa::render::PMJ02BNSampler>(scene, sampler_info);
+// }

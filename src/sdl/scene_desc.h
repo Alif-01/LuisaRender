@@ -41,12 +41,9 @@ private:
     std::recursive_mutex _mutex;
 
 public:
-    // SceneDesc() noexcept :
-        // _root{luisa::make_unique<SceneNodeDesc>(luisa::string{root_node_identifier}, SceneNodeTag::ROOT)} { }
     SceneDesc() noexcept = default;
     [[nodiscard]] auto &nodes() const noexcept { return _global_nodes; }
     [[nodiscard]] const SceneNodeDesc *node(luisa::string_view identifier) const noexcept;
-    // [[nodiscard]] auto root() const noexcept { return _root.get(); }
     [[nodiscard]] auto root() const noexcept { return _root; }
     [[nodiscard]] const SceneNodeDesc *reference(luisa::string_view identifier) noexcept;
     [[nodiscard]] SceneNodeDesc *define(
@@ -54,8 +51,6 @@ public:
         SceneNodeDesc::SourceLocation location = {}, const SceneNodeDesc *base = nullptr) noexcept;
     [[nodiscard]] SceneNodeDesc *define(
         luisa::unique_ptr<SceneNodeDesc> node_ptr, luisa::string_view impl_type) noexcept;
-    // [[nodiscard]] SceneNodeDesc *define_root(SceneNodeDesc::SourceLocation location = {}) noexcept;
-    // void define_root(luisa::unique_ptr<SceneNodeDesc> node_ptr) noexcept;
     const std::filesystem::path *register_path(std::filesystem::path path) noexcept;
 };
 

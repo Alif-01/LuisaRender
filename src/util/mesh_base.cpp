@@ -127,9 +127,6 @@ SphereGroupGeometry::SphereGroupGeometry(
 std::shared_future<SphereGroupGeometry> SphereGroupGeometry::create(
     luisa::vector<float> centers, luisa::vector<float> radii, uint subdiv
 ) noexcept {
-
-    LUISA_INFO("Subdivision: {}", subdiv);
-
     return global_thread_pool().async(
         [centers = std::move(centers), radii = std::move(radii), subdiv = subdiv] { 
             return SphereGroupGeometry(centers, radii, subdiv);
@@ -288,9 +285,9 @@ MeshGeometry::MeshGeometry(
         auto t0 = triangles[i * 3u + 0u];
         auto t1 = triangles[i * 3u + 1u];
         auto t2 = triangles[i * 3u + 2u];
-        if (t0 >= vertex_count || t1 >= vertex_count || t2 >= vertex_count) [[unlikely]] {
-            LUISA_ERROR("Triangle ({}, {}, {}) indices exceed {}", t0, t1, t2, vertex_count);
-        }
+        // if (t0 >= vertex_count || t1 >= vertex_count || t2 >= vertex_count) [[unlikely]] {
+        //     LUISA_ERROR("Triangle ({}, {}, {}) indices exceed {}", t0, t1, t2, vertex_count);
+        // }
         _triangles[i] = Triangle{t0, t1, t2};
     }
     _vertices.resize(vertex_count);

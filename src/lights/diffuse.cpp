@@ -25,10 +25,10 @@ public:
           _scale{std::max(desc->property_float_or_default("scale", 1.0f), 0.0f)},
           _two_sided{desc->property_bool_or_default("two_sided", false)} {}
 
-    DiffuseLight(Scene *scene, const RawLightInfo &light_info) noexcept
-        : Light{scene},
-          _emission{scene->add_texture("light_emission", light_info.texture_info)},
-          _scale{1.0f}, _two_sided{false} {}
+    // DiffuseLight(Scene *scene, const RawLightInfo &light_info) noexcept
+    //     : Light{scene},
+    //       _emission{scene->add_texture("light_emission", light_info.texture_info)},
+    //       _scale{1.0f}, _two_sided{false} {}
 
     [[nodiscard]] auto scale() const noexcept { return _scale; }
     [[nodiscard]] auto two_sided() const noexcept { return _two_sided; }
@@ -205,7 +205,7 @@ luisa::unique_ptr<Light::Closure> DiffuseLightInstance::closure(
 
 LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::DiffuseLight)
 
-LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
-    luisa::render::Scene *scene, const luisa::render::RawLightInfo &light_info) LUISA_NOEXCEPT {
-    return luisa::new_with_allocator<luisa::render::DiffuseLight>(scene, light_info);
-}
+// LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
+//     luisa::render::Scene *scene, const luisa::render::RawLightInfo &light_info) LUISA_NOEXCEPT {
+//     return luisa::new_with_allocator<luisa::render::DiffuseLight>(scene, light_info);
+// }

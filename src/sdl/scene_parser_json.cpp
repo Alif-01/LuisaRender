@@ -159,7 +159,6 @@ void SceneParserJSON::_parse_root(const json &root) const noexcept {
             LUISA_ASSERT(item.value().is_object(),
                          "Invalid render node: {}",
                          item.value().dump(2));
-            // auto render = _desc.define_root(_location);
             auto render = _desc.define(
                 SceneDesc::root_node_identifier, SceneNodeTag::ROOT, 
                 SceneDesc::root_node_identifier, _location);

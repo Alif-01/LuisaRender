@@ -133,7 +133,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
     py::class_<PyRigid, PyShape>(m, "RigidShape")
         .def(py::init<std::string_view, std::string_view,
             const PyDoubleArr&, const PyUIntArr&, const PyDoubleArr&, const PyDoubleArr&,
-            PyTransform*, std::string_view, std::string_view, std::string_view, float>(),
+            PyTransform*, PySurface*, PyLight*, float>(),
             py::arg("name"),
             py::arg("obj_path") = "",
             py::arg("vertices") = PyDoubleArr(),
@@ -141,24 +141,22 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
             py::arg("normals") = PyDoubleArr(),
             py::arg("uvs") = PyDoubleArr(),
             py::arg("transform").none(true) = py::none(),
-            py::arg("surface") = "",
-            py::arg("emission") = "",
-            py::arg("medium") = "",
+            py::arg("surface").none(true) = py::none(),
+            py::arg("emission").none(true) = py::none(),
             py::arg("clamp_normal") = -1.f)
         .def("update", &PyRigid::update,
             py::arg("transform").none(false) = py::none());
     py::class_<PyDeformable, PyShape>(m, "DeformableShape")
         .def(py::init<std::string_view,
             const PyDoubleArr&, const PyUIntArr&, const PyDoubleArr&, const PyDoubleArr&,
-            std::string_view, std::string_view, std::string_view, float>(),
+            PySurface*, PyLight*, float>(),
             py::arg("name"),
             py::arg("vertices") = PyDoubleArr(),
             py::arg("triangles") = PyUIntArr(),
             py::arg("normals") = PyDoubleArr(),
             py::arg("uvs") = PyDoubleArr(),
-            py::arg("surface") = "",
-            py::arg("emission") = "",
-            py::arg("medium") = "",
+            py::arg("surface").none(true) = py::none(),
+            py::arg("emission").none(true) = py::none(),
             py::arg("clamp_normal") = -1.f)
         .def("update", &PyDeformable::update,
             py::arg("vertices"),
@@ -168,14 +166,13 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
     py::class_<PyParticles, PyShape>(m, "ParticlesShape")
         .def(py::init<std::string_view,
             const PyDoubleArr&, const PyDoubleArr&, uint,
-            std::string_view, std::string_view, std::string_view, float>(),
+            PySurface*, PyLight*, float>(),
             py::arg("name"),
             py::arg("centers") = PyDoubleArr(),
             py::arg("radii") = PyDoubleArr(),
             py::arg("subdivision") = 0u,
-            py::arg("surface") = "",
-            py::arg("emission") = "",
-            py::arg("medium") = "",
+            py::arg("surface").none(true) = py::none(),
+            py::arg("emission").none(true) = py::none(),
             py::arg("clamp_normal") = -1.f)
         .def("update", &PyParticles::update,
             py::arg("centers") = PyDoubleArr(),
@@ -221,8 +218,8 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
         .def("update", &PyThinLens::update,
             py::arg("pose").none(true) = py::none(),
             py::arg("aperture"),
-            py::arg("focal_length"),
-            py::arg("focus_distance"));
+            py::arg("focal_len"),
+            py::arg("focus_dis"));
 
     // Environment
     py::class_<PyEnvironment>(m, "Environment")

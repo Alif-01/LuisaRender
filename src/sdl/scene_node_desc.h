@@ -155,7 +155,7 @@ public:
     SceneNodeDesc(luisa::string identifier, SceneNodeTag tag) noexcept
         : _identifier{std::move(identifier)}, _tag{tag} {
 
-            LUISA_INFO("{}, {}", identifier, uint(tag));
+            LUISA_INFO("{}, {}", _identifier, scene_node_tag_description(tag));
 
         }
     SceneNodeDesc(SceneNodeDesc &&) noexcept = delete;
@@ -296,7 +296,7 @@ SceneNodeDesc::_property_raw_values(luisa::string_view name) const noexcept {
     using raw_type = detail::scene_node_raw_property_t<T>;
     auto ptr = luisa::get_if<luisa::vector<raw_type>>(&iter->second);
     if (ptr == nullptr) [[unlikely]] {
-        LUISA_WARNING(
+        LUISA_INFO(
             "Property '{}' is defined but is not a {} list "
             "in scene description node '{}'. [{}]",
             name, detail::scene_node_raw_property_v<T>,

@@ -20,10 +20,20 @@ void SceneNodeDesc::set_identifier(luisa::string identifier) noexcept {
 }
 
 void SceneNodeDesc::update_properties(SceneNodeDesc *node) noexcept {
+    LUISA_INFO("size::{}", _properties.size());
+    for (auto& kv : _properties) {
+        LUISA_INFO("<{}>", kv.first);
+    }
+
     for (auto& kv : node->_properties) {
         _properties[kv.first] = std::move(kv.second);
     }
     node->_properties.clear();
+
+    LUISA_INFO("size::{}", _properties.size());
+    for (auto& kv : _properties) {
+        LUISA_INFO("<{}>", kv.first);
+    }
 }
 
 void SceneNodeDesc::add_property(luisa::string_view name, SceneNodeDesc::value_list value) noexcept {

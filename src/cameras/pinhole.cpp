@@ -35,24 +35,24 @@ public:
     PinholeCamera(Scene *scene, const SceneNodeDesc *desc) noexcept
         : Camera{scene, desc},
           _fov{radians(std::clamp(desc->property_float_or_default("fov", 35.0f), 1e-3f, 180.f - 1e-3f))} {}
-    PinholeCamera(Scene *scene, const RawCameraInfo &camera_info) noexcept
-        : Camera{scene, camera_info},
-          _fov{radians(std::clamp(camera_info.pinhole_info->fov, 1e-3f, 180.f - 1e-3f))} {}
+    // PinholeCamera(Scene *scene, const RawCameraInfo &camera_info) noexcept
+    //     : Camera{scene, camera_info},
+    //       _fov{radians(std::clamp(camera_info.pinhole_info->fov, 1e-3f, 180.f - 1e-3f))} {}
     [[nodiscard]] bool update(Scene *scene, const SceneNodeDesc *desc) noexcept override {
         return Camera::update(scene, desc) |
             update_value(_fov, radians(std::clamp(
                 desc->property_float_or_default("fov", 35.0f), 1e-3f, 180.f - 1e-3f)));
     }
     
-    [[nodiscard]] bool update_camera(Scene *scene, const RawCameraInfo &camera_info) noexcept {
-        bool updated = Camera::update_camera(scene, camera_info);
-        auto new_fov = radians(std::clamp(camera_info.pinhole_info->fov, 1e-3f, 180.f - 1e-3f));
-        if (_fov != new_fov) {
-            _fov = new_fov;
-            updated = true;
-        }
-        return updated;
-    }
+    // [[nodiscard]] bool update_camera(Scene *scene, const RawCameraInfo &camera_info) noexcept {
+    //     bool updated = Camera::update_camera(scene, camera_info);
+    //     auto new_fov = radians(std::clamp(camera_info.pinhole_info->fov, 1e-3f, 180.f - 1e-3f));
+    //     if (_fov != new_fov) {
+    //         _fov = new_fov;
+    //         updated = true;
+    //     }
+    //     return updated;
+    // }
     [[nodiscard]] luisa::unique_ptr<Camera::Instance> build(
         Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept override;
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
@@ -97,9 +97,3 @@ using ClipPlanePinholeCamera = ClipPlaneCameraWrapper<
 }// namespace luisa::render
 
 LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::ClipPlanePinholeCamera)
-
-LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
-    luisa::render::Scene *scene,
-    const luisa::render::RawCameraInfo &camera_info) LUISA_NOEXCEPT {
-    return luisa::new_with_allocator<luisa::render::ClipPlanePinholeCamera>(scene, camera_info);
-}
