@@ -42,7 +42,7 @@ public:
                 desc->property_float_or_default("fov", 35.0f), 1e-3f, 180.f - 1e-3f)));
     }
     
-    [[nodiscard]] luisa::string_view info() const noexcept override {
+    [[nodiscard]] luisa::string info() const noexcept override {
         return luisa::format("{} fov=[{}]", Camera::info(), _fov);
     }
     

@@ -146,7 +146,7 @@ bool Camera::update(Scene *scene, const SceneNodeDesc *desc) noexcept {
         scene->load_transform(desc->property_node_or_default("transform")));
 }
 
-luisa::string_view Camera::info() const noexcept {
+luisa::string Camera::info() const noexcept {
     return luisa::format(
         "{} film=[{}] filter=[{}] transform=[{}] medium=[{}]", SceneNode::info(),
         _film ? _film->info() : "",

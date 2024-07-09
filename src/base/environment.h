@@ -53,7 +53,7 @@ private:
 
 public:
     Environment(Scene *scene, const SceneNodeDesc *desc) noexcept;
-    [[nodiscard]] virtual luisa::string_view info() const noexcept override;
+    [[nodiscard]] virtual luisa::string info() const noexcept override;
     [[nodiscard]] virtual bool update(Scene *scene, const SceneNodeDesc *desc) noexcept override;
     [[nodiscard]] auto transform() const noexcept { return _transform; }
     [[nodiscard]] virtual bool is_black() const noexcept = 0;

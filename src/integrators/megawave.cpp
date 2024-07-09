@@ -227,7 +227,7 @@ public:
     [[nodiscard]] auto read_hit(Expr<uint> index) const noexcept {
         return _hit->read(index);
     }
-    [[nodiscrad]] auto read_frame(Expr<uint> index) const noexcept {
+    [[nodiscard]] auto read_frame(Expr<uint> index) const noexcept {
 		return _frame->read(index);
 	}
     [[nodiscard]] auto read_dim_frame(Expr<uint> index) const noexcept {

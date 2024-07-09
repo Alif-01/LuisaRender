@@ -16,7 +16,7 @@ Filter::Filter(Scene *scene, const SceneNodeDesc *desc) noexcept:
             return make_float2(desc->property_float_or_default("shift", 0.f));
         }))} {}
 
-luisa::string_view Filter::info() const noexcept {
+luisa::string Filter::info() const noexcept {
     return luisa::format("{} radius=[{}] ", SceneNode::info(), _radius);
 }
 

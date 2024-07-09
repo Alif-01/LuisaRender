@@ -32,7 +32,7 @@ public:
         return true;
     }
 
-    [[nodiscard]] luisa::string_view info() const noexcept override {
+    [[nodiscard]] luisa::string info() const noexcept override {
         return luisa::format("{} geometry=[{}]", Shape::info(), _geometry.get().info());
     }
 

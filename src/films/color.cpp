@@ -44,7 +44,7 @@ public:
         _clamp = std::max(1.f, desc->property_float_or_default("clamp", 256.f));
     }
     
-    [[nodiscard]] luisa::string_view info() const noexcept override {
+    [[nodiscard]] luisa::string info() const noexcept override {
         return luisa::format("{} resolution=[{}]", Film::info(), _resolution);
     }
 

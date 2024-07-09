@@ -40,7 +40,7 @@ public:
             update_value(_focus_distance, std::max(std::abs(desc->property_float("focus_distance")), 1e-4f));
     }
 
-    [[nodiscard]] luisa::string_view info() const noexcept override {
+    [[nodiscard]] luisa::string info() const noexcept override {
         return luisa::format(
             "{} aperture=[{}] focal_length=[{}] focus_distance=[{}]", Camera::info(),
             _aperture, _focal_length, _focus_distance);

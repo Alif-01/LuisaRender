@@ -46,7 +46,7 @@ private:
 public:
     Shape(Scene *scene, const SceneNodeDesc *desc) noexcept;
     virtual bool update(Scene *scene, const SceneNodeDesc *desc) noexcept override;
-    [[nodiscard]] virtual luisa::string_view info() const noexcept override;
+    [[nodiscard]] virtual luisa::string info() const noexcept override;
     [[nodiscard]] const Surface *surface() const noexcept;
     [[nodiscard]] const Light *light() const noexcept;
     [[nodiscard]] const Medium *medium() const noexcept;
@@ -86,7 +86,7 @@ public:
             desc->property_float_or_default("clamp_normal", scene->clamp_normal_factor()),
         -1.f, 1.f)} {}
     
-    [[nodiscard]] virtual luisa::string_view info() const noexcept override {
+    [[nodiscard]] virtual luisa::string info() const noexcept override {
         return luisa::format("{} clamp_normal=[{}]", BaseShape::info(), _clamp_normal);
     }
 

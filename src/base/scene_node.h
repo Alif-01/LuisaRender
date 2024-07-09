@@ -57,7 +57,7 @@ public:
     SceneNode(SceneNode &&) noexcept = delete;
     SceneNode(const SceneNode &) noexcept = delete;
     virtual bool update(Scene *scene, const SceneNodeDesc *desc) noexcept;
-    [[nodiscard]] virtual luisa::string_view info() const noexcept;
+    [[nodiscard]] virtual luisa::string info() const noexcept;
     SceneNode &operator=(SceneNode &&) noexcept = delete;
     SceneNode &operator=(const SceneNode &) noexcept = delete;
     virtual ~SceneNode() noexcept = default;

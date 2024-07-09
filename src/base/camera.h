@@ -99,7 +99,7 @@ private:
 public:
     Camera(Scene *scene, const SceneNodeDesc *desc) noexcept;
     [[nodiscard]] virtual bool update(Scene *scene, const SceneNodeDesc *desc) noexcept override;
-    [[nodiscard]] virtual luisa::string_view info() const noexcept override;
+    [[nodiscard]] virtual luisa::string info() const noexcept override;
     [[nodiscard]] auto film() const noexcept { return _film; }
     [[nodiscard]] auto filter() const noexcept { return _filter; }
     [[nodiscard]] auto transform() const noexcept { return _transform; }

@@ -17,7 +17,7 @@ private:
 
 public:
     Transform(Scene *scene, const SceneNodeDesc *desc) noexcept;
-    [[nodiscard]] virtual luisa::string_view info() const noexcept override;
+    [[nodiscard]] virtual luisa::string info() const noexcept override;
     [[nodiscard]] virtual bool is_static() const noexcept = 0;
     [[nodiscard]] virtual bool is_identity() const noexcept = 0;
     [[nodiscard]] virtual float4x4 matrix(float time) const noexcept = 0;

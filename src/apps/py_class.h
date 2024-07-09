@@ -80,7 +80,6 @@ public:
             move_property_cache(property, name);
         }
     }
-    // void add_reference(luisa::string name, luisa::string_view reference_name) noexcept {
     void add_reference(luisa::string_view name, PyDesc *property) noexcept {
         if (property) [[likely]] {
             _node_cache[0].references[luisa::string(name)] = property->node();
@@ -122,7 +121,6 @@ public:
     void update(const PyDoubleArr &matrix) noexcept {
         _node->add_property("m", pyarray_to_vector<double>(matrix));
     }
-    // [[nodiscard]] luisa::string_view impl_type() const noexcept override { return ; }
 };
 
 class PySRT: public PyTransform {

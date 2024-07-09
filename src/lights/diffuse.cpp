@@ -25,10 +25,10 @@ public:
           _scale{std::max(desc->property_float_or_default("scale", 1.0f), 0.0f)},
           _two_sided{desc->property_bool_or_default("two_sided", false)} {}
 
-    [[nodiscard]] luisa::string_view info() const noexcept override {
+    [[nodiscard]] luisa::string info() const noexcept override {
         return luisa::format(
             "{} emission=[{}] ", Light::info(),
-            _emission ? _emission->info : ""
+            _emission ? _emission->info() : ""
         );
     }
     [[nodiscard]] auto scale() const noexcept { return _scale; }

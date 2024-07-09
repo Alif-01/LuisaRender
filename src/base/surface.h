@@ -208,7 +208,7 @@ public:
                   })));
           }(scene, desc)} {}
 
-    [[nodiscard]] virtual luisa::string_view info() const noexcept override {
+    [[nodiscard]] virtual luisa::string info() const noexcept override {
         return luisa::format(
             "{} opacity=[{}]", BaseSurface::info(),
             _opacity ? _opacity->info() : "");
@@ -278,7 +278,7 @@ public:
         }(scene, desc)},
         _strength{desc->property_float_or_default("normal_map_strength", 1.f)} {}
 
-    [[nodiscard]] virtual luisa::string_view info() const noexcept override {
+    [[nodiscard]] virtual luisa::string info() const noexcept override {
         return luisa::format(
             "{} normal_map=[{}]", BaseSurface::info(),
             _normal_map ? _normal_map->info() : "");

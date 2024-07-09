@@ -110,7 +110,7 @@ public:
         }
     }
 
-    [[nodiscard]] luisa::string_view info() const noexcept override {
+    [[nodiscard]] luisa::string info() const noexcept override {
         return luisa::format(
             "{} Kd=[{}] roughness=[{}] eta=[{}]", Surface::info(),
             _kd ? _kd->info() : "", _roughness ? _roughness->info() : "", _ior

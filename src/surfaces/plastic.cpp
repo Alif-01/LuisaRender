@@ -61,7 +61,7 @@ public:
           _thickness{scene->load_texture(desc->property_node_or_default("thickness"))},
           _remap_roughness{desc->property_bool_or_default("remap_roughness", true)} {}
 
-    [[nodiscard]] luisa::string_view info() const noexcept override {
+    [[nodiscard]] luisa::string info() const noexcept override {
         return luisa::format(
             "{} Kd=[{}] Ks=[{}] roughness=[{}] eta=[{}]", Surface::info(),
             _kd ? _kd->info() : "",

@@ -18,7 +18,7 @@ Integrator::Integrator(Scene *scene, const SceneNodeDesc *desc) noexcept
           "light_sampler", SceneNodeDesc::shared_default_light_sampler("uniform")))},
       _use_progress{desc->property_bool_or_default("use_progress", true)} {}
 
-luisa::string_view Integrator::info() const noexcept {
+luisa::string Integrator::info() const noexcept {
     return luisa::format(
         "{} sampler=[{}] light_sampler=[{}] ", SceneNode::info(),
         _sampler ? _sampler->info() : "",
@@ -142,8 +142,5 @@ Float3 ProgressiveIntegrator::Instance::Li(const Camera::Instance *camera, Expr<
 
 ProgressiveIntegrator::ProgressiveIntegrator(Scene *scene, const SceneNodeDesc *desc) noexcept
     : Integrator{scene, desc} {}
-
-// ProgressiveIntegrator::ProgressiveIntegrator(Scene *scene, const RawIntegratorInfo &integrator_info) noexcept
-//     : Integrator{scene, integrator_info} {}
 
 }// namespace luisa::render

@@ -56,7 +56,7 @@ float Scene::shadow_terminator_factor() const noexcept { return _config->shadow_
 float Scene::intersection_offset_factor() const noexcept { return _config->intersection_offset; }
 float Scene::clamp_normal_factor() const noexcept { return _config->clamp_normal; }
 
-luisa::string_view info() Scene::info() const noexcept {
+luisa::string Scene::info() const noexcept {
     return luisa::format("Scene integrator=[{}] clamp_normal=[{}]",
         _config->integrator ? _config->integrator->info() : "", _config->clamp_normal);
 }

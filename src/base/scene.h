@@ -103,6 +103,7 @@ public:
     [[nodiscard]] float intersection_offset_factor() const noexcept;
     [[nodiscard]] float clamp_normal_factor() const noexcept;
 
+    [[nodiscard]] luisa::string info() const noexcept;
     [[nodiscard]] bool shapes_updated() const noexcept;
     [[nodiscard]] bool cameras_updated() const noexcept;
     [[nodiscard]] bool transforms_updated() const noexcept;

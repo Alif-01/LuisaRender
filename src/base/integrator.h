@@ -52,7 +52,7 @@ private:
 
 public:
     Integrator(Scene *scene, const SceneNodeDesc *desc) noexcept;
-    [[nodiscard]] virtual luisa::string_view info() const noexcept override;
+    [[nodiscard]] virtual luisa::string info() const noexcept override;
     [[nodiscard]] auto sampler() const noexcept { return _sampler; }
     [[nodiscard]] auto light_sampler() const noexcept { return _light_sampler; }
     [[nodiscard]] virtual luisa::unique_ptr<Instance> build(

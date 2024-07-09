@@ -53,7 +53,7 @@ private:
 
 public:
     Filter(Scene *scene, const SceneNodeDesc *desc) noexcept;
-    [[nodiscard]] virtual luisa::string_view info() const noexcept override;
+    [[nodiscard]] virtual luisa::string info() const noexcept override;
     [[nodiscard]] auto radius() const noexcept { return _radius; }
     [[nodiscard]] auto shift() const noexcept { return _shift; }
     [[nodiscard]] virtual float evaluate(float x) const noexcept = 0;
