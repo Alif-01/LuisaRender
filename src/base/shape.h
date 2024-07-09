@@ -7,7 +7,6 @@
 #include <runtime/rtx/mesh.h>
 #include <util/vertex.h>
 #include <base/scene_node.h>
-#include <base/raw_type.h>
 #include <base/scene.h>
 
 namespace luisa::render {
@@ -46,9 +45,8 @@ private:
 
 public:
     Shape(Scene *scene, const SceneNodeDesc *desc) noexcept;
-    // Shape(Scene *scene, const RawShapeInfo &shape_info) noexcept;
     virtual bool update(Scene *scene, const SceneNodeDesc *desc) noexcept override;
-    // virtual void update_shape(Scene *scene, const RawShapeInfo &shape_info) noexcept;
+    [[nodiscard]] virtual luisa::string_view info() const noexcept override;
     [[nodiscard]] const Surface *surface() const noexcept;
     [[nodiscard]] const Light *light() const noexcept;
     [[nodiscard]] const Medium *medium() const noexcept;
@@ -87,12 +85,11 @@ public:
         _clamp_normal{std::clamp(
             desc->property_float_or_default("clamp_normal", scene->clamp_normal_factor()),
         -1.f, 1.f)} {}
-    // ShadingShapeWrapper(Scene *scene, const RawShapeInfo &shape_info) noexcept :
-    //     BaseShape{scene, shape_info},
-    //     _shadow_terminator{std::clamp(scene->shadow_terminator_factor(), 0.f, 1.f)},
-    //     _intersection_offset{std::clamp(scene->intersection_offset_factor(), 0.f, 1.f)},
-    //     _clamp_normal{std::clamp(shape_info.clamp_normal, -1.f, 1.f)} {}
     
+    [[nodiscard]] virtual luisa::string_view info() const noexcept override {
+        return luisa::format("{} clamp_normal=[{}]", BaseShape::info(), _clamp_normal);
+    }
+
     [[nodiscard]] float shadow_terminator_factor() const noexcept override {
         return _shadow_terminator;
     }
@@ -114,8 +111,6 @@ private:
 public:
     VisibilityShapeWrapper(Scene *scene, const SceneNodeDesc *desc) noexcept :
         BaseShape{scene, desc}, _visible{desc->property_bool_or_default("visible", true)} {}
-    // VisibilityShapeWrapper(Scene *scene, const RawShapeInfo &shape_info) noexcept :
-    //     BaseShape{scene, shape_info}, _visible{true} {}
         
     [[nodiscard]] bool visible() const noexcept override { return _visible; }
 };

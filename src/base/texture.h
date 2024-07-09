@@ -8,7 +8,6 @@
 #include <util/spec.h>
 #include <util/imageio.h>
 #include <base/scene_node.h>
-#include <base/raw_type.h>
 #include <base/spectrum.h>
 
 namespace luisa::render {
@@ -61,7 +60,6 @@ public:
 
 public:
     Texture(Scene *scene, const SceneNodeDesc *desc) noexcept;
-    Texture(Scene *scene) noexcept;
     [[nodiscard]] virtual bool is_black() const noexcept = 0;
     [[nodiscard]] virtual bool is_constant() const noexcept = 0;
     [[nodiscard]] virtual luisa::optional<float4> evaluate_static() const noexcept;

@@ -137,28 +137,9 @@ public:
         }
     }
     
-    // ImageTexture(Scene *scene, const RawTextureInfo &texture_info) noexcept:
-    //     Texture{scene},
-    //     _sampler{TextureSampler::Filter::LINEAR_POINT, TextureSampler::Address::REPEAT},
-    //     _uv_scale{make_float2(1.0f)}, _uv_offset{make_float2(0.0f)}, _mipmaps{1u} {
-        
-    //     if (texture_info.image_info == nullptr) [[unlikely]]
-    //         LUISA_ERROR_WITH_LOCATION("Invalid image info!");
-    //     auto image_info = texture_info.image_info.get();
-
-    //     _scale = build_constant(image_info->scale).first.xyz();
-    //     std::filesystem::path path = image_info->image;
-    //     auto encoding = _get_encoding(path);
-    //     for (auto &c : encoding) { c = static_cast<char>(tolower(c)); }
-    //     if (encoding == "srgb") _encoding = Encoding::SRGB;
-    //     else _encoding = Encoding::LINEAR;
-
-    //     if (path.string().empty()) {
-    //         _load_image(image_info->image_data, image_info->resolution, image_info->channel);
-    //     } else {
-    //         _load_image(path);
-    //     }
-    // }
+    [[nodiscard]] luisa::string_view info() const noexcept override {
+        return luisa::format("{} pixel_count=[{}] channel=[{}]", Texture::info(), resolution(), channels());
+    }
 
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] bool is_black() const noexcept override { return all(_scale == 0.f); }
@@ -251,8 +232,3 @@ void ImageTexture::_generate_mipmaps_sRGB(Pipeline &pipeline, CommandBuffer &com
 }// namespace luisa::render
 
 LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::ImageTexture)
-
-// LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
-//     luisa::render::Scene *scene, const luisa::render::RawTextureInfo &texture_info) LUISA_NOEXCEPT {
-//     return luisa::new_with_allocator<luisa::render::ImageTexture>(scene, texture_info);
-// }

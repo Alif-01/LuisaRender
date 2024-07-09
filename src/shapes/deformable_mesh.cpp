@@ -32,6 +32,10 @@ public:
         return true;
     }
 
+    [[nodiscard]] luisa::string_view info() const noexcept override {
+        return luisa::format("{} geometry=[{}]", Shape::info(), _geometry.get().info());
+    }
+
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] bool is_mesh() const noexcept override { return true; }
     [[nodiscard]] bool empty() const noexcept override { 
@@ -54,9 +58,3 @@ using DeformableMeshWrapper = VisibilityShapeWrapper<ShadingShapeWrapper<Deforma
 }// namespace luisa::render
 
 LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::DeformableMeshWrapper)
-
-// LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
-//     luisa::render::Scene *scene,
-//     const luisa::render::RawShapeInfo &shape_info) LUISA_NOEXCEPT {
-//     return luisa::new_with_allocator<luisa::render::DeformableMeshWrapper>(scene, shape_info);
-// }

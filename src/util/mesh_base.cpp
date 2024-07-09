@@ -101,6 +101,7 @@ SphereGroupGeometry::SphereGroupGeometry(
     uint center_count = centers.size() / 3u;
     bool global_radius = radii.size() == 1u;
     
+    _num_spheres = center_count;
     _vertices.reserve(center_count * vertex_count);
     _triangles.reserve(center_count * triangle_count);
     

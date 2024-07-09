@@ -18,11 +18,12 @@ Integrator::Integrator(Scene *scene, const SceneNodeDesc *desc) noexcept
           "light_sampler", SceneNodeDesc::shared_default_light_sampler("uniform")))},
       _use_progress{desc->property_bool_or_default("use_progress", true)} {}
 
-// Integrator::Integrator(Scene *scene, const RawIntegratorInfo &integrator_info) noexcept
-//     : SceneNode{scene, SceneNodeTag::INTEGRATOR},
-//       _sampler{scene->add_sampler(integrator_info.sampler_info)},
-//       _light_sampler{scene->load_light_sampler(SceneNodeDesc::shared_default_light_sampler("uniform"))},
-//       _use_progress{integrator_info.use_progress} {}
+luisa::string_view Integrator::info() const noexcept {
+    return luisa::format(
+        "{} sampler=[{}] light_sampler=[{}] ", SceneNode::info(),
+        _sampler ? _sampler->info() : "",
+        _light_sampler ? _light_sampler->info() : "");
+}
 
 Integrator::Instance::Instance(Pipeline &pipeline, CommandBuffer &command_buffer, const Integrator *integrator) noexcept
     : _pipeline{pipeline}, _integrator{integrator},

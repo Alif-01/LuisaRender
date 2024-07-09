@@ -43,6 +43,9 @@ public:
         _build_matrix(m);
     }
 
+    [[nodiscard]] luisa::string_view info() const noexcept override {
+        return luisa::format("{} matrix=[{}]", Transform::info(), _matrix);
+    }
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] float4x4 matrix(float) const noexcept override { return _matrix; }
     [[nodiscard]] bool is_static() const noexcept override { return true; }

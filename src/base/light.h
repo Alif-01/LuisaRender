@@ -8,7 +8,6 @@
 #include <luisa/runtime/bindless_array.h>
 #include <util/spec.h>
 #include <base/scene_node.h>
-#include <base/raw_type.h>
 #include <base/sampler.h>
 #include <base/shape.h>
 #include <base/spectrum.h>
@@ -99,7 +98,6 @@ public:
 
 public:
     Light(Scene *scene, const SceneNodeDesc *desc) noexcept;
-    Light(Scene *scene) noexcept;
     [[nodiscard]] virtual bool is_null() const noexcept { return false; }
     [[nodiscard]] virtual luisa::unique_ptr<Instance> build(
         Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept = 0;

@@ -5,7 +5,6 @@
 #pragma once
 
 #include <base/scene_node.h>
-#include <base/raw_type.h>
 #include <base/light.h>
 
 namespace luisa::render {
@@ -54,7 +53,7 @@ private:
 
 public:
     Environment(Scene *scene, const SceneNodeDesc *desc) noexcept;
-    // Environment(Scene *scene, const RawEnvironmentInfo &environment_info) noexcept;
+    [[nodiscard]] virtual luisa::string_view info() const noexcept override;
     [[nodiscard]] virtual bool update(Scene *scene, const SceneNodeDesc *desc) noexcept override;
     [[nodiscard]] auto transform() const noexcept { return _transform; }
     [[nodiscard]] virtual bool is_black() const noexcept = 0;

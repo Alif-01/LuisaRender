@@ -22,7 +22,6 @@ public:
                 desc->property_uint_list("indices"),
                 desc->property_float_list_or_default("normals"),
                 desc->property_float_list_or_default("uvs"));
-            // _geometry.wait();
         } else {
             _geometry = MeshGeometry::create(
                 desc->property_path("file"),
@@ -30,7 +29,6 @@ public:
                 desc->property_bool_or_default("flip_uv", false),
                 desc->property_bool_or_default("drop_normal", false),
                 desc->property_bool_or_default("drop_uv", false));
-            // _geometry.wait();
         }
     }
 
@@ -38,9 +36,9 @@ public:
         return Shape::update(scene, desc);
     }
 
-    // void update_shape(Scene *scene, const RawShapeInfo &shape_info) noexcept override {
-    //     Shape::update_shape(scene, shape_info);
-    // }
+    [[nodiscard]] luisa::string_view info() const noexcept override {
+        return luisa::format("{} geometry=[{}]", Shape::info(), _geometry.get().info());
+    }
     
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] bool is_mesh() const noexcept override { return true; }
@@ -64,9 +62,3 @@ using MeshWrapper = VisibilityShapeWrapper<ShadingShapeWrapper<Mesh>>;
 }// namespace luisa::render
 
 LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::MeshWrapper)
-
-// LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
-//     luisa::render::Scene *scene,
-//     const luisa::render::RawShapeInfo &shape_info) LUISA_NOEXCEPT {
-//     return luisa::new_with_allocator<luisa::render::MeshWrapper>(scene, shape_info);
-// }

@@ -5,7 +5,6 @@
 #pragma once
 
 #include <util/spec.h>
-#include <base/raw_type.h>
 #include <base/scene_node.h>
 
 namespace luisa::render {
@@ -48,8 +47,6 @@ public:
 
 public:
     Film(Scene *scene, const SceneNodeDesc *desc) noexcept;
-    // Film(Scene *scene) noexcept;
-    // [[nodiscard]] virtual bool update_film(Scene *scene, const RawFilmInfo &film_info) noexcept;
     [[nodiscard]] virtual uint2 resolution() const noexcept = 0;
     [[nodiscard]] virtual float3 exposure() const noexcept = 0;
     [[nodiscard]] virtual luisa::unique_ptr<Instance> build(

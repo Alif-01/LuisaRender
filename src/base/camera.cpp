@@ -14,25 +14,23 @@
 namespace luisa::render {
 
 /* Different transform semantics: transform = base_pose * transform */
-Camera::Camera(Scene *scene, const SceneNodeDesc *desc) noexcept
-    : SceneNode{scene, desc, SceneNodeTag::CAMERA},
-      _film{scene->load_film(desc->property_node("film"))},
-    //   _filter{scene->load_filter(desc->property_node_or_default("filter", SceneNodeDesc::shared_default_filter("Box")))},
-      _filter{scene->load_filter(desc->property_node("filter"))},
-      _transform{scene->load_transform(desc->property_node_or_default("transform"))},
-      _shutter_span{desc->property_float2_or_default(
-          "shutter_span", lazy_construct([desc] {
-              return make_float2(desc->property_float_or_default(
-                  "shutter_span", 0.0f));
-          }))},
-      _shutter_samples{desc->property_uint_or_default("shutter_samples", 0u)},// 0 means default
-      _spp{desc->property_uint_or_default("spp", 1024u)},
-      _file{desc->property_path_or_default(
-          "file", std::filesystem::canonical(
-                  desc->source_location() ?
-                  desc->source_location().file()->parent_path() :
-                  std::filesystem::current_path()) / "render.exr"
-      )} {
+Camera::Camera(Scene *scene, const SceneNodeDesc *desc) noexcept:
+    SceneNode{scene, desc, SceneNodeTag::CAMERA},
+    _film{scene->load_film(desc->property_node("film"))},
+    _filter{scene->load_filter(desc->property_node_or_default("filter", SceneNodeDesc::shared_default_filter("Box")))},
+    _transform{scene->load_transform(desc->property_node_or_default("transform"))},
+    _shutter_span{desc->property_float2_or_default(
+        "shutter_span", lazy_construct([desc] {
+            return make_float2(desc->property_float_or_default(
+                "shutter_span", 0.0f));
+        }))},
+    _shutter_samples{desc->property_uint_or_default("shutter_samples", 0u)},// 0 means default
+    _spp{desc->property_uint_or_default("spp", 1024u)},
+    _file{desc->property_path_or_default(
+        "file", std::filesystem::canonical(
+            desc->source_location() ? desc->source_location().file()->parent_path() : std::filesystem::current_path()
+        ) / "render.exr"
+    )} {
 
     // For compatibility with older scene description versions
     static constexpr auto default_position = make_float3(0.f, 0.f, 0.f);
@@ -143,47 +141,18 @@ Camera::Camera(Scene *scene, const SceneNodeDesc *desc) noexcept
     }
 }
 
-// Camera::Camera(Scene *scene, const RawCameraInfo &camera_info) noexcept:
-//     SceneNode{scene, SceneNodeTag::CAMERA},
-//     _film{scene->update_film(
-//         luisa::format("{}_film", camera_info.name),
-//         camera_info.film_info
-//     )},
-//     _filter{scene->add_filter(
-//         luisa::format("{}_filter", camera_info.name),
-//         camera_info.filter_info
-//     )},
-//     _shutter_span{make_float2(0.0f)},
-//     _shutter_samples{0u},                     // 0 means default
-//     _spp{camera_info.spp},
-//     _file{std::filesystem::current_path() / luisa::format("render_{}.exr", camera_info.name)} {
-
-//     // build transform
-//     auto pose_name = luisa::format("{}_pose", camera_info.name);
-//     _transform = scene->update_transform(pose_name, camera_info.pose);
-//     if (_transform == nullptr) [[unlikely]] {
-//         LUISA_ERROR("No camera base pose!");
-//     }
-// }
-
 bool Camera::update(Scene *scene, const SceneNodeDesc *desc) noexcept {
     return update_value(_transform,
         scene->load_transform(desc->property_node_or_default("transform")));
 }
 
-// bool Camera::update_camera(Scene *scene, const RawCameraInfo &camera_info) noexcept {
-//     bool updated = false;
-
-//     auto pose_name = luisa::format("{}_pose", camera_info.name);
-//     auto new_transform = scene->update_transform(pose_name, camera_info.pose);
-//     if (new_transform != nullptr) {
-//         if (_transform != new_transform) {
-//             _transform = new_transform;
-//             updated = true;
-//         }
-//     }
-//     return updated;
-// }
+luisa::string_view Camera::info() const noexcept {
+    return luisa::format(
+        "{} film=[{}] filter=[{}] transform=[{}] medium=[{}]", SceneNode::info(),
+        _film ? _film->info() : "",
+        _filter ? _filter->info() : "",
+        _transform ? _transform->info() : "");
+}
 
 auto Camera::shutter_weight(float time) const noexcept -> float {
     if (time < _shutter_span.x || time > _shutter_span.y) { return 0.0f; }

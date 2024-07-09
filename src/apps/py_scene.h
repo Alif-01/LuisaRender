@@ -37,6 +37,7 @@ public:
         _scene = Scene::create(_context, scene_node);
         auto scene_create_time = clock.toc();
         LUISA_INFO("Scene created in {} ms.", scene_create_time);
+        LUISA_INFO("Create {}:", render->node()->identifier(), _scene);
 
         _pipeline = Pipeline::create(_device, _stream, *_scene);
         auto pipeline_create_time = clock.toc();
@@ -48,29 +49,28 @@ public:
     void update_environment(PyEnvironment *environment) noexcept {
         environment->define_in_scene(_scene_desc.get());
         auto environment_node = _scene->update_environment(environment->node());
-        // LUISA_INFO("Add: {}", environment_info.get_info());
+        LUISA_INFO("Update {}: {}", environment->node()->identifier(), environment_node->info());
     }
 
     void update_emission(PyLight *light) noexcept {
         light->define_in_scene(_scene_desc.get());
-        // LUISA_INFO("Add: {}", light_info.get_info());
     }
 
     void update_surface(PySurface *surface) noexcept {
         surface->define_in_scene(_scene_desc.get());
-        // LUISA_INFO("Add: {}", surface.surface_info.get_info());
     }
 
     void update_shape(PyShape *shape) noexcept {
         shape->define_in_scene(_scene_desc.get());
         auto shape_node = _scene->update_shape(shape->node(), !shape->loaded);
+        LUISA_INFO("Update {}: {}", shape->node()->identifier(), shape_node->info());
         if (!shape->loaded) shape->loaded = true;
-        // LUISA_INFO("Update: {}", shape.shape_info.get_info());
     }
 
     void update_camera(PyCamera *camera, bool denoise) noexcept {
         camera->define_in_scene(_scene_desc.get());
         auto [camera_node, camera_index] = _scene->update_camera(camera->node(), !camera->loaded);
+        LUISA_INFO("Update {}: {}", camera->node()->identifier(), camera_node->info());
         
         if (!camera->loaded) {
             const auto &resolution = camera_node->film()->resolution();

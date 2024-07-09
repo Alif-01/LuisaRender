@@ -230,6 +230,7 @@ public:
         add_property_node("roughness", roughness);
         add_property_node("opacity", opacity);
         add_property_node("normal_map", normal_map);
+        // LUISA_INFO(roughness, a);
     }
 };
 

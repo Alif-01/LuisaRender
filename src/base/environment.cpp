@@ -8,16 +8,14 @@
 
 namespace luisa::render {
 
-Environment::Environment(Scene *scene, const SceneNodeDesc *desc) noexcept
-    : SceneNode{scene, desc, SceneNodeTag::ENVIRONMENT},
-      _transform{scene->load_transform(desc->property_node_or_default("transform"))} {}
+Environment::Environment(Scene *scene, const SceneNodeDesc *desc) noexcept:
+    SceneNode{scene, desc, SceneNodeTag::ENVIRONMENT},
+    _transform{scene->load_transform(desc->property_node_or_default("transform"))} {}
 
-// Environment::Environment(Scene *scene, const RawEnvironmentInfo &environment_info) noexcept
-//     : SceneNode{scene, SceneNodeTag::ENVIRONMENT},
-//       _transform{scene->update_transform(
-//         luisa::format("{}_transform", environment_info.name),
-//         environment_info.transform_info)
-//       } {}
+luisa::string_view Transform::info() const noexcept {
+    return luisa::format("{} transform=[{}] ", SceneNode::info(),
+        _transform ? _transform->info() : "");
+}
 
 bool Environment::update(Scene *scene, const SceneNodeDesc *desc) noexcept {
     return update_value(_transform,

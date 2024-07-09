@@ -8,18 +8,17 @@
 
 namespace luisa::render {
 
-Filter::Filter(Scene *scene, const SceneNodeDesc *desc) noexcept
-    : SceneNode{scene, desc, SceneNodeTag::FILTER},
-      _radius{std::max(desc->property_float_or_default("radius", 0.5f), 1e-3f)},
-      _shift{desc->property_float2_or_default(
-          "shift", lazy_construct([desc] {
-              return make_float2(desc->property_float_or_default("shift", 0.f));
-          }))} {}
+Filter::Filter(Scene *scene, const SceneNodeDesc *desc) noexcept:
+    SceneNode{scene, desc, SceneNodeTag::FILTER},
+    _radius{std::max(desc->property_float_or_default("radius", 0.5f), 1e-3f)},
+    _shift{desc->property_float2_or_default(
+        "shift", lazy_construct([desc] {
+            return make_float2(desc->property_float_or_default("shift", 0.f));
+        }))} {}
 
-Filter::Filter(Scene *scene, const RawFilterInfo &filter_info) noexcept
-    : SceneNode{scene, SceneNodeTag::FILTER},
-      _radius{std::max(filter_info.radius, 1e-3f)},
-      _shift{make_float2(0.f)} {}
+luisa::string_view Filter::info() const noexcept {
+    return luisa::format("{} radius=[{}] ", SceneNode::info(), _radius);
+}
 
 luisa::unique_ptr<Filter::Instance> Filter::build(
     Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept {

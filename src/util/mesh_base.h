@@ -20,6 +20,11 @@ public:
     ShapeGeometry() noexcept = default;
     [[nodiscard]] const luisa::vector<Vertex> &vertices() const noexcept { return _vertices; }
     [[nodiscard]] const luisa::vector<Triangle> &triangles() const noexcept { return _triangles; }
+    [[nodiscard]] virtual lusia::string_view info() const noexcept {
+        return luisa::format(
+            "num_vertices={} num_triangles={}",
+            _vertices.size(), _triangles.size());
+    }
 };
 
 
@@ -115,6 +120,9 @@ public:
 
 class SphereGroupGeometry : public ShapeGeometry {
 
+private:
+    int _num_spheres = 0u;
+
 public:
     SphereGroupGeometry(
         const luisa::vector<float> &centers,
@@ -124,6 +132,9 @@ public:
         luisa::vector<float> centers,
         luisa::vector<float> radii, uint subdiv
     ) noexcept;
+    [[nodiscard]] virtual lusia::string_view info() const noexcept override {
+        return luisa::format("{} num_spheres={}", ShapeGeometry::info(), _num_spheres);
+    }
 };
 
 
@@ -155,6 +166,9 @@ public:
         bool flip_uv, bool drop_normal, bool drop_uv
     ) noexcept;
 
+    [[nodiscard]] virtual lusia::string_view info() const noexcept override {
+        return luisa::format("{} has_normal={} has_uv={}", ShapeGeometry::info(), _has_normal, _has_uv);
+    }
     [[nodiscard]] bool has_normal() const noexcept { return _has_normal; }
     [[nodiscard]] bool has_uv() const noexcept { return _has_uv; }
 };

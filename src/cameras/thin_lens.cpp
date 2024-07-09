@@ -20,25 +20,18 @@ private:
     float _focus_distance;
 
 public:
-    ThinLensCamera(Scene *scene, const SceneNodeDesc *desc) noexcept
-        : Camera{scene, desc},
-          _aperture{desc->property_float_or_default("aperture", 2.f)},
-          _focal_length{desc->property_float_or_default("focal_length", 35.f)},
-          _focus_distance{desc->property_float_or_default(
-              "focus_distance", lazy_construct([desc] {
-                  auto target = desc->property_float3("look_at");
-                  auto position = desc->property_float3("position");
-                  return length(target - position);
-              }))} {
+    ThinLensCamera(Scene *scene, const SceneNodeDesc *desc) noexcept:
+        Camera{scene, desc},
+        _aperture{desc->property_float_or_default("aperture", 2.f)},
+        _focal_length{desc->property_float_or_default("focal_length", 35.f)},
+        _focus_distance{desc->property_float_or_default(
+            "focus_distance", lazy_construct([desc] {
+                auto target = desc->property_float3("look_at");
+                auto position = desc->property_float3("position");
+                return length(target - position);
+            }))} {
         _focus_distance = std::max(std::abs(_focus_distance), 1e-4f);
     }
-
-    // ThinLensCamera(Scene *scene, const RawCameraInfo &camera_info) noexcept
-    //     : Camera{scene, camera_info},
-    //       _aperture{camera_info.thinlens_info->aperture},
-    //       _focal_length{camera_info.thinlens_info->focal_length},
-    //       _focus_distance{std::max(camera_info.thinlens_info->focus_distance, 1e-4f)} {
-    // }
 
     [[nodiscard]] bool update(Scene *scene, const SceneNodeDesc *desc) noexcept override {
         return Camera::update(scene, desc) |
@@ -47,17 +40,12 @@ public:
             update_value(_focus_distance, std::max(std::abs(desc->property_float("focus_distance")), 1e-4f));
     }
 
-    // [[nodiscard]] bool update_camera(Scene *scene, const RawCameraInfo &camera_info) noexcept {
-    //     bool updated = Camera::update_camera(scene, camera_info);
-    //     auto new_aperture = camera_info.thinlens_info->aperture;
-    //     auto new_focal_length = camera_info.thinlens_info->focal_length;
-    //     auto new_focus_distance = std::max(camera_info.thinlens_info->focus_distance, 1e-4f);
-        
-    //     if (new_aperture != _aperture) { _aperture = new_aperture; updated = true; }
-    //     if (new_focal_length != _focal_length) { _focal_length = new_focal_length; updated = true; }
-    //     if (new_focus_distance != _focus_distance) { _focus_distance = new_focus_distance; updated = true; }
-    //     return updated;
-    // }
+    [[nodiscard]] luisa::string_view info() const noexcept override {
+        return luisa::format(
+            "{} aperture=[{}] focal_length=[{}] focus_distance=[{}]", Camera::info(),
+            _aperture, _focal_length, _focus_distance);
+    }
+
     [[nodiscard]] luisa::unique_ptr<Camera::Instance> build(
         Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept override;
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }

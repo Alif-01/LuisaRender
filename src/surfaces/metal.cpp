@@ -110,18 +110,12 @@ public:
         }
     }
 
-    // MetalSurface(Scene *scene, const RawSurfaceInfo &surface_info) noexcept
-    //     : Surface{scene},
-    //       _roughness{scene->add_texture(surface_info.name_roughness, surface_info.roughness)},
-    //       _remap_roughness{true} {
-            
-    //     if (surface_info.metal_info == nullptr) [[unlikely]]
-    //         LUISA_ERROR_WITH_LOCATION("Invalid metal info!");
-    //     auto metal_info = surface_info.metal_info.get();
-
-    //     _kd = scene->add_texture("metal_kd", metal_info->kd);
-    //     _get_eta_from_name(metal_info->eta);
-    // }
+    [[nodiscard]] luisa::string_view info() const noexcept override {
+        return luisa::format(
+            "{} Kd=[{}] roughness=[{}] eta=[{}]", Surface::info(),
+            _kd ? _kd->info() : "", _roughness ? _roughness->info() : "", _ior
+        );
+    }
 
     [[nodiscard]] auto ior() const noexcept { return _ior; }
     [[nodiscard]] auto remap_roughness() const noexcept { return _remap_roughness; }
@@ -334,9 +328,3 @@ using NormalMapOpacityMetalSurface = NormalMapWrapper<OpacitySurfaceWrapper<
 }// namespace luisa::render
 
 LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::NormalMapOpacityMetalSurface)
-
-// LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
-//     luisa::render::Scene *scene,
-//     const luisa::render::RawSurfaceInfo &surface_info) LUISA_NOEXCEPT {
-//     return luisa::new_with_allocator<luisa::render::NormalMapOpacityMetalSurface>(scene, surface_info);
-// }

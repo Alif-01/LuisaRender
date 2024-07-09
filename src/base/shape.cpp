@@ -17,12 +17,21 @@ Shape::Shape(Scene *scene, const SceneNodeDesc *desc) noexcept :
     SceneNode{scene, desc, SceneNodeTag::SHAPE},
     _surface{scene->load_surface(desc->property_node_or_default("surface"))},
     _light{scene->load_light(desc->property_node_or_default("light"))},
-    _transform{scene->load_transform(desc->property_node_or_default("transform"))},
-    _medium{scene->load_medium(desc->property_node_or_default("medium"))} {}
+    _medium{scene->load_medium(desc->property_node_or_default("medium"))},
+    _transform{scene->load_transform(desc->property_node_or_default("transform"))} {}
 
 bool Shape::update(Scene *scene, const SceneNodeDesc *desc) noexcept {
     return true | update_value(_transform,
         (const Transform *)scene->load_transform(desc->property_node_or_default("transform")));
+}
+
+luisa::string_view Shape::info() const noexcept {
+    return luisa::format(
+        "{} surface=[{}] light=[{}] transform=[{}] medium=[{}]", SceneNode::info(),
+        _surface ? _surface->info() : "",
+        _light ? _light->info() : "",
+        _medium ? _medium->info(): "",
+        _transform ? _transform->info() : "");
 }
 
 AccelOption Shape::build_option() const noexcept { return {}; }

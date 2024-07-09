@@ -16,17 +16,6 @@ private:
     std::shared_future<SphereGroupGeometry> _geometry;
     uint _subdiv;
 
-private:
-    // void _build_mesh(
-    //     const luisa::vector<float> &centers,
-    //     float radius, uint subdiv
-    // ) noexcept {
-    //     static std::mutex mutex;
-    //     std::scoped_lock lock{mutex};
-    //     _geometry = SphereGroupGeometry::create(centers, radius, subdiv);
-    //     _geometry.wait();
-    // }
-
 public:
     SphereGroup(Scene *scene, const SceneNodeDesc *desc) noexcept :
         Shape{scene, desc},
@@ -43,6 +32,10 @@ public:
             desc->property_float_list("radii"), _subdiv
         );
         return true;
+    }
+
+    [[nodiscard]] luisa::string_view info() const noexcept override {
+        return luisa::format("{} geometry=[{}]", Shape::info(), _geometry.get().info());
     }
 
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }

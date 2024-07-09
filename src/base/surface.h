@@ -7,7 +7,6 @@
 #include <util/spec.h>
 #include <util/scattering.h>
 #include <base/scene_node.h>
-#include <base/raw_type.h>
 #include <base/texture.h>
 #include <base/sampler.h>
 #include <base/spectrum.h>
@@ -150,7 +149,6 @@ protected:
 
 public:
     Surface(Scene *scene, const SceneNodeDesc *desc) noexcept;
-    Surface(Scene *scene) noexcept;
     [[nodiscard]] virtual uint properties() const noexcept = 0;
     [[nodiscard]] virtual bool is_null() const noexcept { return false; }
     [[nodiscard]] auto is_reflective() const noexcept { return static_cast<bool>(properties() & property_reflective); }
@@ -209,10 +207,13 @@ public:
                       return desc->property_node_or_default("opacity");
                   })));
           }(scene, desc)} {}
-    // OpacitySurfaceWrapper(Scene *scene, const RawSurfaceInfo &surface_info) noexcept:
-    //     BaseSurface{scene, surface_info},
-    //     _opacity{scene->add_texture(surface_info.name_opacity, surface_info.opacity)} {}
 
+    [[nodiscard]] virtual luisa::string_view info() const noexcept override {
+        return luisa::format(
+            "{} opacity=[{}]", BaseSurface::info(),
+            _opacity ? _opacity->info() : "");
+    }
+    
 protected:
     [[nodiscard]] luisa::unique_ptr<Surface::Instance> _build(
         Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept override {
@@ -276,10 +277,12 @@ public:
             return scene->load_texture(desc->property_node_or_default("normal_map"));
         }(scene, desc)},
         _strength{desc->property_float_or_default("normal_map_strength", 1.f)} {}
-    // NormalMapWrapper(Scene *scene, const RawSurfaceInfo &surface_info) noexcept:
-    //     BaseSurface{scene, surface_info},
-    //     _normal_map{scene->add_texture(surface_info.name_normal_map, surface_info.normal_map)},
-    //     _strength{1.f} {}
+
+    [[nodiscard]] virtual luisa::string_view info() const noexcept override {
+        return luisa::format(
+            "{} normal_map=[{}]", BaseSurface::info(),
+            _normal_map ? _normal_map->info() : "");
+    }
 
 protected:
     [[nodiscard]] luisa::unique_ptr<Surface::Instance> _build(

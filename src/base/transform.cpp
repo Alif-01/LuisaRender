@@ -10,12 +10,9 @@ namespace luisa::render {
 Transform::Transform(Scene *scene, const SceneNodeDesc *desc) noexcept
     : SceneNode{scene, desc, SceneNodeTag::TRANSFORM} {}
 
-// Transform::Transform(Scene *scene) noexcept
-//     : SceneNode{scene, SceneNodeTag::TRANSFORM} {}
-
-// void Transform::update_transform(Scene *scene, const RawTransformInfo &transform_info) noexcept {
-//     LUISA_NOT_IMPLEMENTED();
-// }
+luisa::string_view Transform::info() const noexcept {
+    return luisa::format("{} registered=[{}] ", SceneNode::info(), _registered);
+}
 
 TransformTree::Node::Node(
     const TransformTree::Node *parent,

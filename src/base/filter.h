@@ -7,7 +7,6 @@
 #include <array>
 
 #include <base/scene_node.h>
-#include <base/raw_type.h>
 #include <base/sampler.h>
 
 namespace luisa::render {
@@ -54,7 +53,7 @@ private:
 
 public:
     Filter(Scene *scene, const SceneNodeDesc *desc) noexcept;
-    Filter(Scene *scene, const RawFilterInfo &filter_info) noexcept;
+    [[nodiscard]] virtual luisa::string_view info() const noexcept override;
     [[nodiscard]] auto radius() const noexcept { return _radius; }
     [[nodiscard]] auto shift() const noexcept { return _shift; }
     [[nodiscard]] virtual float evaluate(float x) const noexcept = 0;

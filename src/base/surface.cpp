@@ -12,9 +12,6 @@ namespace luisa::render {
 Surface::Surface(Scene *scene, const SceneNodeDesc *desc) noexcept
     : SceneNode{scene, desc, SceneNodeTag::SURFACE} {}
 
-Surface::Surface(Scene *scene) noexcept
-    : SceneNode{scene, SceneNodeTag::SURFACE} {}
-
 luisa::unique_ptr<Surface::Instance> Surface::build(
     Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept {
     LUISA_ASSERT(!is_null(), "Building null Surface.");

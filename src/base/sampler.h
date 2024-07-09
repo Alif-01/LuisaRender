@@ -7,7 +7,6 @@
 #include <luisa/dsl/syntax.h>
 #include <util/command_buffer.h>
 #include <base/scene_node.h>
-#include <base/raw_type.h>
 
 namespace luisa::render {
 

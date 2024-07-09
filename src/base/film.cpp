@@ -9,13 +9,6 @@ namespace luisa::render {
 
 Film::Film(Scene *scene, const SceneNodeDesc *desc) noexcept
     : SceneNode{scene, desc, SceneNodeTag::FILM} {}
-
-// Film::Film(Scene *scene) noexcept
-//     : SceneNode{scene, SceneNodeTag::FILM} {}
-
-// bool Film::update_film(Scene *scene, const RawFilmInfo &film_info) noexcept {
-//     LUISA_NOT_IMPLEMENTED();
-// }
     
 
 void Film::Instance::accumulate(Expr<uint2> pixel, Expr<float3> rgb,

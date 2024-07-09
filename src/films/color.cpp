@@ -26,13 +26,13 @@ private:
     bool _warn_nan{};
 
 public:
-    ColorFilm(Scene *scene, const SceneNodeDesc *desc) noexcept
-        : Film{scene, desc},
-          _resolution{desc->property_uint2_or_default(
-              "resolution", lazy_construct([desc] {
-                  return make_uint2(desc->property_uint_or_default("resolution", 1024u));
-              }))},
-          _warn_nan{desc->property_bool_or_default("warn_nan", false)} {
+    ColorFilm(Scene *scene, const SceneNodeDesc *desc) noexcept:
+        Film{scene, desc},
+        _resolution{desc->property_uint2_or_default(
+            "resolution", lazy_construct([desc] {
+                return make_uint2(desc->property_uint_or_default("resolution", 1024u));
+            }))},
+        _warn_nan{desc->property_bool_or_default("warn_nan", false)} {
         _exposure = desc->property_float3_or_default(
             "exposure", lazy_construct([desc] {
                 return make_float3(desc->property_float_or_default(
@@ -43,18 +43,11 @@ public:
         _scale[2] = std::pow(2.0f, _exposure.z);
         _clamp = std::max(1.f, desc->property_float_or_default("clamp", 256.f));
     }
-    // ColorFilm(Scene *scene, const RawFilmInfo &film_info) noexcept:
-    //     Film{scene},
-    //     _resolution{film_info.resolution}, _exposure{0.0f, 0.0f, 0.0f},
-    //     _scale{1.0f, 1.0f, 1.0f}, _clamp{256.f}, _warn_nan{false} {}
-        
-    // [[nodiscard]] bool update_film(Scene *scene, const RawFilmInfo &film_info) noexcept override {
-    //     if (any(_resolution != film_info.resolution)) {
-    //         _resolution = film_info.resolution;
-    //         return true;
-    //     }
-    //     return false;
-    // }
+    
+    [[nodiscard]] luisa::string_view info() const noexcept override {
+        return luisa::format("{} resolution=[{}]", Film::info(), _resolution);
+    }
+
     [[nodiscard]] auto scale() const noexcept { return make_float3(_scale[0], _scale[1], _scale[2]); }
     [[nodiscard]] float clamp() const noexcept override { return _clamp; }
     [[nodiscard]] uint2 resolution() const noexcept override { return _resolution; }
