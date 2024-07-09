@@ -138,7 +138,7 @@ public:
     }
     
     [[nodiscard]] luisa::string info() const noexcept override {
-        return luisa::format("{} pixel_count=[{}] channel=[{}]", Texture::info(), resolution(), channels());
+        return luisa::format("{} resolution=[{}] channel=[{}]", Texture::info(), resolution(), channels());
     }
 
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }

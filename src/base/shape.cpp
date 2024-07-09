@@ -27,7 +27,7 @@ bool Shape::update(Scene *scene, const SceneNodeDesc *desc) noexcept {
 
 luisa::string Shape::info() const noexcept {
     return luisa::format(
-        "{} surface=[{}] light=[{}] transform=[{}] medium=[{}]", SceneNode::info(),
+        "{} surface=[{}] light=[{}] medium=[{}] transform=[{}]", SceneNode::info(),
         _surface ? _surface->info() : "",
         _light ? _light->info() : "",
         _medium ? _medium->info(): "",
