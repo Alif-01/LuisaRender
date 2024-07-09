@@ -13,22 +13,20 @@ private:
     float4x4 _matrix;
 
 private:
-    void _build_matrix(const luisa::vector<float> &m) noexcept {
+    void _build_matrix(luisa::vector<float> m) noexcept {
         if (m.size() == 16u) {
-            luisa::vector<float> nm(m.begin(), m.end());
             if (!all(make_float4(m[12], m[13], m[14], m[15]) ==
-                     make_float4(0.0f, 0.0f, 0.0f, 1.0f))) {
+                     make_float4(0.0f, 0.0f, 0.0f, 1.0f))) [[unlikely]] {
                 LUISA_WARNING(
                     "Expected affine transform matrices, "
                     "while the last row is ({}, {}, {}, {}). "
                     "This will be fixed but might lead to "
                     "unexpected transforms", m[12], m[13], m[14], m[15]);
-                nm[12] = 0.0f, nm[13] = 0.0f,
-                nm[14] = 0.0f, nm[15] = 1.0f;
+                m[12] = 0.0f, m[13] = 0.0f, m[14] = 0.0f, m[15] = 1.0f;
             }
             for (auto row = 0u; row < 4u; row++) {
                 for (auto col = 0u; col < 4u; col++) {
-                    _matrix[col][row] = nm[row * 4u + col];     // read matrix.T
+                    _matrix[col][row] = m[row * 4u + col];     // read matrix.T
                 }
             }
         } else if (!m.empty()) [[unlikely]] {
@@ -37,12 +35,15 @@ private:
     }
 
 public:
-    MatrixTransform(Scene *scene, const SceneNodeDesc *desc) noexcept
-        : Transform{scene, desc}, _matrix{make_float4x4(1.0f)} {
-        auto m = desc->property_float_list_or_default("m");
-        _build_matrix(m);
+    MatrixTransform(Scene *scene, const SceneNodeDesc *desc) noexcept:
+        Transform{scene, desc}, _matrix{make_float4x4(1.0f)} {
+        _build_matrix(desc->property_float_list_or_default("m"));
     }
 
+    bool update(Scene *scene, const SceneNodeDesc *desc) noexcept override {
+        _build_matrix(desc->property_float_list_or_default("m"));
+        return true;
+    }
     [[nodiscard]] luisa::string info() const noexcept override {
         return luisa::format("{} matrix=[{}]", Transform::info(), _matrix);
     }
@@ -54,11 +55,6 @@ public:
                all(_matrix[1] == make_float4(0.0f, 1.0f, 0.0f, 0.0f)) &&
                all(_matrix[2] == make_float4(0.0f, 0.0f, 1.0f, 0.0f)) &&
                all(_matrix[3] == make_float4(0.0f, 0.0f, 0.0f, 1.0f));
-    }
-
-    bool update(Scene *scene, const SceneNodeDesc *desc) noexcept override {
-        _build_matrix(desc->property_float_list_or_default("m"));
-        return true;
     }
 };
 
