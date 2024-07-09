@@ -50,7 +50,6 @@ public:
 
 public:
     Sampler(Scene *scene, const SceneNodeDesc *desc) noexcept;
-    Sampler(Scene *scene) noexcept;
     [[nodiscard]] virtual luisa::unique_ptr<Instance> build(
         Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept = 0;
     [[nodiscard]] auto seed() const noexcept { return _seed; }

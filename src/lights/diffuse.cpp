@@ -27,7 +27,7 @@ public:
 
     [[nodiscard]] luisa::string info() const noexcept override {
         return luisa::format(
-            "{} emission=[{}] ", Light::info(),
+            "{} emission=[{}]", Light::info(),
             _emission ? _emission->info() : ""
         );
     }

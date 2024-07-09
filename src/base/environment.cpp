@@ -13,7 +13,7 @@ Environment::Environment(Scene *scene, const SceneNodeDesc *desc) noexcept:
     _transform{scene->load_transform(desc->property_node_or_default("transform"))} {}
 
 luisa::string Environment::info() const noexcept {
-    return luisa::format("{} transform=[{}] ", SceneNode::info(),
+    return luisa::format("{} transform=[{}]", SceneNode::info(),
         _transform ? _transform->info() : "");
 }
 

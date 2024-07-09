@@ -20,7 +20,7 @@ Integrator::Integrator(Scene *scene, const SceneNodeDesc *desc) noexcept
 
 luisa::string Integrator::info() const noexcept {
     return luisa::format(
-        "{} sampler=[{}] light_sampler=[{}] ", SceneNode::info(),
+        "{} sampler=[{}] light_sampler=[{}]", SceneNode::info(),
         _sampler ? _sampler->info() : "",
         _light_sampler ? _light_sampler->info() : "");
 }

@@ -36,5 +36,5 @@ bool SceneNode::update(Scene *scene, const SceneNodeDesc *desc) noexcept {
 }
 
 luisa::string SceneNode::info() const noexcept {
-    return luisa::format("Node [{}, {}]:", scene_node_tag_description(_tag), impl_type()); }
+    return luisa::format("Node <{}, {}> ", scene_node_tag_description(_tag), impl_type()); }
 }

@@ -17,7 +17,7 @@ Filter::Filter(Scene *scene, const SceneNodeDesc *desc) noexcept:
         }))} {}
 
 luisa::string Filter::info() const noexcept {
-    return luisa::format("{} radius=[{}] ", SceneNode::info(), _radius);
+    return luisa::format("{} radius=[{}]", SceneNode::info(), _radius);
 }
 
 luisa::unique_ptr<Filter::Instance> Filter::build(
