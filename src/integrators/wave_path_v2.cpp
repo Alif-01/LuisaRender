@@ -70,14 +70,6 @@ public:
           _use_tag_sort{desc->property_bool_or_default("use_tag_sort", true)},
           _test_case{desc->property_bool_or_default("test_case", false)},
           _compact{desc->property_bool_or_default("compact", true)} {}
-
-    // WavefrontPathTracingv2(Scene *scene, const RawIntegratorInfo &integrator_info) noexcept
-    //     : ProgressiveIntegrator{scene, integrator_info},
-    //       _max_depth{std::max(integrator_info.max_depth, 1u)},
-    //       _rr_depth{std::max(integrator_info.rr_depth, 0u)},
-    //       _rr_threshold{std::max(integrator_info.rr_threshold, 0.05f)},
-    //       _state_limit{std::max(integrator_info.state_limit, 1u)},
-    //       _gathering{true}, _test_case{false}, _compact{true} {}
           
     [[nodiscard]] auto max_depth() const noexcept { return _max_depth; }
     [[nodiscard]] auto use_tag_sort() const noexcept { return _use_tag_sort; }

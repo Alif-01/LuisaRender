@@ -47,7 +47,6 @@ void Geometry::_process_shape(
         auto mesh = [&] {
             auto mesh_geom = [&] {
                 auto [vertices, triangles] = shape->mesh();
-                // LUISA_ASSERT(!vertices.empty() && !triangles.empty(), "Empty mesh.");
                 auto hash = luisa::hash64(vertices.data(), vertices.size_bytes(), luisa::hash64_default_seed);
                 hash = luisa::hash64(triangles.data(), triangles.size_bytes(), hash);
                 if (auto mesh_iter = _mesh_cache.find(hash);
@@ -139,6 +138,10 @@ void Geometry::_process_shape(
         _accel.emplace_back(*mesh.resource, object_to_world, visible,
                             (properties & Shape::property_flag_maybe_non_opaque) == 0u);
 
+        LUISA_INFO("Instance {}: dyna:{} matrix:{} accel:{}",
+            shape->impl_type(), _dynamic_transforms.size(),
+            object_to_world, _accel.size());
+
         auto light_tag = 0u;
         auto medium_tag = 0u;
         if (light != nullptr && !light->is_null()) {
@@ -150,9 +153,8 @@ void Geometry::_process_shape(
             properties |= Shape::property_flag_has_medium;
         }
         _instances.emplace_back(Shape::Handle::encode(
-            mesh.geometry_buffer_id_base,
-            properties, surface_tag, light_tag, medium_tag,
-            mesh.resource->triangle_count(),
+            mesh.geometry_buffer_id_base, properties,
+            surface_tag, light_tag, medium_tag, mesh.resource->triangle_count(),
             static_cast<float>(mesh.shadow_term) / static_cast<float>(Shape::Handle::shadow_term_mask),
             static_cast<float>(mesh.intersection_offset) / static_cast<float>(Shape::Handle::inter_offset_mask),
             static_cast<float>(mesh.clamp_normal) / static_cast<float>(Shape::Handle::clamp_normal_mask) * 2.f - 1
