@@ -42,12 +42,9 @@ using compute::BufferView;
 using compute::Callable;
 using compute::Device;
 using compute::Image;
-using compute::Mesh;
 using compute::PixelStorage;
 using compute::Polymorphic;
-using compute::Ray;
 using compute::Resource;
-using compute::Triangle;
 using compute::Volume;
 using TextureSampler = compute::Sampler;
 

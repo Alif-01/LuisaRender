@@ -77,8 +77,8 @@ public:
     Interaction(Expr<float3> pg) noexcept
         : _pg{pg}, _ng{pg}, _inst_id{~0u}, _prim_id{~0u} {}
 
-    Interaction(Shape::Handle shape, Expr<uint> inst_id,
-                Expr<uint> prim_id, Expr<float> prim_area, Expr<float3> p,
+    Interaction(Shape::Handle shape, Expr<uint> inst_id, Expr<uint> prim_id,
+                Expr<float> prim_area, Expr<float3> p,
                 Expr<float3> ng, Expr<bool> back_facing) noexcept
         : _shape{std::move(shape)}, _pg{p}, _ng{ng}, _shading{Frame::make(_ng)}, _ps{p},
           _inst_id{inst_id}, _prim_id{prim_id}, _prim_area{prim_area}, _back_facing{back_facing} {}
@@ -99,8 +99,8 @@ public:
     [[nodiscard]] auto ng() const noexcept { return _ng; }
     [[nodiscard]] auto uv() const noexcept { return _uv; }
     [[nodiscard]] auto instance_id() const noexcept { return _inst_id; }
-    [[nodiscard]] auto triangle_id() const noexcept { return _prim_id; }
-    [[nodiscard]] auto triangle_area() const noexcept { return _prim_area; }
+    [[nodiscard]] auto prim_id() const noexcept { return _prim_id; }
+    [[nodiscard]] auto prim_area() const noexcept { return _prim_area; }
     [[nodiscard]] auto valid() const noexcept { return _inst_id != ~0u; }
     [[nodiscard]] auto &shading() noexcept { return _shading; }
     [[nodiscard]] const auto &shading() const noexcept { return _shading; }

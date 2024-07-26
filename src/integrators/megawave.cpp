@@ -209,7 +209,7 @@ private:
     Buffer<ThreadFrame> _frame;
     Buffer<DimensionalFrame> _dim_frame;
     Buffer<Ray> _ray;
-    Buffer<Hit> _hit;
+    Buffer<CommittedHit> _hit;
 
 public:
     StateSOA(const Spectrum::Instance *spectrum,size_t size) noexcept
@@ -219,7 +219,7 @@ public:
         _dim_frame = device.create_buffer<DimensionalFrame>(size * dimension);
         _frame = device.create_buffer<ThreadFrame>(size);
         _ray = device.create_buffer<Ray>(size);
-        _hit = device.create_buffer<Hit>(size);
+        _hit = device.create_buffer<CommittedHit>(size);
     }
     [[nodiscard]] auto read_ray(Expr<uint> index) const noexcept {
         return _ray->read(index);
@@ -237,7 +237,7 @@ public:
     void write_ray(Expr<uint> index, Expr<Ray> ray) noexcept {
         _ray->write(index, ray);
     }
-    void write_hit(Expr<uint> index, Expr<Hit> hit) noexcept {
+    void write_hit(Expr<uint> index, Expr<CommittedHit> hit) noexcept {
         _hit->write(index, hit);
     }
     void write_frame(Expr<uint> index, Expr<ThreadFrame> frame) noexcept {
@@ -313,7 +313,7 @@ void MegakernelWaveFrontInstance::_render_one_camera(
         auto queue_size = use_global?block_size * (KERNEL_COUNT+1):block_size;
         Shared<ThreadFrame> path_state{shared_queue_size};
         Shared<Ray> path_ray{shared_queue_size};
-        Shared<Hit> path_hit{shared_queue_size};
+        Shared<CommittedHit> path_hit{shared_queue_size};
         Shared<DimensionalFrame> path_state_dim{shared_queue_size * dim};
         Shared<uint> path_id{shared_queue_size};
         Shared<uint> work_counter{KERNEL_COUNT};

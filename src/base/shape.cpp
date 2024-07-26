@@ -54,9 +54,11 @@ bool Shape::has_vertex_uv() const noexcept {
 }
 
 bool Shape::is_mesh() const noexcept { return false; }
+bool Shape::is_spheres() const noexcept { return false; }
 bool Shape::empty() const noexcept { return true; }
 uint Shape::vertex_properties() const noexcept { return 0u; }
 MeshView Shape::mesh() const noexcept { return {}; }
+SpheresView Shape::spheres() const noexcept { return {}; }
 luisa::span<const Shape *const> Shape::children() const noexcept { return {}; }
 
 uint Shape::Handle::encode_fixed_point(float x, uint mask) noexcept {

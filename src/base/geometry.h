@@ -13,18 +13,18 @@
 
 namespace luisa::render {
 
-struct Hit {
-    uint inst;
-    uint prim;
-    float2 bary;
-};
+// struct Hit {
+//     uint inst;
+//     uint prim;
+//     float2 bary;
+// };
 
 }// namespace luisa::render
 
 // clang-format off
-LUISA_STRUCT(luisa::render::Hit, inst, prim, bary) {
-    [[nodiscard]] auto miss() const noexcept { return inst == ~0u; }
-};
+// LUISA_STRUCT(luisa::render::Hit, inst, prim, bary) {
+//     [[nodiscard]] auto miss() const noexcept { return inst == ~0u; }
+// };
 // clang-format on
 
 namespace luisa::render {
@@ -33,42 +33,53 @@ using compute::Accel;
 using compute::AccelOption;
 using compute::Buffer;
 using compute::Expr;
+using compute::Var;
 using compute::Float4x4;
 using compute::Mesh;
 using compute::Ray;
 using compute::SurfaceHit;
-using compute::Var;
+using compute::ProceduralHit;
+using compute::SurfaceCandidate;
+using compute::ProceduralCandidate;
 
 class Pipeline;
 
 class Geometry {
 
 public:
-    struct MeshGeometry {
-        Mesh *resource;
+    // enum GeomType: uint {
+    //     Mesh,
+    //     Spheres
+    // };
+
+    struct ShapeGeometry {
+        void *resource;
         uint buffer_id_base;
+        // GeomType type;
     };
 
-    struct MeshData {
-        Mesh *resource;
-        uint shadow_term : 10;
-        uint intersection_offset : 10;
-        uint clamp_normal : 12;
-        uint geometry_buffer_id_base : 22;
-        uint vertex_properties : 10;
-    };
+    // struct MeshData {
+    //     Mesh *resource;
+    //     uint shadow_term : 10;
+    //     uint intersection_offset : 10;
+    //     uint clamp_normal : 12;
+    //     uint geometry_buffer_id_base : 22;
+    //     uint vertex_properties : 10;
+    // };
+    // static_assert(sizeof(MeshData) == 16u);
+    // struct ShapeData {
+    // }
+    static constexpr float inv_sqrt3 = 1.0f / sqrt(3);
 
-    static_assert(sizeof(MeshData) == 16u);
-
-    using SurfaceCandidate = compute::SurfaceCandidate;
 
 private:
     Pipeline &_pipeline;
     Accel _accel;
     TransformTree _transform_tree;
     luisa::vector<uint> _resource_store;
-    luisa::unordered_map<uint64_t, MeshGeometry> _mesh_cache;
-    luisa::unordered_map<const Shape *, MeshData> _meshes;
+    // luisa::unordered_map<uint64_t, MeshGeometry> _mesh_cache;
+    // luisa::unordered_map<const Shape *, MeshData> _meshes;
+    // luisa::unordered_map<const Shape *, SpheresData> _spheres;
     luisa::vector<Light::Handle> _instanced_lights;
     luisa::vector<uint4> _instances;
     luisa::vector<InstancedTransform> _dynamic_transforms;
@@ -85,8 +96,10 @@ private:
         const Medium *overridden_medium = nullptr,
         bool overridden_visible = true) noexcept;
 
-    [[nodiscard]] Bool _alpha_skip(const Var<Ray> &ray,
-                                   const Var<SurfaceHit> &hit) const noexcept;
+    [[nodiscard]] Bool _alpha_skip(const Interaction &it, Expr<float> u) const noexcept;
+    [[nodiscard]] Bool _alpha_skip(const Var<Ray> &ray, const Var<SurfaceHit> &hit) const noexcept;
+    [[nodiscard]] Bool _alpha_skip(const Var<Ray> &ray, const Var<ProceduralHit> &hit) const noexcept;
+    void _procedural_filter(ProceduralCandidate &c) const noexcept;
 
 public:
     explicit Geometry(Pipeline &pipeline) noexcept : _pipeline{pipeline} {};
@@ -97,18 +110,32 @@ public:
     [[nodiscard]] auto light_instances() const noexcept { return luisa::span{_instanced_lights}; }
     [[nodiscard]] auto world_min() const noexcept { return _world_min; }
     [[nodiscard]] auto world_max() const noexcept { return _world_max; }
-    [[nodiscard]] Var<Hit> trace_closest(const Var<Ray> &ray) const noexcept;
+    [[nodiscard]] Var<CommittedHit> trace_closest(const Var<Ray> &ray) const noexcept;
     [[nodiscard]] Var<bool> trace_any(const Var<Ray> &ray) const noexcept;
-    [[nodiscard]] luisa::shared_ptr<Interaction> interaction(const Var<Ray> &ray, const Var<Hit> &hit) const noexcept;
-    [[nodiscard]] luisa::shared_ptr<Interaction> interaction(Expr<uint> inst_id, Expr<uint> prim_id,
-                                                             Expr<float3> bary, Expr<float3> wo) const noexcept;
-    [[nodiscard]] Shape::Handle instance(Expr<uint> index) const noexcept;
-    [[nodiscard]] Float4x4 instance_to_world(Expr<uint> index) const noexcept;
-    [[nodiscard]] Var<Triangle> triangle(const Shape::Handle &instance, Expr<uint> index) const noexcept;
-    [[nodiscard]] GeometryAttribute geometry_point(const Shape::Handle &instance, const Var<Triangle> &triangle,
-                                                   const Var<float3> &bary, const Var<float4x4> &shape_to_world) const noexcept;
-    [[nodiscard]] ShadingAttribute shading_point(const Shape::Handle &instance, const Var<Triangle> &triangle,
-                                                 const Var<float3> &bary, const Var<float4x4> &shape_to_world) const noexcept;
+    [[nodiscard]] luisa::shared_ptr<Interaction> interaction(const Var<Ray> &ray, const Var<CommittedHit> &hit) const noexcept;
+    [[nodiscard]] luisa::shared_ptr<Interaction> interaction(const Var<Ray> &ray, const Var<SurfaceHit> &hit) const noexcept;
+    [[nodiscard]] luisa::shared_ptr<Interaction> interaction(const Var<Ray> &ray, const Var<ProceduralHit> &hit) const noexcept;
+    [[nodiscard]] Interaction triangle_interaction(
+        const Var<Ray> &ray, Expr<uint> inst_id, Expr<uint> prim_id, Expr<float3> bary) const noexcept;
+    [[nodiscard]] Interaction aabb_interaction(
+        const Var<Ray> &ray, Expr<uint> inst_id, Expr<uint> prim_id) const noexcept;
+    [[nodiscard]] Shape::Handle instance(Expr<uint> inst_id) const noexcept;
+    [[nodiscard]] Float4x4 instance_to_world(Expr<uint> inst_id) const noexcept;
+    [[nodiscard]] Var<Triangle> triangle(const Shape::Handle &instance, Expr<uint> triangle_id) const noexcept;
+    [[nodiscard]] Var<Vertex> vertex(const Shape::Handle &instance, Expr<uint> vertex_id) const noexcept;
+    [[nodiscard]] Var<AABB> aabb(const Shape::Handle &instance, Expr<uint> aabb_id) const noexcept;
+    [[nodiscard]] GeometryAttribute geometry_point(
+        const Shape::Handle &instance, const Var<Triangle> &triangle,
+        const Var<float3> &bary, const Var<float4x4> &shape_to_world) const noexcept;
+    [[nodiscard]] GeometryAttribute geometry_point(
+        const Shape::Handle &instance, const Var<AABB> &aabb,
+        const Var<float3> &w, const Var<float4x4> &shape_to_world) const noexcept;
+    [[nodiscard]] ShadingAttribute shading_point(
+        const Shape::Handle &instance, const Var<Triangle> &triangle,
+        const Var<float3> &bary, const Var<float4x4> &shape_to_world) const noexcept;
+    [[nodiscard]] ShadingAttribute shading_point(
+        const Shape::Handle &instance, const Var<Triangle> &aabb,
+        const Var<Ray> &ray, const Var<float4x4> &shape_to_world) const noexcept;
     [[nodiscard]] auto intersect(const Var<Ray> &ray) const noexcept { return interaction(ray, trace_closest(ray)); }
     [[nodiscard]] auto intersect_any(const Var<Ray> &ray) const noexcept { return trace_any(ray); }
 };

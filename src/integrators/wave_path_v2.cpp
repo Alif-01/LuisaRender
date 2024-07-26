@@ -97,7 +97,7 @@ private:
     //Buffer<uint> _kernel_count;
     luisa::vector<uint> _host_count;
     Buffer<Ray> _ray;
-    Buffer<Hit> _hit;
+    Buffer<CommittedHit> _hit;
     bool _gathering;
 
 public:
@@ -113,7 +113,7 @@ public:
         //_kernel_count = device.create_buffer<uint>(KERNEL_COUNT);
         //_host_count.resize(KERNEL_COUNT);
         _ray = device.create_buffer<Ray>(size);
-        _hit = device.create_buffer<Hit>(size);
+        _hit = device.create_buffer<CommittedHit>(size);
         _depth = device.create_buffer<uint>(size);
         _pixel_index = device.create_buffer<uint>(size);
         if (!spectrum->node()->is_fixed()) {
@@ -144,7 +144,7 @@ public:
     void write_ray(Expr<uint> index, Expr<Ray> ray) noexcept {
         _ray->write(index, ray);
     }
-    void write_hit(Expr<uint> index, Expr<Hit> hit) noexcept {
+    void write_hit(Expr<uint> index, Expr<CommittedHit> hit) noexcept {
         _hit->write(index, hit);
     }
     [[nodiscard]] auto read_depth(Expr<uint> index) const noexcept {

@@ -173,4 +173,4 @@ public:
     [[nodiscard]] bool has_uv() const noexcept { return _has_uv; }
 };
 
-}
+}// namespace luisa::render

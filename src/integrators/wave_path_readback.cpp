@@ -254,7 +254,7 @@ void WavefrontPathTracingInstance::_render_one_camera(
     command_buffer << synchronize();
 
     using BufferRay = BufferVar<Ray>;
-    using BufferHit = BufferVar<Hit>;
+    using BufferHit = BufferVar<CommittedHit>;
 
     LUISA_INFO("Compiling ray generation kernel.");
     Clock clock_compile;
@@ -495,7 +495,7 @@ void WavefrontPathTracingInstance::_render_one_camera(
     RayQueue miss_queue{device, state_count};
     auto ray_buffer = device.create_buffer<Ray>(state_count);
     auto ray_buffer_out = device.create_buffer<Ray>(state_count);
-    auto hit_buffer = device.create_buffer<Hit>(state_count);
+    auto hit_buffer = device.create_buffer<CommittedHit>(state_count);
     auto state_count_buffer = device.create_buffer<uint>(samples_per_pass);
     luisa::vector<uint> precomputed_state_counts(samples_per_pass);
     for (auto i = 0u; i < samples_per_pass; i++) {
