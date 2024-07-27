@@ -5,6 +5,7 @@
 #pragma once
 
 #include <runtime/rtx/mesh.h>
+#include <runtime/rtx/aabb.h>
 #include <util/vertex.h>
 #include <base/scene_node.h>
 #include <base/scene.h>
@@ -18,6 +19,7 @@ class Medium;
 
 using compute::AccelOption;
 using compute::Triangle;
+using compute::AABB;
 
 struct MeshView {
     luisa::span<const Vertex> vertices;
@@ -107,7 +109,6 @@ public:
     [[nodiscard]] float clamp_normal_factor() const noexcept override {
         return _clamp_normal;
     }
-    // [[nodiscard]] bool is_mesh() const noexcept override { return true; }
 };
 
 template<typename BaseShape>
@@ -181,7 +182,8 @@ private:
         _shadow_terminator{shadow_terminator},
         _intersection_offset{intersection_offset},
         _clamp_normal{clamp_normal} {
-        _alias_table_buffer_id_offset = ite(is_triangle(), 2u, 1u);
+        _alias_table_buffer_id_offset = ite(
+            (_properties & luisa::render::Shape::property_flag_triangle) != 0u, 2u, 1u);
     }
 
 public:

@@ -34,32 +34,30 @@ luisa::string Shape::info() const noexcept {
         _transform ? _transform->info() : "");
 }
 
-AccelOption Shape::build_option() const noexcept { return {}; }
 
 bool Shape::visible() const noexcept { return true; }
-float Shape::shadow_terminator_factor() const noexcept { return 0.f; }
-float Shape::intersection_offset_factor() const noexcept { return 0.f; }
-float Shape::clamp_normal_factor() const noexcept { return -1.f; }
 const Surface *Shape::surface() const noexcept { return _surface; }
 const Light *Shape::light() const noexcept { return _light; }
 const Medium *Shape::medium() const noexcept { return _medium; }
 const Transform *Shape::transform() const noexcept { return _transform; }
-
-bool Shape::has_vertex_normal() const noexcept {
-    return is_mesh() && (vertex_properties() & property_flag_has_vertex_normal) != 0u;
-}
-
-bool Shape::has_vertex_uv() const noexcept {
-    return is_mesh() && (vertex_properties() & property_flag_has_vertex_uv) != 0u;
-}
+float Shape::shadow_terminator_factor() const noexcept { return 0.f; }
+float Shape::intersection_offset_factor() const noexcept { return 0.f; }
+float Shape::clamp_normal_factor() const noexcept { return -1.f; }
 
 bool Shape::is_mesh() const noexcept { return false; }
 bool Shape::is_spheres() const noexcept { return false; }
 bool Shape::empty() const noexcept { return true; }
 uint Shape::vertex_properties() const noexcept { return 0u; }
+bool Shape::has_vertex_normal() const noexcept {
+    return is_mesh() && (vertex_properties() & property_flag_has_vertex_normal) != 0u;
+}
+bool Shape::has_vertex_uv() const noexcept {
+    return is_mesh() && (vertex_properties() & property_flag_has_vertex_uv) != 0u;
+}
 MeshView Shape::mesh() const noexcept { return {}; }
 SpheresView Shape::spheres() const noexcept { return {}; }
 luisa::span<const Shape *const> Shape::children() const noexcept { return {}; }
+AccelOption Shape::build_option() const noexcept { return {}; }
 
 uint Shape::Handle::encode_fixed_point(float x, uint mask) noexcept {
     // constexpr auto fixed_point_mask = (1u << fixed_point_bits) - 1u;
@@ -76,7 +74,7 @@ Expr<float> Shape::Handle::decode_fixed_point(Expr<uint> x, uint mask) noexcept 
 
 uint4 Shape::Handle::encode(
     uint buffer_base, uint flags,
-    uint surface_tag, uint light_tag, uint medium_tag, uint tri_count,
+    uint surface_tag, uint light_tag, uint medium_tag, uint primitive_count,
     float shadow_terminator, float intersection_offset, float clamp_normal) noexcept {
     LUISA_ASSERT(buffer_base <= buffer_base_max, "Invalid geometry buffer base: {}.", buffer_base);
     LUISA_ASSERT(flags <= property_flag_mask, "Invalid property flags: {:016x}.", flags);
@@ -92,7 +90,7 @@ uint4 Shape::Handle::encode(
         (encode_fixed_point(shadow_terminator, shadow_term_mask) << shadow_term_offset) |
         (encode_fixed_point(intersection_offset, inter_offset_mask) << inter_offset_offset) |
         (encode_fixed_point(clamp_normal * 0.5f + 0.5f, clamp_normal_mask) << clamp_normal_offset);
-    return make_uint4(buffer_base_and_properties, tags, tri_count, shadow_inter_clamp);
+    return make_uint4(buffer_base_and_properties, tags, primitive_count, shadow_inter_clamp);
 }
 
 Shape::Handle Shape::Handle::decode(Expr<uint4> compressed) noexcept {

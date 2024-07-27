@@ -20,7 +20,8 @@ add_library(luisa-render-util SHARED
         polymorphic_closure.h
         command_buffer.cpp command_buffer.h
         thread_pool.cpp thread_pool.h
-        mesh_base.cpp mesh_base.h)
+        mesh_base.cpp mesh_base.h
+        spheres_base.cpp spheres_base.h)
 
 find_package(Threads)
 

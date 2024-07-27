@@ -118,17 +118,17 @@ public:
 };
 
 
-class SphereGroupGeometry : public ShapeGeometry {
+class SpheresMeshGeometry : public ShapeGeometry {
 
 private:
     int _num_spheres = 0u;
 
 public:
-    SphereGroupGeometry(
+    SpheresMeshGeometry(
         const luisa::vector<float> &centers,
         const luisa::vector<float> &radii, uint subdiv
     ) noexcept;
-    [[nodiscard]] static std::shared_future<SphereGroupGeometry> create(
+    [[nodiscard]] static std::shared_future<SpheresMeshGeometry> create(
         luisa::vector<float> centers,
         luisa::vector<float> radii, uint subdiv
     ) noexcept;

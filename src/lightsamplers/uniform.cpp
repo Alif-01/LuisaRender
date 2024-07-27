@@ -104,35 +104,50 @@ public:
 
 
 private:
-    // [[nodiscard]] auto _sample_area(Expr<float3> p_from,
-    //                                 Expr<uint> tag,
-    //                                 Expr<float2> u_in) const noexcept {
-    //     auto handle = pipeline().buffer<Light::Handle>(_light_buffer_id).read(tag);
-    //     auto light_inst = pipeline().geometry()->instance(handle.instance_id);
-    //     auto light_to_world = pipeline().geometry()->instance_to_world(handle.instance_id);
-    //     auto alias_table_buffer_id = light_inst.alias_table_buffer_id();
-    //     auto [prim_id, ux] = sample_alias_table(
-    //         pipeline().buffer<AliasEntry>(alias_table_buffer_id),
-    //         light_inst.primitive_count(), u_in.x);
-    //     auto attrib = pipeline().geometry()->shading_point(light_inst, triangle, uvw, light_to_world);
-    //     return luisa::make_shared<Interaction>(
-    //         std::move(light_inst), handle.instance_id, prim_id,
-    //         std::move(attrib), dot(attrib.g.n, p_from - attrib.g.p) < 0.f);
-    // }
+    [[nodiscard]] auto _sample_area(Expr<float3> p_from,
+                                    Expr<uint> tag,
+                                    Expr<float2> u_in) const noexcept {
+        auto handle = pipeline().buffer<Light::Handle>(_light_buffer_id).read(tag);
+        auto light_inst = pipeline().geometry()->instance(handle.instance_id);
+        auto light_to_world = pipeline().geometry()->instance_to_world(handle.instance_id);
+        auto alias_table_buffer_id = light_inst.alias_table_buffer_id();
+        auto [prim_id, ux] = sample_alias_table(
+            pipeline().buffer<AliasEntry>(alias_table_buffer_id),
+            light_inst.primitive_count(), u_in.x);
 
-    // [[nodiscard]] Light::Sample _sample_light(const Interaction &it_from,
-    //                                           Expr<uint> tag, Expr<float2> u,
-    //                                           const SampledWavelengths &swl,
-    //                                           Expr<float> time) const noexcept override {
-    //     LUISA_ASSERT(!pipeline().lights().empty(), "No lights in the scene.");
-    //     auto it = _sample_area(it_from.p(), tag, u);
-    //     auto eval = Light::Evaluation::zero(swl.dimension());
-    //     pipeline().lights().dispatch(it->shape().light_tag(), [&](auto light) noexcept {
-    //         auto closure = light->closure(swl, time);
-    //         eval = closure->evaluate(*it, it_from.p_shading());
-    //     });
-    //     return {.eval = std::move(eval), .p = it->p()};
-    // }
+        luisa::shared_ptr<Interaction> it;
+        $if (light_inst.is_triangle()) {
+            auto triangle = pipeline().geometry()->triangle(light_inst, prim_id);
+            auto uvw = sample_uniform_triangle(make_float2(ux, u_in.y));
+            auto attrib = pipeline().geometry()->shading_point(light_inst, triangle, uvw, light_to_world);
+            it = luisa::make_shared<Interaction>(
+                std::move(light_inst), handle.instance_id, prim_id,
+                std::move(attrib), dot(attrib.g.n, p_from - attrib.g.p) < 0.f);
+        }
+        $else {
+            auto aabb = pipeline().geometry()->aabb(light_inst, prim_id);
+            auto w = sample_uniform_sphere(make_float2(ux, u_in.y));
+            auto attrib = pipeline().geometry()->geometry_point(light_inst, aabb, w, light_to_world);
+            it = luisa::make_shared<Interaction>(
+                std::move(light_inst), handle.instance_id, prim_id,
+                attrib.area, attrib.p, attrib.n, dot(attrib.n, p_from - attrib.p) < 0.f);
+        };
+        return std::move(it);
+    }
+
+    [[nodiscard]] Light::Sample _sample_light(const Interaction &it_from,
+                                              Expr<uint> tag, Expr<float2> u,
+                                              const SampledWavelengths &swl,
+                                              Expr<float> time) const noexcept override {
+        LUISA_ASSERT(!pipeline().lights().empty(), "No lights in the scene.");
+        auto it = _sample_area(it_from.p(), tag, u);
+        auto eval = Light::Evaluation::zero(swl.dimension());
+        pipeline().lights().dispatch(it->shape().light_tag(), [&](auto light) noexcept {
+            auto closure = light->closure(swl, time);
+            eval = closure->evaluate(*it, it_from.p_shading());
+        });
+        return {.eval = std::move(eval), .p = it->p()};
+    }
 
     [[nodiscard]] Environment::Sample _sample_environment(Expr<float2> u,
                                                           const SampledWavelengths &swl,

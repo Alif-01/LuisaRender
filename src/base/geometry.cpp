@@ -77,7 +77,7 @@ void Geometry::_process_shape(
 
                 // compute alias table
                 primitive_areas.resize(triangles.size());
-                for (auto i = 0u; i < triangles.size(); i++) {
+                for (auto i = 0u; i < triangles.size(); ++i) {
                     auto t = triangles[i];
                     auto p0 = vertices[t.i0].position();
                     auto p1 = vertices[t.i1].position();
@@ -100,7 +100,7 @@ void Geometry::_process_shape(
 
                 // compute alias table
                 primitive_areas.resize(aabbs.size());
-                for (auto i = 0u; i < triangles.size(); i++) {
+                for (auto i = 0u; i < aabbs.size(); ++i) {
                     auto diameter = aabbs[i].packed_max[0] - aabbs[i].packed_min[0];
                     primitive_areas[i] = diameter * diameter;
                 }
@@ -113,8 +113,6 @@ void Geometry::_process_shape(
             auto [alias_table_buffer_view, alias_table_index, alias_buffer_id] = _pipeline.bindless_buffer<AliasEntry>(alias_table.size());
             auto [pdf_buffer_view, pdf_index, pdf_buffer_id] = _pipeline.bindless_buffer<float>(pdf.size());
             _resource_store.insert(_resource_store.end(), {alias_table_index, pdf_index});
-            // LUISA_ASSERT(alias_buffer_id - vertex_buffer_id == Shape::Handle::alias_table_buffer_id_offset, "Invalid.");
-            // LUISA_ASSERT(pdf_buffer_id - vertex_buffer_id == Shape::Handle::pdf_buffer_id_offset, "Invalid.");
             command_buffer << alias_table_buffer_view.copy_from(alias_table.data())
                            << pdf_buffer_view.copy_from(pdf.data())
                            << compute::commit();
@@ -127,25 +125,6 @@ void Geometry::_process_shape(
         if (shape->is_mesh()) {
             properties |= Shape::property_flag_triangle;
         }
-
-        //     // assign mesh data
-        //     MeshData mesh_data{
-        //         .resource = shape_geom.resource,
-        //         .shadow_term = Shape::Handle::encode_fixed_point(
-        //             shape->has_vertex_normal() ? shape->shadow_terminator_factor() : 0.f,
-        //             Shape::Handle::shadow_term_mask
-        //         ),
-        //         .intersection_offset = Shape::Handle::encode_fixed_point(
-        //             shape->intersection_offset_factor(), Shape::Handle::inter_offset_mask
-        //         ),
-        //         .clamp_normal = Shape::Handle::encode_fixed_point(
-        //             shape->clamp_normal_factor() * 0.5f + 0.5f, Shape::Handle::clamp_normal_mask
-        //         ),
-        //         .geometry_buffer_id_base = mesh_geom.buffer_id_base,
-        //         .vertex_properties = shape->vertex_properties()};
-        //     // _meshes[shape] = mesh_data;
-        //     return mesh_data;
-        // }();
 
         // transform
         auto [t_node, is_static] = _transform_tree.leaf(shape->transform());
@@ -163,9 +142,11 @@ void Geometry::_process_shape(
             }
         } else {     // just a coarse boundary
             auto aabbs = shape->spheres().aabbs;
-            for (const auto &aabb: aabbs) {
-                auto tmin = make_float3(object_to_world * make_float4(aabb.packed_min, 1.f));
-                auto tmax = make_float3(object_to_world * make_float4(aabb.packed_max, 1.f));
+            for (const auto &ab: aabbs) {
+                auto tmin = make_float3(object_to_world * make_float4(
+                    ab.packed_min[0], ab.packed_min[1], ab.packed_min[2], 1.f));
+                auto tmax = make_float3(object_to_world * make_float4(
+                    ab.packed_max[0], ab.packed_max[1], ab.packed_max[2], 1.f));
                 _world_max = max(max(_world_max, tmax), tmin);
                 _world_min = min(min(_world_min, tmin), tmax);
             }
@@ -199,14 +180,17 @@ void Geometry::_process_shape(
         }
 
         // emplace instance here since we need to know the opaque property
-        auto resource = shape->is_mesh()
-            ? (Mesh *)(shape_geom.resource)
-            : (ProceduralPrimitive *)(shape_geom.resource);
-        _accel.emplace_back(
-            *resource, object_to_world, visible,
-            (properties & Shape::property_flag_maybe_non_opaque) == 0u,
-            instance_id
-        );
+        if (shape->is_mesh()) {
+            _accel.emplace_back(
+                *(Mesh *)(shape_geom.resource), object_to_world, visible,
+                (properties & Shape::property_flag_maybe_non_opaque) == 0u, instance_id
+            );
+        } else {
+            _accel.emplace_back(
+                *(ProceduralPrimitive *)(shape_geom.resource), object_to_world,
+                visible, instance_id
+            );
+        }
 
         _instances.emplace_back(Shape::Handle::encode(
             shape_geom.buffer_id_base, properties,
@@ -217,8 +201,11 @@ void Geometry::_process_shape(
         ));
 
         LUISA_INFO(
-            "Instance {}: dyna:{} matrix:{} accel:{}",
-            shape->impl_type(), _dynamic_transforms.size(), object_to_world, _accel.size()
+            "Instance {}: accel: {}, instance_id: {}, num_dyna: {}, matrix: {}, "
+            "surface: {}, light: {}, medium: {}, properties: {}, prim_count: {}",
+            shape->impl_type(), _accel.size(), instance_id,
+            _dynamic_transforms.size(), object_to_world,
+            surface_tag, light_tag, medium_tag, properties, primitive_areas.size()
         );
             
     } else {
@@ -271,12 +258,12 @@ Bool Geometry::_alpha_skip(const Var<Ray> &ray, const Var<ProceduralHit> &hit) c
 void Geometry::_procedural_filter(ProceduralCandidate &c) const noexcept {
     Var<ProceduralHit> h = c.hit();
     Var<Ray> ray = c.ray();
-    Var<AABB> aabb = aabb(instance(h.inst), h.prim);
+    Var<AABB> ab = aabb(instance(h.inst), h.prim);
     Float4x4 shape_to_world = instance_to_world(h.inst);
     Float3x3 m = make_float3x3(shape_to_world);
     Float3 t = make_float3(shape_to_world[3]);
-    Float3 aabb_min = m * aabb->min() + t;
-    Float3 aabb_max = m * aabb->max() + t;
+    Float3 aabb_min = m * ab->min() + t;
+    Float3 aabb_max = m * ab->max() + t;
 
     Float3 origin = (aabb_min + aabb_max) * .5f;
     Float radius = length(aabb_max - aabb_min) * .5f * inv_sqrt3;
@@ -302,16 +289,14 @@ bool Geometry::update(CommandBuffer &command_buffer, float time) noexcept {
         updated = true;
         if (_dynamic_transforms.size() < 128u) {
             for (auto t : _dynamic_transforms) {
-                _accel.set_transform_on_update(
-                    t.instance_id(), t.matrix(time));
+                _accel.set_transform_on_update(t.instance_id(), t.matrix(time));
             }
         } else {
             global_thread_pool().parallel(
                 _dynamic_transforms.size(),
                 [this, time](auto i) noexcept {
                     auto t = _dynamic_transforms[i];
-                    _accel.set_transform_on_update(
-                        t.instance_id(), t.matrix(time));
+                    _accel.set_transform_on_update(t.instance_id(), t.matrix(time));
                 });
             global_thread_pool().synchronize();
         }
@@ -328,7 +313,6 @@ Var<CommittedHit> Geometry::trace_closest(const Var<Ray> &ray_in) const noexcept
                 this->_procedural_filter(c);
             })
             .trace();
-        // return Var<Hit>{hit.inst, hit.prim, hit.bary};
     } else {
         return _accel->traverse(ray_in, {})
             .on_surface_candidate([&](SurfaceCandidate &c) noexcept {
@@ -343,7 +327,6 @@ Var<CommittedHit> Geometry::trace_closest(const Var<Ray> &ray_in) const noexcept
             })
             .trace();
     }
-    // return Var<Hit>{rq_hit.inst, rq_hit.prim, rq_hit.bary};
     // TODO: DirectX has bug with ray query, so we manually march the ray here
 //     if (_pipeline.device().backend_name() == "dx") {
 //         auto ray = ray_in;
@@ -377,13 +360,13 @@ Var<CommittedHit> Geometry::trace_closest(const Var<Ray> &ray_in) const noexcept
 Var<bool> Geometry::trace_any(const Var<Ray> &ray) const noexcept {
     if (!_any_non_opaque) {
         // happy path
-        return !_accel->traverse_any(ray_in, {})
+        return !_accel->traverse_any(ray, {})
             .on_procedural_candidate([&](ProceduralCandidate &c) noexcept {
                 this->_procedural_filter(c);
             })
             .trace()->miss();
     } else {
-        return !_accel->traverse_any(ray_in, {})
+        return !_accel->traverse_any(ray, {})
             .on_surface_candidate([&](SurfaceCandidate &c) noexcept {
                 $if (!this->_alpha_skip(c.ray(), c.hit())) {
                     c.commit();
@@ -438,11 +421,8 @@ luisa::shared_ptr<Interaction> Geometry::interaction(
 luisa::shared_ptr<Interaction> Geometry::interaction(
     const Var<Ray> &ray, const Var<ProceduralHit> &hit
 ) const noexcept {
-    Interaction it;
-    $if (!hit->miss()) {
-        it = aabb_interaction(ray, hit.inst, hit.prim);
-    };
-    return luisa::make_shared<Interaction>(std::move(it));
+    return luisa::make_shared<Interaction>(
+        aabb_interaction(ray, hit.inst, hit.prim));
 }
 
 luisa::shared_ptr<Interaction> Geometry::interaction(
@@ -512,13 +492,13 @@ GeometryAttribute Geometry::geometry_point(
 }
 
 GeometryAttribute Geometry::geometry_point(
-    const Shape::Handle &instance, const Var<AABB> &aabb,
+    const Shape::Handle &instance, const Var<AABB> &ab,
     const Var<float3> &w, const Var<float4x4> &shape_to_world
 ) const noexcept {
     auto m = make_float3x3(shape_to_world);
     auto t = make_float3(shape_to_world[3]);
-    auto aabb_min = aabb->min();
-    auto aabb_max = aabb->max();
+    auto aabb_min = ab->min();
+    auto aabb_max = ab->max();
     auto o_local = (aabb_min + aabb_max) * .5f;
     
     auto p = m * (o_local + w) + t;
@@ -533,14 +513,10 @@ ShadingAttribute Geometry::shading_point(
     const Shape::Handle &instance, const Var<Triangle> &triangle,
     const Var<float3> &bary, const Var<float4x4> &shape_to_world
 ) const noexcept {
-    // auto v_buffer = instance.vertex_buffer_id();
     auto clamp_cos_angle = instance.clamp_normal_factor();
     auto v0 = vertex(instance, triangle.i0);
     auto v1 = vertex(instance, triangle.i1);
     auto v2 = vertex(instance, triangle.i2);
-    // auto v0 = _pipeline.buffer<Vertex>(v_buffer).read(triangle.i0);
-    // auto v1 = _pipeline.buffer<Vertex>(v_buffer).read(triangle.i1);
-    // auto v2 = _pipeline.buffer<Vertex>(v_buffer).read(triangle.i2);
 
     // object space
     auto p0_local = v0->position();
@@ -568,9 +544,6 @@ ShadingAttribute Geometry::shading_point(
     auto n0_local = clamp_normal_angle(v0->normal(), ng_local, clamp_cos_angle);
     auto n1_local = clamp_normal_angle(v1->normal(), ng_local, clamp_cos_angle);
     auto n2_local = clamp_normal_angle(v2->normal(), ng_local, clamp_cos_angle);
-    // auto n0_local = v0->normal();
-    // auto n1_local = v1->normal();
-    // auto n2_local = v2->normal();
     auto ns_local = tri_interpolate(bary, n0_local, n1_local, n2_local);
 
     auto p = m * tri_interpolate(bary, p0_local, p1_local, p2_local) + t;
@@ -593,13 +566,13 @@ ShadingAttribute Geometry::shading_point(
 }
 
 ShadingAttribute Geometry::shading_point(
-    const Shape::Handle &instance, const Var<AABB> &aabb,
+    const Shape::Handle &instance, const Var<AABB> &ab,
     const Var<Ray> &ray, const Var<float4x4> &shape_to_world
 ) const noexcept {
     auto m = make_float3x3(shape_to_world);
     auto t = make_float3(shape_to_world[3]);
-    auto aabb_min = m * aabb->min() + t;
-    auto aabb_max = m * aabb->max() + t;
+    auto aabb_min = m * ab->min() + t;
+    auto aabb_max = m * ab->max() + t;
     auto origin = (aabb_min + aabb_max) * .5f;
     auto radius = length(aabb_max - aabb_min) * .5f * inv_sqrt3;
     
@@ -612,7 +585,7 @@ ShadingAttribute Geometry::shading_point(
     auto t1c = sqrt(tc * tc - d_oc * d_oc + radius * radius);
     auto dist = tc - t1c;
 
-    auto p = origin + dir * dist;
+    auto p = ray_origin + dir * dist;
     auto ng = normalize(p - origin);
     auto area = 4 * pi * radius * radius;
 

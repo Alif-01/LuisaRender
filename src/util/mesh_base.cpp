@@ -85,7 +85,7 @@ std::shared_future<SphereGeometry> SphereGeometry::create(uint subdiv) noexcept 
     return future;
 }
 
-SphereGroupGeometry::SphereGroupGeometry(
+SpheresMeshGeometry::SpheresMeshGeometry(
     const luisa::vector<float> &centers, const luisa::vector<float> &radii, uint subdiv
 ) noexcept {
     if (centers.size() % 3u != 0u ||
@@ -125,12 +125,12 @@ SphereGroupGeometry::SphereGroupGeometry(
     }
 }
 
-std::shared_future<SphereGroupGeometry> SphereGroupGeometry::create(
+std::shared_future<SpheresMeshGeometry> SpheresMeshGeometry::create(
     luisa::vector<float> centers, luisa::vector<float> radii, uint subdiv
 ) noexcept {
     return global_thread_pool().async(
         [centers = std::move(centers), radii = std::move(radii), subdiv = subdiv] { 
-            return SphereGroupGeometry(centers, radii, subdiv);
+            return SpheresMeshGeometry(centers, radii, subdiv);
         }
     );
 }

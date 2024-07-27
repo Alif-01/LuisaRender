@@ -9,6 +9,8 @@
 
 namespace luisa::render {
 
+using compute::AABB;
+
 class ProceduralGeometry {
 
 protected:
@@ -16,23 +18,23 @@ protected:
 
 public:
     ProceduralGeometry() noexcept = default;
-    [[nodiscard]] const luisa::vector<Vertex> &aabbs() const noexcept { return _aabbs; }
+    [[nodiscard]] const luisa::vector<AABB> &aabbs() const noexcept { return _aabbs; }
     [[nodiscard]] virtual luisa::string info() const noexcept {
         return luisa::format("num_aabbs={}", _aabbs.size());
     }
 };
 
-class SphereGroupGeometry : public ProceduralGeometry {
+class SpheresProceduralGeometry : public ProceduralGeometry {
 
 private:
     int _num_spheres = 0u;
 
 public:
-    SphereGroupGeometry(
+    SpheresProceduralGeometry(
         const luisa::vector<float> &centers,
         const luisa::vector<float> &radii
     ) noexcept;
-    [[nodiscard]] static std::shared_future<SphereGroupGeometry> create(
+    [[nodiscard]] static std::shared_future<SpheresProceduralGeometry> create(
         luisa::vector<float> centers,
         luisa::vector<float> radii
     ) noexcept;

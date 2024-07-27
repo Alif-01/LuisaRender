@@ -5,7 +5,6 @@
 #include <future>
 
 #include <base/shape.h>
-// #include <util/mesh_base.h>
 #include <util/spheres_base.h>
 
 namespace luisa::render {
@@ -13,29 +12,21 @@ namespace luisa::render {
 class SphereGroup : public Shape {
 
 private:
-    std::shared_future<SphereGroupGeometry> _geometry;
+    std::shared_future<SpheresProceduralGeometry> _geometry;
     uint _subdiv;
 
 public:
     SphereGroup(Scene *scene, const SceneNodeDesc *desc) noexcept :
         Shape{scene, desc},
         _subdiv{desc->property_uint_or_default("subdivision", 0u)} { 
-        // _geometry = SphereGroupGeometry::create(
-        //     desc->property_float_list("centers"),
-        //     desc->property_float_list("radii"), _subdiv
-        // );
-        _geometry = SphereGroupGeometry::create(
+        _geometry = SpheresProceduralGeometry::create(
             desc->property_float_list("centers"),
             desc->property_float_list("radii")
         );
     }
 
     [[nodiscard]] bool update(Scene *scene, const SceneNodeDesc *desc) noexcept override {
-        // _geometry = SphereGroupGeometry::create(
-        //     desc->property_float_list("centers"),
-        //     desc->property_float_list("radii"), _subdiv
-        // );
-        _geometry = SphereGroupGeometry::create(
+        _geometry = SpheresProceduralGeometry::create(
             desc->property_float_list("centers"),
             desc->property_float_list("radii")
         );
@@ -47,28 +38,20 @@ public:
     }
 
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
-    // [[nodiscard]] bool is_mesh() const noexcept override { return true; }
     [[nodiscard]] bool is_spheres() const noexcept override { return true; }
     [[nodiscard]] bool empty() const noexcept override { 
-        // const SphereGroupGeometry &g = _geometry.get();
-        // return g.vertices().empty() || g.triangles().empty();
-        // const SphereGroupGeometry &g = _geometry.get();
         return _geometry.get().aabbs().empty();
     }
-    // [[nodiscard]] MeshView mesh() const noexcept override {
-    //     const SphereGroupGeometry &g = _geometry.get();
-    //     return { g.vertices(), g.triangles() };
-    // }
     [[nodiscard]] SpheresView spheres() const noexcept override {
         return { _geometry.get().aabbs() };
     }
-    // [[nodiscard]] uint vertex_properties() const noexcept override { 
-    //     return Shape::property_flag_has_vertex_normal |
-    //            Shape::property_flag_has_vertex_uv;
-    // }
+    [[nodiscard]] uint vertex_properties() const noexcept override { 
+        return Shape::property_flag_has_vertex_normal |
+               Shape::property_flag_has_vertex_uv;
+    }
 };
 
-using SphereGroupWrapper = VisibilityShapeWrapper<ShadingShapeWrapper<SphereGroup>>;
+using SphereGroupWrapper = VisibilityShapeWrapper<SphereGroup>;
 
 }// namespace luisa::render
 
