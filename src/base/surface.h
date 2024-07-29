@@ -149,6 +149,7 @@ protected:
 
 public:
     Surface(Scene *scene, const SceneNodeDesc *desc) noexcept;
+    virtual bool update(Scene *scene, const SceneNodeDesc *desc) noexcept override;
     [[nodiscard]] virtual uint properties() const noexcept = 0;
     [[nodiscard]] virtual bool is_null() const noexcept { return false; }
     [[nodiscard]] auto is_reflective() const noexcept { return static_cast<bool>(properties() & property_reflective); }
