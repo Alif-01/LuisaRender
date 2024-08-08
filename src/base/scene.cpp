@@ -30,7 +30,7 @@ namespace luisa::render {
 struct Scene::Config {
     float shadow_terminator{0.f};
     float intersection_offset{0.f};
-    float clamp_normal{0.f};
+    float clamp_normal{-1.f};
     luisa::vector<NodeHandle> internal_nodes;
     luisa::unordered_map<luisa::string, NodeHandle> nodes;
     Integrator *integrator{nullptr};
