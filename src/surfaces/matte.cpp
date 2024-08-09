@@ -24,12 +24,7 @@ public:
         : Surface{scene, desc},
           _kd{scene->load_texture(desc->property_node_or_default("Kd"))},
           _sigma{scene->load_texture(desc->property_node_or_default("sigma"))} {}
-
-    // MatteSurface(Scene *scene, const RawSurfaceInfo &surface_info) noexcept
-    //     : Surface{scene},
-    //       _kd{scene->add_texture("matte_kd", surface_info.plastic_info->kd)},
-    //       _sigma{nullptr} {}
-
+    
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] uint properties() const noexcept override { return property_reflective; }
 
@@ -145,9 +140,3 @@ using NormalMapOpacityMatteSurface = NormalMapWrapper<OpacitySurfaceWrapper<
 }// namespace luisa::render
 
 LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::NormalMapOpacityMatteSurface)
-
-// LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
-//     luisa::render::Scene *scene,
-//     const luisa::render::RawSurfaceInfo &surface_info) LUISA_NOEXCEPT {
-//     return luisa::new_with_allocator<luisa::render::NormalMapOpacityMatteSurface>(scene, surface_info);
-// }

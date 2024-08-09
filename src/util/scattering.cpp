@@ -75,12 +75,10 @@ SampledSpectrum fresnel_conductor(
 
 Float3 clamp_normal_angle(Float3 v, Float3 n, Float clamp) noexcept {
     auto cosTheta = dot(v, n);
-    auto k = cross(v, n);
-    auto k_norm = length(k);
-    auto nk = k * (1 / k_norm);
+    auto k = normalize(cross(v, n));
     auto cosClamp = cos(clamp);
     auto v_clamp = n * cosClamp - cross(k, n) * sin(clamp);
-    return ite(k_norm == 0.f, v, ite(cosTheta < cosClamp, v_clamp, v));
+    return ite(cosTheta < cosClamp, v_clamp, v);
 }
 
 Float3 face_forward(Float3 v, Float3 n) noexcept {

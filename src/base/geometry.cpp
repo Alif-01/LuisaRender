@@ -197,7 +197,7 @@ void Geometry::_process_shape(
             surface_tag, light_tag, medium_tag, primitive_areas.size(),
             shape->has_vertex_normal() ? shape->shadow_terminator_factor() : 0.f,
             shape->intersection_offset_factor(),
-            radian(shape->clamp_normal_factor())
+            radians(shape->clamp_normal_factor())
         ));
 
         LUISA_INFO(

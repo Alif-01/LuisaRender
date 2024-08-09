@@ -35,8 +35,7 @@ class IndependentSampler final : public Sampler {
 public:
     IndependentSampler(Scene *scene, const SceneNodeDesc *desc) noexcept
         : Sampler{scene, desc} {}
-    // IndependentSampler(Scene *scene, const RawSamplerInfo &sampler_info) noexcept
-    //     : Sampler{scene} {}
+    
     [[nodiscard]] luisa::unique_ptr<Instance> build(
         Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept override {
         return luisa::make_unique<IndependentSamplerInstance>(pipeline, this);
@@ -86,8 +85,3 @@ Float2 IndependentSamplerInstance::generate_2d() noexcept {
 }// namespace luisa::render
 
 LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::IndependentSampler)
-
-// LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
-//     luisa::render::Scene *scene, const luisa::render::RawSamplerInfo &sampler_info) LUISA_NOEXCEPT {
-//     return luisa::new_with_allocator<luisa::render::IndependentSampler>(scene, sampler_info);
-// }

@@ -10,7 +10,6 @@ struct NullSurface final : public Surface {
 
 public:
     NullSurface(Scene *scene, const SceneNodeDesc *desc) noexcept : Surface{scene, desc} {}
-    // NullSurface(Scene *scene, const RawSurfaceInfo &surface_info) noexcept : Surface{scene} {}
     [[nodiscard]] bool is_null() const noexcept override { return true; }
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] uint properties() const noexcept override { return 0u; }
@@ -25,9 +24,3 @@ private:
 }// namespace luisa::render
 
 LUISA_RENDER_MAKE_SCENE_NODE_PLUGIN(luisa::render::NullSurface)
-
-// LUISA_EXPORT_API luisa::render::SceneNode *create_raw(
-//     luisa::render::Scene *scene,
-//     const luisa::render::RawSurfaceInfo &surface_info) LUISA_NOEXCEPT {
-//     return luisa::new_with_allocator<luisa::render::NullSurface>(scene, surface_info);
-// }
