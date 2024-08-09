@@ -143,7 +143,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
             py::arg("transform").none(true) = py::none(),
             py::arg("surface").none(true) = py::none(),
             py::arg("emission").none(true) = py::none(),
-            py::arg("clamp_normal") = -1.f)
+            py::arg("clamp_normal") = 180.f)
         .def("update", &PyRigid::update,
             py::arg("transform").none(false) = py::none());
     py::class_<PyDeformable, PyShape>(m, "DeformableShape")
@@ -157,7 +157,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
             py::arg("uvs") = PyDoubleArr(),
             py::arg("surface").none(true) = py::none(),
             py::arg("emission").none(true) = py::none(),
-            py::arg("clamp_normal") = -1.f)
+            py::arg("clamp_normal") = 180.f)
         .def("update", &PyDeformable::update,
             py::arg("vertices"),
             py::arg("triangles"),
@@ -173,7 +173,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
             py::arg("subdivision") = 0u,
             py::arg("surface").none(true) = py::none(),
             py::arg("emission").none(true) = py::none(),
-            py::arg("clamp_normal") = -1.f)
+            py::arg("clamp_normal") = 180.f)
         .def("update", &PyParticles::update,
             py::arg("centers") = PyDoubleArr(),
             py::arg("radii") = PyDoubleArr());
@@ -253,7 +253,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
             py::arg("name"),
             py::arg("spectrum"),
             py::arg("integrator"),
-            py::arg("clamp_normal") = -1.f);
+            py::arg("clamp_normal") = 180.f);
 
     py::class_<PyScene>(m, "Scene")
         .def("init", &PyScene::init,

@@ -42,7 +42,7 @@ const Medium *Shape::medium() const noexcept { return _medium; }
 const Transform *Shape::transform() const noexcept { return _transform; }
 float Shape::shadow_terminator_factor() const noexcept { return 0.f; }
 float Shape::intersection_offset_factor() const noexcept { return 0.f; }
-float Shape::clamp_normal_factor() const noexcept { return -1.f; }
+float Shape::clamp_normal_factor() const noexcept { return 180.f; }
 
 bool Shape::is_mesh() const noexcept { return false; }
 bool Shape::is_spheres() const noexcept { return false; }
@@ -89,7 +89,7 @@ uint4 Shape::Handle::encode(
     auto shadow_inter_clamp =
         (encode_fixed_point(shadow_terminator, shadow_term_mask) << shadow_term_offset) |
         (encode_fixed_point(intersection_offset, inter_offset_mask) << inter_offset_offset) |
-        (encode_fixed_point(clamp_normal * 0.5f + 0.5f, clamp_normal_mask) << clamp_normal_offset);
+        (encode_fixed_point(clamp_normal * inv_pi, clamp_normal_mask) << clamp_normal_offset);
     return make_uint4(buffer_base_and_properties, tags, primitive_count, shadow_inter_clamp);
 }
 
@@ -110,7 +110,7 @@ Shape::Handle Shape::Handle::decode(Expr<uint4> compressed) noexcept {
     auto intersection_offset = decode_fixed_point(
         (shadow_intersect_clamp >> inter_offset_offset) & inter_offset_mask, inter_offset_mask);
     auto clamp_normal = decode_fixed_point(
-        (shadow_intersect_clamp >> clamp_normal_offset) & clamp_normal_mask, clamp_normal_mask) * 2.f - 1.f;
+        (shadow_intersect_clamp >> clamp_normal_offset) & clamp_normal_mask, clamp_normal_mask) * pi;
 
     // TODO: Why *255?
     return {buffer_base, flags, surface_tag, light_tag, medium_tag, triangle_buffer_size,

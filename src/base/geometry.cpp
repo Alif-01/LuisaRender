@@ -197,7 +197,7 @@ void Geometry::_process_shape(
             surface_tag, light_tag, medium_tag, primitive_areas.size(),
             shape->has_vertex_normal() ? shape->shadow_terminator_factor() : 0.f,
             shape->intersection_offset_factor(),
-            shape->clamp_normal_factor()
+            radian(shape->clamp_normal_factor())
         ));
 
         LUISA_INFO(
@@ -513,7 +513,6 @@ ShadingAttribute Geometry::shading_point(
     const Shape::Handle &instance, const Var<Triangle> &triangle,
     const Var<float3> &bary, const Var<float4x4> &shape_to_world
 ) const noexcept {
-    auto clamp_cos_angle = instance.clamp_normal_factor();
     auto v0 = vertex(instance, triangle.i0);
     auto v1 = vertex(instance, triangle.i1);
     auto v2 = vertex(instance, triangle.i2);
@@ -537,13 +536,14 @@ ShadingAttribute Geometry::shading_point(
     auto dpdv_local = (dp1_local * duv0.x - dp0_local * duv1.x) * inv_det;
 
     // world space
-    // clamp_normal_angle
+    // clamp normal
+    auto clamp_angle = instance.clamp_normal_factor();
     auto m = make_float3x3(shape_to_world);
     auto t = make_float3(shape_to_world[3]);
     auto ng_local = normalize(cross(dp0_local, dp1_local));
-    auto n0_local = clamp_normal_angle(v0->normal(), ng_local, clamp_cos_angle);
-    auto n1_local = clamp_normal_angle(v1->normal(), ng_local, clamp_cos_angle);
-    auto n2_local = clamp_normal_angle(v2->normal(), ng_local, clamp_cos_angle);
+    auto n0_local = clamp_normal_angle(v0->normal(), ng_local, clamp_angle);
+    auto n1_local = clamp_normal_angle(v1->normal(), ng_local, clamp_angle);
+    auto n2_local = clamp_normal_angle(v2->normal(), ng_local, clamp_angle);
     auto ns_local = tri_interpolate(bary, n0_local, n1_local, n2_local);
 
     auto p = m * tri_interpolate(bary, p0_local, p1_local, p2_local) + t;

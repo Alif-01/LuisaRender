@@ -30,7 +30,7 @@ namespace luisa::render {
 struct Scene::Config {
     float shadow_terminator{0.f};
     float intersection_offset{0.f};
-    float clamp_normal{-1.f};
+    float clamp_normal{180.f};
     luisa::vector<NodeHandle> internal_nodes;
     luisa::unordered_map<luisa::string, NodeHandle> nodes;
     Integrator *integrator{nullptr};
@@ -294,7 +294,7 @@ luisa::unique_ptr<Scene> Scene::create(const Context &ctx, const SceneDesc *desc
     auto scene = luisa::make_unique<Scene>(ctx);
     scene->_config->shadow_terminator = desc->root()->property_float_or_default("shadow_terminator", 0.f);
     scene->_config->intersection_offset = desc->root()->property_float_or_default("intersection_offset", 0.f);
-    scene->_config->clamp_normal = desc->root()->property_float_or_default("clamp_normal", -1.f);
+    scene->_config->clamp_normal = std::clamp(desc->root()->property_float_or_default("clamp_normal", 180.f), 0.f, 180.f);
 
     scene->_config->spectrum = scene->load_spectrum(
         desc->root()->property_node_or_default(

@@ -94,7 +94,7 @@ public:
         0.f, 1.f)},
         _clamp_normal{std::clamp(
             desc->property_float_or_default("clamp_normal", scene->clamp_normal_factor()),
-        -1.f, 1.f)} {}
+        0.f, 180.f)} {}
     
     [[nodiscard]] virtual luisa::string info() const noexcept override {
         return luisa::format("{} clamp_normal=[{}]", BaseShape::info(), _clamp_normal);
