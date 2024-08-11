@@ -78,7 +78,7 @@ Float3 clamp_normal_angle(Float3 v, Float3 n, Float clamp) noexcept {
     auto k = normalize(cross(v, n));
     auto cosClamp = cos(clamp);
     auto v_clamp = n * cosClamp - cross(k, n) * sin(clamp);
-    return ite(cosTheta < cosClamp, v_clamp, v);
+    return ite(cosTheta >= cosClamp - 1e-7f, v, v_clamp);
 }
 
 Float3 face_forward(Float3 v, Float3 n) noexcept {
