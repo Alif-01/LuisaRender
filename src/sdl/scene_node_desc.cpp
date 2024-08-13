@@ -29,14 +29,6 @@ void SceneNodeDesc::update_properties(SceneNodeDesc *node) noexcept {
 void SceneNodeDesc::add_property(luisa::string_view name, SceneNodeDesc::value_list value) noexcept {
     _properties[luisa::string(name)] = std::move(value);
 }
-// void SceneNodeDesc::add_property(luisa::string_view name, SceneNodeDesc::value_list value) noexcept {
-//     if (!_properties.emplace(luisa::string{name}, std::move(value)).second) {
-//         LUISA_ERROR(
-//             "Redefinition of property '{}' in "
-//             "scene description node '{}'. [{}]",
-//             name, _identifier, _location.string());
-//     }
-// }
 
 // void SceneNodeDesc::set_property(luisa::string_view name, SceneNodeDesc::value_list value) noexcept {
 //     if (!_properties.contains(luisa::string{name})) {
