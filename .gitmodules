@@ -3,7 +3,7 @@
 	url = https://github.com/jarro2783/cxxopts.git
 [submodule "src/ext/assimp"]
 	path = src/ext/assimp
-	url = https://github.com/assimp/assimp.git
+	url = https://github.com/ACMLCZH/assimp.git
 [submodule "src/ext/fast_float"]
 	path = src/ext/fast_float
 	url = https://github.com/fastfloat/fast_float.git
