@@ -278,7 +278,9 @@ void Geometry::_procedural_filter(ProceduralCandidate &c) const noexcept {
         $if (d <= radius) {
             Float t1c = sqrt(radius * radius - d * d);
             Float dist = tc - t1c;
-            c.commit(dist);
+            $if (dist < ray->t_max()) {
+                c.commit(dist);
+            };
         };
     };
 }

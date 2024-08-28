@@ -115,12 +115,14 @@ private:
             pipeline().buffer<AliasEntry>(alias_table_buffer_id),
             light_inst.primitive_count(), u_in.x);
 
-        luisa::shared_ptr<Interaction> it;
+        Interaction it;
         $if (light_inst.is_triangle()) {
             auto triangle = pipeline().geometry()->triangle(light_inst, prim_id);
             auto uvw = sample_uniform_triangle(make_float2(ux, u_in.y));
             auto attrib = pipeline().geometry()->shading_point(light_inst, triangle, uvw, light_to_world);
-            it = luisa::make_shared<Interaction>(
+            // auto attrib = pipeline().geometry()->geometry_point(light_inst, triangle, uvw, light_to_world);
+        
+            it = Interaction(
                 std::move(light_inst), handle.instance_id, prim_id,
                 std::move(attrib), dot(attrib.g.n, p_from - attrib.g.p) < 0.f);
         }
@@ -128,11 +130,11 @@ private:
             auto aabb = pipeline().geometry()->aabb(light_inst, prim_id);
             auto w = sample_uniform_sphere(make_float2(ux, u_in.y));
             auto attrib = pipeline().geometry()->geometry_point(light_inst, aabb, w, light_to_world);
-            it = luisa::make_shared<Interaction>(
+            it = Interaction(
                 std::move(light_inst), handle.instance_id, prim_id,
                 attrib.area, attrib.p, attrib.n, dot(attrib.n, p_from - attrib.p) < 0.f);
         };
-        return std::move(it);
+        return luisa::make_shared<Interaction>(std::move(it));
     }
 
     [[nodiscard]] Light::Sample _sample_light(const Interaction &it_from,
