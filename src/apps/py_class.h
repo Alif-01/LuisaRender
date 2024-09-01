@@ -40,28 +40,36 @@ enum LogLevel: uint { VERBOSE, INFO, WARNING };
 class PyDesc {
 public:
     using ref_pair = std::pair<luisa::string, luisa::string>;
-    struct cache {
-        cache(luisa::string_view name, SceneNodeTag tag, luisa::string_view impl_type) noexcept:
+    struct DefineCache {
+        DefineCache(luisa::string_view name, SceneNodeTag tag, luisa::string_view impl_type) noexcept:
             node{luisa::make_unique<SceneNodeDesc>(luisa::string(name), tag)},
             name{luisa::string(name)},
             impl_type{luisa::string(impl_type)} {
         }
         luisa::unique_ptr<SceneNodeDesc> node;
         luisa::string name, impl_type;
-        luisa::unordered_map<luisa::string, const SceneNodeDesc *> references;
+        // luisa::unordered_map<luisa::string, const SceneNodeDesc *> references;
+    };
+    struct ReferCache {
+        ReferCache(const SceneNodeDesc *node, luisa::string_view property_name, const SceneNodeDesc *property_node) noexcept:
+            node{node}, property_node{property_node},
+            property_name{luisa::string(property_name)} {    
+        }
+        const SceneNodeDesc *node, *property_node;
+        luisa::string property_name;
     };
 
     PyDesc(std::string_view name, SceneNodeTag tag, std::string_view impl_type) noexcept {
-        _node_cache.emplace_back(name, tag, impl_type);
-        _node = _node_cache.back().node.get();
+        _define_cache.emplace_back(name, tag, impl_type);
+        _node = _define_cache.back().node.get();
     }
     
     [[nodiscard]] auto node() const noexcept { return _node; }
-    auto &node_cache() const noexcept { return _node_cache; }
-    void clear_cache() noexcept { _node_cache.clear(); }
+    // [[nodiscard]] auto &node_cache() const noexcept { return _define_cache; }
+    void clear_cache() noexcept { _define_cache.clear(); }
     void move_property_cache(PyDesc *property, luisa::string_view property_name) noexcept {
         bool has_name = !_node->identifier().empty();
-        for (auto &c: property->_node_cache) {
+        for (auto &c: property->_define_cache) {
             if (c.node->identifier().empty()) {
                 c.name = luisa::format("{}.{}", property_name, c.name);
                 if (has_name) {
@@ -69,39 +77,50 @@ public:
                     c.node->set_identifier(c.name);
                 }
             }
-            _node_cache.emplace_back(std::move(c));
+            _define_cache.emplace_back(std::move(c));
         }
-        property->_node_cache.clear();
+        property->_define_cache.clear();
+
+        for (auto &c: property->_refer_cache) {
+            _refer_cache.emplace_back(std::move(c));
+        }
+        property->_refer_cache.clear();
     }
     void add_property_node(luisa::string_view name, PyDesc *property) noexcept {
         if (property) {
-            // _node->add_property(name, property->_node);
             add_reference(name, property);
             move_property_cache(property, name);
         }
     }
     void add_reference(luisa::string_view name, PyDesc *property) noexcept {
         if (property) [[likely]] {
-            _node_cache[0].references[luisa::string(name)] = property->node();
+            _refer_cache.emplace_back(_node, name, property->node());
         }
     }
     void define_in_scene(SceneDesc *scene_desc) noexcept {
-        for (auto i = _node_cache.size(); i-- > 0; ) {
-            auto &c = _node_cache[i];
-            auto node = scene_desc->define(std::move(c.node), c.impl_type);
-            for (auto &[k, v]: c.references) {
-                node->add_property(k, scene_desc->reference(v->identifier()));
-            }
-            // for (auto &p: c.references) {
-            //     node->add_property(p.first, scene_desc->reference(p.second));
-            // }
+        luisa::vector<luisa::string> property_names;
+        for (auto &c: _refer_cache) {
+            property_names.emplace_back(luisa::string(c.property_node->identifier()));
         }
-        _node_cache.clear();
+
+        for (auto i = _define_cache.size(); i-- > 0; ) {
+            auto &c = _define_cache[i];
+            auto node = scene_desc->define(std::move(c.node), c.impl_type);
+        }
+        _define_cache.clear();
+
+        for (auto i = _refer_cache.size(); i-- > 0; ) {
+            auto &c = _refer_cache[i];
+            auto node = scene_desc->node(c.node->identifier());
+            node->add_property(c.property_name, scene_desc->reference(property_names[i]));
+        }
+        _refer_cache.clear();
     }
     
 protected:
     SceneNodeDesc *_node;
-    luisa::vector<cache> _node_cache;
+    luisa::vector<DefineCache> _define_cache;
+    luisa::vector<ReferCache> _refer_cache;
 };
 
 
@@ -228,7 +247,6 @@ public:
         add_property_node("roughness", roughness);
         add_property_node("opacity", opacity);
         add_property_node("normal_map", normal_map);
-        // LUISA_INFO(roughness, a);
     }
 };
 

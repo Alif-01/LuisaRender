@@ -7,13 +7,12 @@
 
 namespace luisa::render {
 
-const SceneNodeDesc *SceneDesc::node(luisa::string_view identifier) const noexcept {
+SceneNodeDesc *SceneDesc::node(luisa::string_view identifier) const noexcept {
     if (auto iter = _global_nodes.find(identifier);
         iter != _global_nodes.cend()) {
         return iter->get();
     }
-    LUISA_ERROR_WITH_LOCATION(
-        "Global node '{}' not found in scene description.", identifier);
+    LUISA_ERROR_WITH_LOCATION("Global node '{}' not found in scene description.", identifier);
 }
 
 const SceneNodeDesc *SceneDesc::reference(luisa::string_view identifier) noexcept {

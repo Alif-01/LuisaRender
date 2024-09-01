@@ -36,15 +36,14 @@ public:
 private:
     luisa::unordered_set<luisa::unique_ptr<SceneNodeDesc>, NodeHash, NodeEqual> _global_nodes;
     luisa::vector<luisa::unique_ptr<std::filesystem::path>> _paths;
-    // luisa::unique_ptr<SceneNodeDesc> _root;
     SceneNodeDesc* _root;
     std::recursive_mutex _mutex;
 
 public:
     SceneDesc() noexcept = default;
     [[nodiscard]] auto &nodes() const noexcept { return _global_nodes; }
-    [[nodiscard]] const SceneNodeDesc *node(luisa::string_view identifier) const noexcept;
-    [[nodiscard]] auto root() const noexcept { return _root; }
+    [[nodiscard]] SceneNodeDesc *node(luisa::string_view identifier) const noexcept;
+    [[nodiscard]] SceneNodeDesc *root() const noexcept { return _root; }
     [[nodiscard]] const SceneNodeDesc *reference(luisa::string_view identifier) noexcept;
     [[nodiscard]] SceneNodeDesc *define(
         luisa::string_view identifier, SceneNodeTag tag, luisa::string_view impl_type,
