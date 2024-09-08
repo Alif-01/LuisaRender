@@ -233,11 +233,15 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
     py::class_<PyWavePath, PyIntegrator>(m, "WavePathIntegrator")
         .def(py::init<LogLevel, uint>(),
             py::arg("log_level") = LogLevel::WARNING,
-            py::arg("max_depth") = 32u);
+            py::arg("max_depth") = 32u,
+            py::arg("rr_depth") = 0u,
+            py::arg("rr_threshold") = 0.95f);
     py::class_<PyWavePathV2, PyIntegrator>(m, "WavePathV2Integrator")
         .def(py::init<LogLevel, uint, uint>(),
             py::arg("log_level") = LogLevel::WARNING,
             py::arg("max_depth") = 32u,
+            py::arg("rr_depth") = 0u,
+            py::arg("rr_threshold") = 0.95f,
             py::arg("state_limit") =  512u * 512u * 32u);
 
     // Spectrum
