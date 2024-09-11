@@ -231,13 +231,13 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
     // Integrator
     py::class_<PyIntegrator>(m, "Integrator");
     py::class_<PyWavePath, PyIntegrator>(m, "WavePathIntegrator")
-        .def(py::init<LogLevel, uint>(),
+        .def(py::init<LogLevel, uint, uint, float>(),
             py::arg("log_level") = LogLevel::WARNING,
             py::arg("max_depth") = 32u,
             py::arg("rr_depth") = 0u,
             py::arg("rr_threshold") = 0.95f);
     py::class_<PyWavePathV2, PyIntegrator>(m, "WavePathV2Integrator")
-        .def(py::init<LogLevel, uint, uint>(),
+        .def(py::init<LogLevel, uint, uint, float, uint>(),
             py::arg("log_level") = LogLevel::WARNING,
             py::arg("max_depth") = 32u,
             py::arg("rr_depth") = 0u,

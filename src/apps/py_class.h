@@ -48,7 +48,6 @@ public:
         }
         luisa::unique_ptr<SceneNodeDesc> node;
         luisa::string name, impl_type;
-        // luisa::unordered_map<luisa::string, const SceneNodeDesc *> references;
     };
     struct ReferCache {
         ReferCache(const SceneNodeDesc *node, luisa::string_view property_name, const SceneNodeDesc *property_node) noexcept:
@@ -65,7 +64,6 @@ public:
     }
     
     [[nodiscard]] auto node() const noexcept { return _node; }
-    // [[nodiscard]] auto &node_cache() const noexcept { return _define_cache; }
     void clear_cache() noexcept { _define_cache.clear(); }
     void move_property_cache(PyDesc *property, luisa::string_view property_name) noexcept {
         bool has_name = !_node->identifier().empty();
