@@ -82,7 +82,19 @@ public:
                 camera->color_buffer = luisa::make_unique<Buffer<float4>>(
                     _device.create_buffer<float4>(pixel_count));
                 camera->denoised_buffer = luisa::make_unique<Buffer<float4>>(
-                    _device.create_buffer<float4>(pixel_count)); 
+                    _device.create_buffer<float4>(pixel_count));
+                camera->denoiser = denoiser_ext->create(_stream);
+                auto input = DenoiserExt::DenoiserInput{resolution.x, resolution.y};
+                input.push_noisy_image(
+                    camera->color_buffer->view(),
+                    camera->denoised_buffer->view(),
+                    DenoiserExt::ImageFormat::FLOAT3,
+                    DenoiserExt::ImageColorSpace::HDR
+                );
+                input.noisy_features = false;
+                input.filter_quality = DenoiserExt::FilterQuality::DEFAULT;
+                input.prefilter_mode = DenoiserExt::PrefilterMode::NONE;
+                camera->denoiser->init(input);
             }
         }
     }
@@ -101,24 +113,9 @@ public:
 
         if (camera->denoise) {  // denoise image 
             Clock clock;
-            auto color_buffer = camera->color_buffer.get();
-            auto denoised_buffer = camera->denoised_buffer.get();
-            auto denoiser = denoiser_ext->create(_stream);
-            {
-                auto input = DenoiserExt::DenoiserInput{resolution.x, resolution.y};
-                input.push_noisy_image(
-                    color_buffer->view(), denoised_buffer->view(),
-                    DenoiserExt::ImageFormat::FLOAT3,
-                    DenoiserExt::ImageColorSpace::HDR
-                );
-                input.noisy_features = false;
-                input.filter_quality = DenoiserExt::FilterQuality::DEFAULT;
-                input.prefilter_mode = DenoiserExt::PrefilterMode::NONE;
-                denoiser->init(input);
-            }
-            _stream << color_buffer->copy_from(buffer_p) << synchronize();
-            denoiser->execute(true);
-            _stream << denoised_buffer->copy_to(buffer_p) << synchronize();
+            _stream << camera->color_buffer->copy_from(buffer_p) << synchronize();
+            camera->denoiser->execute(true);
+            _stream << camera->denoised_buffer->copy_to(buffer_p) << synchronize();
             auto denoise_time = clock.toc();
             LUISA_INFO("Denoised image in {} ms", denoise_time);
         }

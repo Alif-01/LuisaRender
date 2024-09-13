@@ -413,8 +413,9 @@ public:
     bool loaded{false};
     uint index{0};
     bool denoise{false};
-    luisa::unique_ptr<Buffer<float4>> color_buffer;
-    luisa::unique_ptr<Buffer<float4>> denoised_buffer;
+    luisa::unique_ptr<Buffer<float4>> color_buffer = nullptr;
+    luisa::unique_ptr<Buffer<float4>> denoised_buffer = nullptr;
+    luisa::shared_ptr<DenoiserExt::Denoiser> denoiser = nullptr;
 };
 
 class PyPinhole: public PyCamera {
