@@ -26,7 +26,7 @@ public:
         _scale{std::max(desc->property_float_or_default("scale", 1.0f), 0.0f)},
         _two_sided{desc->property_bool_or_default("two_sided", false)},
         _cos_half_angle{std::cos(radians(
-            std::clamp(desc->property_bool_or_default("angle", 180.f), 0.f, 180.f - 1e-4f) * 0.5
+            std::clamp(desc->property_float_or_default("angle", 180.f), 0.f, 180.f - 1e-4f) * 0.5
         ))} {}
 
     [[nodiscard]] luisa::string info() const noexcept override {
