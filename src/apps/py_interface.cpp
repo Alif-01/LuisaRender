@@ -95,9 +95,12 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
 
     // Light
     py::class_<PyLight>(m, "Light")
-        .def(py::init<std::string_view, PyTexture*>(),
+        .def(py::init<std::string_view, PyTexture*, float, bool, float>(),
             py::arg("name"),
-            py::arg("emission").none(true) = py::none());
+            py::arg("emission").none(true) = py::none(),
+            py::arg("intensity") = 1.0f,
+            py::arg("two_sided") = false,
+            py::arg("beam_angle") = 180.0f);
 
     // Surface
     py::class_<PySurface>(m, "Surface");

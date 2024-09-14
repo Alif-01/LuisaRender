@@ -228,9 +228,14 @@ public:
 // Lights
 class PyLight: public PyDesc {
 public:
-    PyLight(std::string_view name, PyTexture *emission) noexcept:
-        PyDesc{name, SceneNodeTag::LIGHT, "diffuse"} {
+    PyLight(
+        std::string_view name, PyTexture *emission, float intensity,
+        bool two_sided, float beam_angle
+    ) noexcept: PyDesc{name, SceneNodeTag::LIGHT, "diffuse"} {
         add_property_node("emission", emission);
+        _node->add_property("scale", intensity);
+        _node->add_property("two_sided", two_sided);
+        _node->add_property("angle", beam_angle);
     }
 };
 

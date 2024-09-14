@@ -16,23 +16,29 @@ private:
     const Texture *_emission;
     float _scale;
     bool _two_sided;
+    float _cos_half_angle;
 
 public:
-    DiffuseLight(Scene *scene, const SceneNodeDesc *desc) noexcept
-        : Light{scene, desc},
-          _emission{scene->load_texture(desc->property_node_or_default(
-              "emission", SceneNodeDesc::shared_default_texture("Constant")))},
-          _scale{std::max(desc->property_float_or_default("scale", 1.0f), 0.0f)},
-          _two_sided{desc->property_bool_or_default("two_sided", false)} {}
+    DiffuseLight(Scene *scene, const SceneNodeDesc *desc) noexcept:
+        Light{scene, desc},
+        _emission{scene->load_texture(desc->property_node_or_default(
+            "emission", SceneNodeDesc::shared_default_texture("Constant")))},
+        _scale{std::max(desc->property_float_or_default("scale", 1.0f), 0.0f)},
+        _two_sided{desc->property_bool_or_default("two_sided", false)},
+        _cos_half_angle{std::cos(radians(
+            std::clamp(desc->property_bool_or_default("angle", 180.f), 0.f, 180.f - 1e-4f) * 0.5
+        ))} {}
 
     [[nodiscard]] luisa::string info() const noexcept override {
         return luisa::format(
-            "{} emission=[{}]", Light::info(),
-            _emission ? _emission->info() : ""
+            "{} emission=[{}] scale=[{}] two_sided=[{}] cos_half_angle=[{}]", Light::info(),
+            _emission ? _emission->info() : "",
+            _scale, _two_sided, _cos_half_angle
         );
     }
     [[nodiscard]] auto scale() const noexcept { return _scale; }
     [[nodiscard]] auto two_sided() const noexcept { return _two_sided; }
+    [[nodiscard]] auto cos_half_angle() const noexcept { return _cos_half_angle; }
     [[nodiscard]] bool is_null() const noexcept override { return _scale == 0.0f || _emission->is_black(); }
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] luisa::unique_ptr<Instance> build(
@@ -85,7 +91,8 @@ private:
                      light->node<DiffuseLight>()->scale();
             auto pdf = distance_squared(it_light.p(), p_from) * pdf_area * (1.0f / cos_wo);
             auto two_sided = light->node<DiffuseLight>()->two_sided();
-            auto invalid = abs(cos_wo) < 1e-6f | (!two_sided & it_light.back_facing());
+            auto cos_half_angle = light->node<DiffuseLight>()->cos_half_angle();
+            auto invalid = abs(cos_wo) < cos_half_angle | (!two_sided & it_light.back_facing());
             eval = {.L = ite(invalid, 0.f, L),
                     .pdf = ite(invalid, 0.0f, pdf),
                     .p = it_light.p(),
@@ -103,7 +110,6 @@ private:
             auto pdf_area = pdf_prim / it_light.prim_area();
             auto L = light->texture()->evaluate_illuminant_spectrum(it_light, swl(), time()).value *
                      light->node<DiffuseLight>()->scale();
-            auto two_sided = light->node<DiffuseLight>()->two_sided();
             eval = {.L = L,
                     .pdf = pdf_area,
                     .p = it_light.p(),
@@ -178,17 +184,20 @@ public:
             };
 
             auto two_sided = light->node<DiffuseLight>()->two_sided();
+            auto cos_half_angle = light->node<DiffuseLight>()->cos_half_angle();
             Float3 we = make_float3();
             if (two_sided) {
                 $if(u_direction.x > 0.5f) {
-                    we = sample_cosine_hemisphere(make_float2(u_direction.x * 2.f - 1.f, u_direction.y));
+                    we = sample_uniform_cone(make_float2(u_direction.x * 2.f - 1.f, u_direction.y), cos_half_angle);
+                    // we = sample_cosine_hemisphere(make_float2(u_direction.x * 2.f - 1.f, u_direction.y));
                 }
                 $else {
-                    we = sample_cosine_hemisphere(make_float2(u_direction.x * 2.f, u_direction.y));
+                    we = sample_uniform_cone(make_float2(u_direction.x * 2.f, u_direction.y), cos_half_angle);
+                    // we = sample_cosine_hemisphere(make_float2(u_direction.x * 2.f, u_direction.y));
                     we.z *= -1;
                 };
             } else {
-                we = sample_cosine_hemisphere(u_direction);
+                we = sample_uniform_cone(make_float2(u_direction), cos_half_angle);
             }
             Interaction it_light{std::move(light_inst), light_inst_id, prim_id,
                                  attrib.area, attrib.p, attrib.n, false};
