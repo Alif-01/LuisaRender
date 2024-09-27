@@ -142,7 +142,7 @@ public:
     }
 
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
-    [[nodiscard]] const LoadedImage &image() const noexcept override { return _image.get(); }
+    [[nodiscard]] auto image() const noexcept { return _image.get(); }
     [[nodiscard]] bool is_black() const noexcept override { return all(_scale == 0.f); }
     [[nodiscard]] bool is_constant() const noexcept override { return false; }
     [[nodiscard]] uint2 resolution() const noexcept override { return _image.get().size(); }
@@ -228,7 +228,10 @@ public:
 
 luisa::unique_ptr<Texture::Instance> ImageTexture::build(
     Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept {
-    return luisa::make_unique<ImageTextureInstance>(pipeline, this, command_buffer);
+    LUISA_ASSERT(_image.valid(), "Building with Invalid texture.");
+    auto p = luisa::make_unique<ImageTextureInstance>(pipeline, this, command_buffer);
+    _image = {};
+    return std::move(p);
 }
 
 // void ImageTexture::_generate_mipmaps_gamma(Pipeline &pipeline, CommandBuffer &command_buffer, Image<float> &image) const noexcept {
