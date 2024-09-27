@@ -75,8 +75,7 @@ public:
 
 luisa::unique_ptr<Texture::Instance> ConstantTexture::build(
     Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept {
-    return luisa::make_unique<ConstantTextureInstance>(
-        pipeline, this, command_buffer);
+    return luisa::make_unique<ConstantTextureInstance>(pipeline, this, command_buffer);
 }
 
 }// namespace luisa::render

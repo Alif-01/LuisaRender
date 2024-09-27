@@ -54,9 +54,9 @@ private:
         return "sRGB";
     }
 
-    void _generate_mipmaps_gamma(Pipeline &pipeline, CommandBuffer &command_buffer, Image<float> &image) const noexcept;
-    void _generate_mipmaps_linear(Pipeline &pipeline, CommandBuffer &command_buffer, Image<float> &image) const noexcept;
-    void _generate_mipmaps_sRGB(Pipeline &pipeline, CommandBuffer &command_buffer, Image<float> &image) const noexcept;
+    // void _generate_mipmaps_gamma(Pipeline &pipeline, CommandBuffer &command_buffer, Image<float> &image) const noexcept;
+    // void _generate_mipmaps_linear(Pipeline &pipeline, CommandBuffer &command_buffer, Image<float> &image) const noexcept;
+    // void _generate_mipmaps_sRGB(Pipeline &pipeline, CommandBuffer &command_buffer, Image<float> &image) const noexcept;
 
 public:
     ImageTexture(Scene *scene, const SceneNodeDesc *desc) noexcept:
@@ -142,15 +142,18 @@ public:
     }
 
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
+    [[nodiscard]] const LoadedImage &image() const noexcept override { return _image.get(); }
     [[nodiscard]] bool is_black() const noexcept override { return all(_scale == 0.f); }
     [[nodiscard]] bool is_constant() const noexcept override { return false; }
     [[nodiscard]] uint2 resolution() const noexcept override { return _image.get().size(); }
+    [[nodiscard]] uint channels() const noexcept override { return _image.get().channels(); }
     [[nodiscard]] auto scale() const noexcept { return _scale; }
     [[nodiscard]] auto gamma() const noexcept { return _gamma; }
     [[nodiscard]] auto uv_scale() const noexcept { return _uv_scale; }
     [[nodiscard]] auto uv_offset() const noexcept { return _uv_offset; }
     [[nodiscard]] auto encoding() const noexcept { return _encoding; }
-    [[nodiscard]] uint channels() const noexcept override { return _image.get().channels(); }
+    [[nodiscard]] auto sampler() const noexcept { return _sampler; }
+    [[nodiscard]] auto mipmaps() const noexcept { return _mipmaps; }
     [[nodiscard]] luisa::unique_ptr<Instance> build(
         Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept override;
 };
@@ -158,6 +161,8 @@ public:
 class ImageTextureInstance final : public Texture::Instance {
 
 private:
+    Pipeline &_pipeline;
+    uint _image_id;
     uint _texture_id;
 
 private:
@@ -188,46 +193,55 @@ private:
     }
 
 public:
-    ImageTextureInstance(const Pipeline &pipeline,
-                         const Texture *texture,
-                         uint texture_id) noexcept
-        : Texture::Instance{pipeline, texture},
-          _texture_id{texture_id} {}
+    ImageTextureInstance(Pipeline &pipeline,
+                         const ImageTexture *texture,
+                         CommandBuffer &command_buffer) noexcept:
+        Texture::Instance{pipeline, texture}, _pipeline{pipeline} {
+        const LoadedImage &image = texture->image();
+        auto [device_image, image_index] = pipeline.create_with_index<Image<float>>(
+            image.pixel_storage(), image.size(), texture->mipmaps());
+        auto tex_id = pipeline.register_bindless(*device_image, texture->sampler());
+        
+        command_buffer << device_image->copy_from(image.pixels()) << compute::commit();
+        _image_id = image_index;
+        _texture_id = tex_id;
+
+        // if (device_image->mip_levels() > 1u) {
+        //     switch (_encoding) {
+        //         case Encoding::LINEAR: _generate_mipmaps_linear(pipeline, command_buffer, *device_image); break;
+        //         case Encoding::SRGB: _generate_mipmaps_sRGB(pipeline, command_buffer, *device_image); break;
+        //         case Encoding::GAMMA: _generate_mipmaps_gamma(pipeline, command_buffer, *device_image); break;
+        //         default: LUISA_ERROR_WITH_LOCATION("Unknown texture encoding.");
+        //     }
+        // }
+    }
     [[nodiscard]] Float4 evaluate(
         const Interaction &it, Expr<float> time) const noexcept override {
         auto uv = _compute_uv(it);
         auto v = pipeline().tex2d(_texture_id).sample(uv);  // TODO: LOD
         return _decode(v);
     }
+    ~ImageTextureInstance() noexcept {
+        _pipeline.remove_resource(_image_id);
+    }
 };
 
-luisa::unique_ptr<Texture::Instance> ImageTexture::build(Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept {
-    auto &&image = _image.get();
-    auto device_image = pipeline.create<Image<float>>(image.pixel_storage(), image.size(), _mipmaps);
-    auto tex_id = pipeline.register_bindless(*device_image, _sampler);
-    command_buffer << device_image->copy_from(image.pixels()) << compute::commit();
-    if (device_image->mip_levels() > 1u) {
-        switch (_encoding) {
-            case Encoding::LINEAR: _generate_mipmaps_linear(pipeline, command_buffer, *device_image); break;
-            case Encoding::SRGB: _generate_mipmaps_sRGB(pipeline, command_buffer, *device_image); break;
-            case Encoding::GAMMA: _generate_mipmaps_gamma(pipeline, command_buffer, *device_image); break;
-            default: LUISA_ERROR_WITH_LOCATION("Unknown texture encoding.");
-        }
-    }
-    return luisa::make_unique<ImageTextureInstance>(pipeline, this, tex_id);
+luisa::unique_ptr<Texture::Instance> ImageTexture::build(
+    Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept {
+    return luisa::make_unique<ImageTextureInstance>(pipeline, this, command_buffer);
 }
 
-void ImageTexture::_generate_mipmaps_gamma(Pipeline &pipeline, CommandBuffer &command_buffer, Image<float> &image) const noexcept {
-    // TODO
-}
+// void ImageTexture::_generate_mipmaps_gamma(Pipeline &pipeline, CommandBuffer &command_buffer, Image<float> &image) const noexcept {
+//     // TODO
+// }
 
-void ImageTexture::_generate_mipmaps_linear(Pipeline &pipeline, CommandBuffer &command_buffer, Image<float> &image) const noexcept {
-    // TODO
-}
+// void ImageTexture::_generate_mipmaps_linear(Pipeline &pipeline, CommandBuffer &command_buffer, Image<float> &image) const noexcept {
+//     // TODO
+// }
 
-void ImageTexture::_generate_mipmaps_sRGB(Pipeline &pipeline, CommandBuffer &command_buffer, Image<float> &image) const noexcept {
-    // TODO
-}
+// void ImageTexture::_generate_mipmaps_sRGB(Pipeline &pipeline, CommandBuffer &command_buffer, Image<float> &image) const noexcept {
+//     // TODO
+// }
 
 }// namespace luisa::render
 
