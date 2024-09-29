@@ -37,7 +37,7 @@ public:
     };
 
 public:
-    class Instance : public SceneNode {
+    class Instance : public SceneNode::Instance {
 
     private:
         const LightSampler *_sampler;

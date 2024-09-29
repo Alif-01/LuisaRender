@@ -206,9 +206,14 @@ public:
         
     [[nodiscard]] auto &bindless_array() noexcept { return _bindless_array; }
     [[nodiscard]] auto &bindless_array() const noexcept { return _bindless_array; }
-    [[nodiscard]] auto camera_count() const noexcept { return _cameras.size(); }
-    [[nodiscard]] auto camera(Camera *camera) noexcept { return _cameras[camera].get(); }
-    [[nodiscard]] auto camera(Camera *camera) const noexcept { return _cameras[camera].get(); }
+    [[nodiscard]] auto &cameras() const noexcept { return _cameras; }
+    [[nodiscard]] auto camera(const Camera *camera) const noexcept {
+        if (auto iter = _cameras.find(camera); iter != _cameras.cend()) {
+            return iter->second.get();
+        } else {
+            LUISA_ERROR_WITH_LOCATION("Camera not found in pipeline.");
+        }
+    }
     [[nodiscard]] auto &surfaces() const noexcept { return _surfaces; }
     [[nodiscard]] auto &lights() const noexcept { return _lights; }
     [[nodiscard]] auto &media() const noexcept { return _media; }
@@ -243,7 +248,6 @@ public:
         return _bindless_array->tex3d(named_id(name));
     }
     [[nodiscard]] Float4x4 transform(Transform *transform) const noexcept;
-
     [[nodiscard]] Float4 constant(Expr<uint> index) const noexcept;
 
     template<uint dim, typename... Args, typename... CallArgs>

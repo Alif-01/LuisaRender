@@ -123,8 +123,8 @@ public:
     void render(Stream &stream) noexcept override {
         auto pt = node<AuxiliaryBufferPathTracing>();
         CommandBuffer command_buffer{&stream};
-        for (auto i = 0u; i < pipeline().camera_count(); i++) {
-            auto camera = pipeline().camera(i);
+        for (auto c: pipeline().cameras()) {
+            auto camera = c->second.get();
             auto resolution = camera->film()->node()->resolution();
             _clock.tic();
             _framerate.clear();

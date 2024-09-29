@@ -111,11 +111,11 @@ inline Scene::Scene(const Context &ctx) noexcept:
 //     };
 // }
 
-NodeHandle Scene::get_node_handle(SceneNodeTag tag, const SceneNodeDesc *desc) noexcept {
+Scene::NodeHandle Scene::get_node_handle(SceneNodeTag tag, const SceneNodeDesc *desc) noexcept {
     auto &&plugin = detail::scene_plugin_load(_context.runtime_directory(), tag, desc->impl_type());
     auto create = plugin.function<NodeCreater>("create");
     auto destroy = plugin.function<NodeDeleter>("destroy");
-    return NodeHandle(create(this, desc), destroy);
+    return Scene::NodeHandle(create(this, desc), destroy);
 }
 
 // template <typename Callable>
@@ -144,7 +144,7 @@ SceneNode *Scene::load_node(
     }
     
     std::scoped_lock lock{_mutex};
-    if (auto iter = _config->nodes.find(name); iter != _config->nodes.end()) {
+    if (auto iter = _config->nodes.find(desc->identifier()); iter != _config->nodes.end()) {
         auto node = iter->second.get();
         if (node->tag() != tag || node->impl_type() != desc->impl_type()) [[unlikely]] {
             LUISA_ERROR_WITH_LOCATION(
@@ -176,79 +176,28 @@ SceneNode *Scene::load_node(
     // return node;
 }
 
-// Camera *Scene::load_camera(const SceneNodeDesc *desc) noexcept {
-//     return dynamic_cast<Camera *>(load_node(SceneNodeTag::CAMERA, desc,
-//         [this](SceneNode *){ _config->cameras_updated = true; }
-//     ));
-// }
+#define LUISA_SCENE_NODE_LOAD_DEFINITION(name, type, tag)               \
+type *Scene::load_##name(const SceneNodeDesc *desc) noexcept {          \
+    return dynamic_cast<type *>(load_node(SceneNodeTag::tag, desc));    \
+}
 
-// Film *Scene::load_film(const SceneNodeDesc *desc) noexcept {
-//     return dynamic_cast<Film *>(load_node(SceneNodeTag::FILM, desc, [](SceneNode *){}));
-// }
+LUISA_SCENE_NODE_LOAD_DEFINITION(camera, Camera, CAMERA)
+LUISA_SCENE_NODE_LOAD_DEFINITION(film, Film, FILM)
+LUISA_SCENE_NODE_LOAD_DEFINITION(filter, Filter, FILTER)
+LUISA_SCENE_NODE_LOAD_DEFINITION(integrator, Integrator, INTEGRATOR)
+LUISA_SCENE_NODE_LOAD_DEFINITION(surface, Surface, SURFACE)
+LUISA_SCENE_NODE_LOAD_DEFINITION(light, Light, LIGHT)
+LUISA_SCENE_NODE_LOAD_DEFINITION(sampler, Sampler, SAMPLER)
+LUISA_SCENE_NODE_LOAD_DEFINITION(shape, Shape, SHAPE)
+LUISA_SCENE_NODE_LOAD_DEFINITION(transform, Transform, TRANSFORM)
+LUISA_SCENE_NODE_LOAD_DEFINITION(light_sampler, LightSampler, LIGHT_SAMPLER)
+LUISA_SCENE_NODE_LOAD_DEFINITION(environment, Environment, ENVIRONMENT)
+LUISA_SCENE_NODE_LOAD_DEFINITION(texture, Texture, TEXTURE)
+LUISA_SCENE_NODE_LOAD_DEFINITION(texture_mapping, TextureMapping, TEXTURE_MAPPING)
+LUISA_SCENE_NODE_LOAD_DEFINITION(spectrum, Spectrum, SPECTRUM)
+LUISA_SCENE_NODE_LOAD_DEFINITION(medium, Medium, MEDIUM)
+LUISA_SCENE_NODE_LOAD_DEFINITION(phase_function, PhaseFunction, PHASE_FUNCTION)
 
-// Filter *Scene::load_filter(const SceneNodeDesc *desc) noexcept {
-//     return dynamic_cast<Filter *>(load_node(SceneNodeTag::FILTER, desc, [](SceneNode *){}));
-// }
-
-// Integrator *Scene::load_integrator(const SceneNodeDesc *desc) noexcept {
-//     return dynamic_cast<Integrator *>(load_node(SceneNodeTag::INTEGRATOR, desc, [](SceneNode *){}));
-// }
-
-// Surface *Scene::load_surface(const SceneNodeDesc *desc) noexcept {
-//     return dynamic_cast<Surface *>(load_node(SceneNodeTag::SURFACE, desc, [](SceneNode *){}));
-// }
-
-// Light *Scene::load_light(const SceneNodeDesc *desc) noexcept {
-//     return dynamic_cast<Light *>(load_node(SceneNodeTag::LIGHT, desc, [](SceneNode *){}));
-// }
-
-// Sampler *Scene::load_sampler(const SceneNodeDesc *desc) noexcept {
-//     return dynamic_cast<Sampler *>(load_node(SceneNodeTag::SAMPLER, desc, [](SceneNode *){}));
-// }
-
-// Shape *Scene::load_shape(const SceneNodeDesc *desc) noexcept {
-//     return dynamic_cast<Shape *>(load_node(SceneNodeTag::SHAPE, desc,
-//         [this](SceneNode *){ _config->shapes_updated = true; }));
-// }
-
-// Transform *Scene::load_transform(const SceneNodeDesc *desc) noexcept {
-//     return dynamic_cast<Transform *>(load_node(SceneNodeTag::TRANSFORM, desc, 
-//         [this](SceneNode *node){
-//             if (dynamic_cast<Transform *>(node)->is_registered())
-//                 _config->transforms_updated = true;
-//         }
-//     ));
-// }
-
-// LightSampler *Scene::load_light_sampler(const SceneNodeDesc *desc) noexcept {
-//     return dynamic_cast<LightSampler *>(load_node(SceneNodeTag::LIGHT_SAMPLER, desc, [](SceneNode *node){}));
-// }
-
-// Environment *Scene::load_environment(const SceneNodeDesc *desc) noexcept {
-//     return dynamic_cast<Environment *>(load_node(SceneNodeTag::ENVIRONMENT, desc,
-//         [this](SceneNode *node){ _config->environment_updated = true; }
-//     ));
-// }
-
-// Texture *Scene::load_texture(const SceneNodeDesc *desc) noexcept {
-//     return dynamic_cast<Texture *>(load_node(SceneNodeTag::TEXTURE, desc, [](SceneNode *node){}));
-// }
-
-// TextureMapping *Scene::load_texture_mapping(const SceneNodeDesc *desc) noexcept {
-//     return dynamic_cast<TextureMapping *>(load_node(SceneNodeTag::TEXTURE_MAPPING, desc, [](SceneNode *node){}));
-// }
-
-// Spectrum *Scene::load_spectrum(const SceneNodeDesc *desc) noexcept {
-//     return dynamic_cast<Spectrum *>(load_node(SceneNodeTag::SPECTRUM, desc, [](SceneNode *node){}));
-// }
-
-// Medium *Scene::load_medium(const SceneNodeDesc *desc) noexcept {
-//     return dynamic_cast<Medium *>(load_node(SceneNodeTag::MEDIUM, desc, [](SceneNode *node){}));
-// }
-
-// PhaseFunction *Scene::load_phase_function(const SceneNodeDesc *desc) noexcept {
-//     return dynamic_cast<PhaseFunction *>(load_node(SceneNodeTag::PHASE_FUNCTION, desc, [](SceneNode *node){}));
-// }
 
 Environment *Scene::update_environment(const SceneNodeDesc *desc) noexcept {
     return _config->environment = load_environment(desc);
@@ -307,10 +256,10 @@ luisa::unique_ptr<Scene> Scene::create(const Context &ctx, const SceneDesc *desc
     scene->_config->cameras.reserve(cameras.size());
     scene->_config->shapes.reserve(shapes.size());
     for (auto c : cameras) {
-        scene->_config->cameras.emplace_back(scene->load_camera(c));
+        scene->_config->cameras.emplace(scene->load_camera(c));
     }
     for (auto s : shapes) {
-        scene->_config->shapes.emplace_back(scene->load_shape(s));
+        scene->_config->shapes.emplace(scene->load_shape(s));
     }
 
     global_thread_pool().synchronize();

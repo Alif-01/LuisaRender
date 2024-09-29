@@ -115,8 +115,8 @@ public:
     void render(Stream &stream) noexcept override {
         auto pt = node<AuxiliaryBufferPathTracing>();
         CommandBuffer command_buffer{&stream};
-        for (auto i = 0u; i < pipeline().camera_count(); i++) {
-            auto camera = pipeline().camera(i);
+        for (auto c: pipeline().cameras()) {
+            auto camera = c->second.get();
             auto resolution = camera->film()->node()->resolution();
             auto pixel_count = resolution.x * resolution.y;
             _last_spp = 0u;
@@ -132,9 +132,6 @@ public:
     void render_to_buffer(Stream &stream, Camera *camera, luisa::vector<float4> &buffer) noexcept override {
         auto pt = node<AuxiliaryBufferPathTracing>();
         CommandBuffer command_buffer{&stream};
-        if (camera_index >= pipeline().camera_count()) [[unlikely]] {
-            LUISA_ERROR("Invalid camera number {}.", camera_index);
-        }
         auto camera_instance = pipeline().camera(camera);
         auto resolution = camera_instance->film()->node()->resolution();
         auto pixel_count = resolution.x * resolution.y;

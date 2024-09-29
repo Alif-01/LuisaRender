@@ -78,7 +78,7 @@ public:
                                             Expr<float2> u_direction) const noexcept = 0;
     };
 
-    class Instance : public SceneNode {
+    class Instance : public SceneNode::Instance {
 
     private:
         const Light *_light;

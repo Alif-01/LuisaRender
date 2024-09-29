@@ -49,7 +49,7 @@ public:
         Instance &operator=(Instance &&) noexcept = delete;
         void add_resource(uint resource_index) noexcept;
         virtual ~Instance() noexcept;
-        [[nodiscard]] auto &pipeline() const noexcept { return _pipeline; }
+        [[nodiscard]] auto &pipeline() noexcept { return _pipeline; }
         [[nodiscard]] const auto &pipeline() const noexcept { return _pipeline; }
     };
 

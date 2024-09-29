@@ -41,9 +41,9 @@ class PhaseFunction;
 class Scene {
 
 public:
-    using NodeHandle = luisa::unique_ptr<SceneNode, NodeDeleter *>;
     using NodeCreater = SceneNode *(Scene *, const SceneNodeDesc *);
     using NodeDeleter = void(SceneNode *);
+    using NodeHandle = luisa::unique_ptr<SceneNode, NodeDeleter *>;
 
     struct Config {
         float shadow_terminator{0.f};
@@ -57,11 +57,6 @@ public:
         Spectrum *spectrum{nullptr};
         luisa::unordered_set<Camera *> cameras;
         luisa::unordered_set<Shape *> shapes;
-
-        // bool environment_updated{false};
-        // bool cameras_updated{false};
-        // bool shapes_updated{false};
-        // bool transforms_updated{false};
     };
 
 private:
@@ -81,27 +76,25 @@ public:
     [[nodiscard]] NodeHandle get_node_handle(SceneNodeTag tag, const SceneNodeDesc *desc) noexcept;
     [[nodiscard]] SceneNode *load_node(SceneNodeTag tag, const SceneNodeDesc *desc) noexcept;
 
-#define LUISA_SCENE_NODE_LOAD(name, type, tag)                                      \
-    [[nodiscard]] type *load_##name(const SceneNodeDesc *desc) noexcept {   \
-        return dynamic_cast<type *>(SceneNodeTag::tag, desc);               \
-    }
+#define LUISA_SCENE_NODE_LOAD_DECLARE(name, type)                                 \
+    [[nodiscard]] type *load_##name(const SceneNodeDesc *desc) noexcept;
 
-    LUISA_SCENE_NODE_LOAD(camera, Camera, CAMERA)
-    LUISA_SCENE_NODE_LOAD(film, Film, FILM)
-    LUISA_SCENE_NODE_LOAD(filter, Filter, FILTER)
-    LUISA_SCENE_NODE_LOAD(integrator, Integrator, INTEGRATOR)
-    LUISA_SCENE_NODE_LOAD(surface, Surface, SURFACE)
-    LUISA_SCENE_NODE_LOAD(light, Light, LIGHT)
-    LUISA_SCENE_NODE_LOAD(sampler, Sampler, SAMPLER)
-    LUISA_SCENE_NODE_LOAD(shape, Shape, SHAPE)
-    LUISA_SCENE_NODE_LOAD(transform, Transform, TRANSFORM)
-    LUISA_SCENE_NODE_LOAD(light_sampler, LightSampler, LIGHT_SAMPLER)
-    LUISA_SCENE_NODE_LOAD(environment, Environment, ENVIRONMENT)
-    LUISA_SCENE_NODE_LOAD(texture, Texture, TEXTURE)
-    LUISA_SCENE_NODE_LOAD(texture_mapping, TextureMapping, TEXTURE_MAPPING)
-    LUISA_SCENE_NODE_LOAD(spectrum, Spectrum, SPECTRUM)
-    LUISA_SCENE_NODE_LOAD(medium, Medium, MEDIUM)
-    LUISA_SCENE_NODE_LOAD(phase_function, PhaseFunction, PHASE_FUNCTION)
+LUISA_SCENE_NODE_LOAD_DECLARE(camera, Camera)
+LUISA_SCENE_NODE_LOAD_DECLARE(film, Film)
+LUISA_SCENE_NODE_LOAD_DECLARE(filter, Filter)
+LUISA_SCENE_NODE_LOAD_DECLARE(integrator, Integrator)
+LUISA_SCENE_NODE_LOAD_DECLARE(surface, Surface)
+LUISA_SCENE_NODE_LOAD_DECLARE(light, Light)
+LUISA_SCENE_NODE_LOAD_DECLARE(sampler, Sampler)
+LUISA_SCENE_NODE_LOAD_DECLARE(shape, Shape)
+LUISA_SCENE_NODE_LOAD_DECLARE(transform, Transform)
+LUISA_SCENE_NODE_LOAD_DECLARE(light_sampler, LightSampler)
+LUISA_SCENE_NODE_LOAD_DECLARE(environment, Environment)
+LUISA_SCENE_NODE_LOAD_DECLARE(texture, Texture)
+LUISA_SCENE_NODE_LOAD_DECLARE(texture_mapping, TextureMapping)
+LUISA_SCENE_NODE_LOAD_DECLARE(spectrum, Spectrum)
+LUISA_SCENE_NODE_LOAD_DECLARE(medium, Medium)
+LUISA_SCENE_NODE_LOAD_DECLARE(phase_function, PhaseFunction)
 
     // template <typename NodeCreater>
     // [[nodiscard]] auto get_handle_creater(
@@ -110,31 +103,16 @@ public:
     // [[nodiscard]] std::pair<SceneNode*, bool> load_from_nodes(
     //     luisa::string_view name, Callable &&handle_creater, Args&&... args) noexcept;
     // template <typename Callable>
-    // [[nodiscard]] Camera *load_camera(const SceneNodeDesc *desc) noexcept;
-    // [[nodiscard]] Film *load_film(const SceneNodeDesc *desc) noexcept;
-    // [[nodiscard]] Filter *load_filter(const SceneNodeDesc *desc) noexcept;
-    // [[nodiscard]] Integrator *load_integrator(const SceneNodeDesc *desc) noexcept;
-    // [[nodiscard]] Surface *load_surface(const SceneNodeDesc *desc) noexcept;
-    // [[nodiscard]] Light *load_light(const SceneNodeDesc *desc) noexcept;
-    // [[nodiscard]] Sampler *load_sampler(const SceneNodeDesc *desc) noexcept;
-    // [[nodiscard]] Shape *load_shape(const SceneNodeDesc *desc) noexcept;
-    // [[nodiscard]] Transform *load_transform(const SceneNodeDesc *desc) noexcept;
-    // [[nodiscard]] LightSampler *load_light_sampler(const SceneNodeDesc *desc) noexcept;
-    // [[nodiscard]] Environment *load_environment(const SceneNodeDesc *desc) noexcept;
-    // [[nodiscard]] Texture *load_texture(const SceneNodeDesc *desc) noexcept;
-    // [[nodiscard]] TextureMapping *load_texture_mapping(const SceneNodeDesc *desc) noexcept;
-    // [[nodiscard]] Spectrum *load_spectrum(const SceneNodeDesc *desc) noexcept;
-    // [[nodiscard]] Medium *load_medium(const SceneNodeDesc *desc) noexcept;
-    // [[nodiscard]] PhaseFunction *load_phase_function(const SceneNodeDesc *desc) noexcept;
-    
+
+public:
     [[nodiscard]] Environment *update_environment(const SceneNodeDesc *desc) noexcept;
     // [[nodiscard]] Camera *update_camera(const SceneNodeDesc *desc, bool first_def) noexcept;
     // [[nodiscard]] Shape *update_shape(const SceneNodeDesc *desc, bool first_def) noexcept;
     [[nodiscard]] Camera *update_camera(const SceneNodeDesc *desc) noexcept;
     [[nodiscard]] Shape *update_shape(const SceneNodeDesc *desc) noexcept;
+    [[nodiscard]] static luisa::unique_ptr<Scene> create(const Context &ctx, const SceneDesc *desc) noexcept;
 
 public:
-    // [[nodiscard]] static luisa::unique_ptr<Scene> create(const Context &ctx, const SceneDesc *desc) noexcept;
     // [[nodiscard]] const Integrator *integrator() const noexcept;
     // [[nodiscard]] const Environment *environment() const noexcept;
     // [[nodiscard]] const Medium *environment_medium() const noexcept;

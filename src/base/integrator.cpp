@@ -39,8 +39,8 @@ ProgressiveIntegrator::Instance::~Instance() noexcept = default;
 
 void ProgressiveIntegrator::Instance::render(Stream &stream) noexcept {
     CommandBuffer command_buffer{&stream};
-    for (auto i = 0u; i < pipeline().camera_count(); i++) {
-        auto camera = pipeline().camera(i);
+    for (auto c: pipeline().cameras()) {
+        auto camera = c->second.get();
         auto resolution = camera->film()->node()->resolution();
         auto pixel_count = resolution.x * resolution.y;
         camera->film()->prepare(command_buffer);

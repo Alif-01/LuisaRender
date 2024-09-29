@@ -12,17 +12,12 @@
 namespace luisa::render {
 
 class Transform : public SceneNode {
-// private:
-    // bool _registered{false};
-
 public:
     Transform(Scene *scene, const SceneNodeDesc *desc) noexcept;
     [[nodiscard]] virtual luisa::string info() const noexcept override;
     [[nodiscard]] virtual bool is_static() const noexcept = 0;
     [[nodiscard]] virtual bool is_identity() const noexcept = 0;
     [[nodiscard]] virtual float4x4 matrix(float time) const noexcept = 0;
-    // [[nodiscard]] bool is_registered() const noexcept { return _registered; }
-    // void set_registered() noexcept { _registered = true; }
 };
 
 class TransformTree {

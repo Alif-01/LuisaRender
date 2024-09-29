@@ -11,7 +11,8 @@ Transform::Transform(Scene *scene, const SceneNodeDesc *desc) noexcept
     : SceneNode{scene, desc, SceneNodeTag::TRANSFORM} {}
 
 luisa::string Transform::info() const noexcept {
-    return luisa::format("{} registered=[{}]", SceneNode::info(), _registered);
+    // return luisa::format("{} registered=[{}]", SceneNode::info(), _registered);
+    return luisa::format("{}", SceneNode::info());
 }
 
 TransformTree::Node::Node(
