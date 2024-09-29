@@ -55,7 +55,7 @@ private:
 
 private:
     void _process_shape(
-        CommandBuffer &command_buffer, const Shape *shape, float init_time,
+        CommandBuffer &command_buffer, const Shape *shape, float time,
         const Surface *overridden_surface = nullptr,
         const Light *overridden_light = nullptr,
         const Medium *overridden_medium = nullptr,
@@ -69,8 +69,8 @@ private:
 public:
     explicit Geometry(Pipeline &pipeline) noexcept : _pipeline{pipeline} {};
     ~Geometry() noexcept;
-    void build(CommandBuffer &command_buffer, luisa::span<const Shape *const> shapes, float init_time) noexcept;
-    bool update(CommandBuffer &command_buffer, float time) noexcept;
+    void build(CommandBuffer &command_buffer, const luisa::unordered_set<const Shape *const> &shapes, float time) noexcept;
+    // bool update(CommandBuffer &command_buffer, float time) noexcept;
     [[nodiscard]] auto instances() const noexcept { return luisa::span{_instances}; }
     [[nodiscard]] auto light_instances() const noexcept { return luisa::span{_instanced_lights}; }
     // [[nodiscard]] auto world_min() const noexcept { return _world_min; }

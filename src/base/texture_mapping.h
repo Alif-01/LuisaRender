@@ -13,7 +13,6 @@ namespace luisa::render {
 using compute::Float;
 using compute::Float2;
 
-class Pipeline;
 class Interaction;
 
 class TextureMapping : public SceneNode {

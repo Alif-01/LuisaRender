@@ -13,7 +13,6 @@
 
 namespace luisa::render {
 
-class Pipeline;
 class Display;
 
 class Integrator : public SceneNode {

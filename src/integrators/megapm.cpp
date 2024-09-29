@@ -501,7 +501,7 @@ protected:
         uint runtime_spp = 0u;
         //TODO: maybe swap the for order for better radius convergence
         for (auto s : shutter_samples) {
-            auto updated = pipeline().update(command_buffer, s.point.time);
+            pipeline().update(command_buffer, s.point.time);
             runtime_spp += s.spp;
             for (auto i = 0u; i < s.spp; i++) {
                 //emit phtons then calculate L

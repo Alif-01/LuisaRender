@@ -115,8 +115,8 @@ public:
     void render(Stream &stream) noexcept override {
         auto pt = node<AuxiliaryBufferPathTracing>();
         CommandBuffer command_buffer{&stream};
-        for (auto c: pipeline().cameras()) {
-            auto camera = c->second.get();
+        for (auto &c: pipeline().cameras()) {
+            auto camera = c.second.get();
             auto resolution = camera->film()->node()->resolution();
             auto pixel_count = resolution.x * resolution.y;
             _last_spp = 0u;

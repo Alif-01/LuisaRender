@@ -60,6 +60,7 @@ public:
 
 private:
     Device &_device;
+    Scene &_scene;
     luisa::unique_ptr<BufferArena> _general_buffer_arena;
     luisa::vector<ResourceHandle> _resources;
     size_t _bindless_buffer_count{0u};
@@ -99,12 +100,12 @@ private:
     luisa::unordered_map<luisa::string, uint> _named_ids;
 
     // other things
-    float _initial_time{};
+    float _time{0.f};
     bool _any_non_opaque_surface{false};
 
 public:
     // for internal use only; use Pipeline::create() instead
-    explicit Pipeline(Device &device) noexcept;
+    explicit Pipeline(Device &device, Scene &scene) noexcept;
     Pipeline(Pipeline &&) noexcept = delete;
     Pipeline(const Pipeline &) noexcept = delete;
     Pipeline &operator=(Pipeline &&) noexcept = delete;
@@ -201,19 +202,20 @@ public:
 
 
 public:
-    [[nodiscard]] auto &device() const noexcept { return _device; }
     [[nodiscard]] static luisa::unique_ptr<Pipeline> create(Device &device, Stream &stream, Scene &scene) noexcept;
-        
+    // void scene_update(Stream &stream, Scene &scene, float time) noexcept;
+    void update(CommandBuffer &command_buffer, float time_offset) noexcept;
+    void render(Stream &stream) noexcept;
+    void render_to_buffer(Stream &stream, Camera *camera, luisa::vector<float4> &buffer) noexcept;
+    void set_time(float time) noexcept { _time = time; }
+
+    [[nodiscard]] auto &device() const noexcept { return _device; }
+    [[nodiscard]] auto &scene() const noexcept { return _scene; }
+    [[nodiscard]] auto time() const noexcept { return _time; }
     [[nodiscard]] auto &bindless_array() noexcept { return _bindless_array; }
     [[nodiscard]] auto &bindless_array() const noexcept { return _bindless_array; }
     [[nodiscard]] auto &cameras() const noexcept { return _cameras; }
-    [[nodiscard]] auto camera(const Camera *camera) const noexcept {
-        if (auto iter = _cameras.find(camera); iter != _cameras.cend()) {
-            return iter->second.get();
-        } else {
-            LUISA_ERROR_WITH_LOCATION("Camera not found in pipeline.");
-        }
-    }
+    [[nodiscard]] auto camera(const Camera *camera) const noexcept { return _cameras.find(camera)->second.get(); }
     [[nodiscard]] auto &surfaces() const noexcept { return _surfaces; }
     [[nodiscard]] auto &lights() const noexcept { return _lights; }
     [[nodiscard]] auto &media() const noexcept { return _media; }
@@ -227,9 +229,7 @@ public:
     [[nodiscard]] const Texture::Instance *build_texture(CommandBuffer &command_buffer, const Texture *texture) noexcept;
     [[nodiscard]] const Filter::Instance *build_filter(CommandBuffer &command_buffer, const Filter *filter) noexcept;
     [[nodiscard]] const PhaseFunction::Instance *build_phasefunction(CommandBuffer &command_buffer, const PhaseFunction *phasefunction) noexcept;
-    void scene_update(Stream &stream, Scene &scene, float time) noexcept;
-    void render(Stream &stream) noexcept;
-    void render_to_buffer(Stream &stream, Camera *camera, luisa::vector<float4> &buffer) noexcept;
+
     [[nodiscard]] uint named_id(luisa::string_view name) const noexcept;
     template<typename T, typename I>
     [[nodiscard]] auto buffer(I &&i) const noexcept { return _bindless_array->buffer<T>(std::forward<I>(i)); }

@@ -21,8 +21,7 @@ Camera::Camera(Scene *scene, const SceneNodeDesc *desc) noexcept:
     _transform{scene->load_transform(desc->property_node_or_default("transform"))},
     _shutter_span{desc->property_float2_or_default(
         "shutter_span", lazy_construct([desc] {
-            return make_float2(desc->property_float_or_default(
-                "shutter_span", 0.0f));
+            return make_float2(desc->property_float_or_default("shutter_span", 0.0f));
         }))},
     _shutter_samples{desc->property_uint_or_default("shutter_samples", 0u)},// 0 means default
     _spp{desc->property_uint_or_default("spp", 1024u)},
@@ -79,9 +78,8 @@ Camera::Camera(Scene *scene, const SceneNodeDesc *desc) noexcept:
                 "number of shutter weights mismatch. [{}]",
                 desc->source_location().string());
         }
-        if (std::any_of(shutter_weights.cbegin(), shutter_weights.cend(), [](auto w) noexcept {
-                return w < 0.0f;
-            })) [[unlikely]] {
+        if (std::any_of(shutter_weights.cbegin(), shutter_weights.cend(),
+                        [](auto w) noexcept { return w < 0.0f; })) [[unlikely]] {
             LUISA_ERROR("Found negative shutter weight. [{}]", desc->source_location().string());
         }
         if (shutter_time_points.empty()) {
@@ -155,7 +153,7 @@ luisa::string Camera::info() const noexcept {
         _transform ? _transform->info() : "");
 }
 
-auto Camera::shutter_weight(float time) const noexcept -> float {
+float Camera::shutter_weight(float time) const noexcept {
     if (time < _shutter_span.x || time > _shutter_span.y) { return 0.0f; }
     if (_shutter_span.x == _shutter_span.y) { return 1.0f; }
     auto ub = std::upper_bound(
@@ -168,7 +166,7 @@ auto Camera::shutter_weight(float time) const noexcept -> float {
     return std::lerp(p0.weight, p1.weight, t);
 }
 
-auto Camera::shutter_samples() const noexcept -> vector<ShutterSample> {
+vector<ShutterSample> Camera::shutter_samples() const noexcept {
     if (_shutter_span.x == _shutter_span.y) {
         ShutterPoint sp{_shutter_span.x, 1.0f};
         return {ShutterSample{sp, _spp}};

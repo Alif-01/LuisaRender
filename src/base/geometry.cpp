@@ -16,7 +16,7 @@ Geometry::~Geometry() noexcept {
 }
 
 void Geometry::build(
-    CommandBuffer &command_buffer, luisa::span<const Shape *const> shapes, float init_time
+    CommandBuffer &command_buffer, const luisa::unordered_set<const Shape *const> &shapes, float time
 ) noexcept {
     // TODO: AccelOption
     _accel = _pipeline.device().create_accel({});
@@ -24,38 +24,38 @@ void Geometry::build(
     //     _world_max[i] = -std::numeric_limits<float>::max();
     //     _world_min[i] = std::numeric_limits<float>::max();
     // }
-    for (auto shape : shapes) { _process_shape(command_buffer, shape, init_time); }
+    for (auto shape : shapes) { _process_shape(command_buffer, shape, time); }
     _instance_buffer = _pipeline.device().create_buffer<uint4>(_instances.size());
     command_buffer << _instance_buffer.copy_from(_instances.data())
                    << _accel.build();
 }
 
-bool Geometry::update(
-    CommandBuffer &command_buffer, float time
-) noexcept {
-    auto updated = false;
-    if (!_dynamic_transforms.empty()) {
-        updated = true;
-        if (_dynamic_transforms.size() < 128u) {
-            for (auto t : _dynamic_transforms) {
-                _accel.set_transform_on_update(t.instance_id(), t.matrix(time));
-            }
-        } else {
-            global_thread_pool().parallel(
-                _dynamic_transforms.size(),
-                [this, time](auto i) noexcept {
-                    auto t = _dynamic_transforms[i];
-                    _accel.set_transform_on_update(t.instance_id(), t.matrix(time));
-                });
-            global_thread_pool().synchronize();
-        }
-        command_buffer << _accel.build();
-    }
-    return updated;
-}
+// bool Geometry::update(
+//     CommandBuffer &command_buffer, float time
+// ) noexcept {
+//     auto updated = false;
+//     if (!_dynamic_transforms.empty()) {
+//         updated = true;
+//         if (_dynamic_transforms.size() < 128u) {
+//             for (auto t : _dynamic_transforms) {
+//                 _accel.set_transform_on_update(t.instance_id(), t.matrix(time));
+//             }
+//         } else {
+//             global_thread_pool().parallel(
+//                 _dynamic_transforms.size(),
+//                 [this, time](auto i) noexcept {
+//                     auto t = _dynamic_transforms[i];
+//                     _accel.set_transform_on_update(t.instance_id(), t.matrix(time));
+//                 });
+//             global_thread_pool().synchronize();
+//         }
+//         command_buffer << _accel.build();
+//     }
+//     return updated;
+// }
 
 void Geometry::_process_shape(
-    CommandBuffer &command_buffer, float init_time,
+    CommandBuffer &command_buffer, float time,
     const Shape *shape,
     const Surface *overridden_surface,
     const Light *overridden_light,
@@ -154,7 +154,7 @@ void Geometry::_process_shape(
         auto [t_node, is_static] = _transform_tree.leaf(shape->transform());
         InstancedTransform inst_xform{t_node, instance_id};
         if (!is_static) { _dynamic_transforms.emplace_back(inst_xform); }
-        auto object_to_world = inst_xform.matrix(init_time);
+        auto object_to_world = inst_xform.matrix(time);
 
         // TODO: _world_max/min cannot support updating
         // if (shape->is_mesh()) {
@@ -235,7 +235,7 @@ void Geometry::_process_shape(
     } else {
         _transform_tree.push(shape->transform());
         for (auto child : shape->children()) {
-            _process_shape(command_buffer, child, init_time, surface, light, medium, visible);
+            _process_shape(command_buffer, child, time, surface, light, medium, visible);
         }
         _transform_tree.pop(shape->transform());
     }

@@ -116,15 +116,15 @@ private:
 public:
     explicit AuxiliaryBufferPathTracingInstance(
         const AuxiliaryBufferPathTracing *node,
-        Pipeline &pipeline, CommandBuffer &cmd_buffer) noexcept
-        : Integrator::Instance{pipeline, cmd_buffer, node} {
+        Pipeline &pipeline, CommandBuffer &cmd_buffer) noexcept:
+        Integrator::Instance{pipeline, cmd_buffer, node} {
     }
 
     void render(Stream &stream) noexcept override {
         auto pt = node<AuxiliaryBufferPathTracing>();
         CommandBuffer command_buffer{&stream};
-        for (auto c: pipeline().cameras()) {
-            auto camera = c->second.get();
+        for (auto &c: pipeline().cameras()) {
+            auto camera = c.second.get();
             auto resolution = camera->film()->node()->resolution();
             _clock.tic();
             _framerate.clear();

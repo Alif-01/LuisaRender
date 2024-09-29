@@ -12,7 +12,6 @@
 
 namespace luisa::render {
 
-class Pipeline;
 class Interaction;
 class SampledWavelengths;
 

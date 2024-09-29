@@ -4,6 +4,7 @@
 
 #include <luisa/core/logging.h>
 #include <base/scene_node.h>
+#include <base/pipeline.h>
 
 namespace luisa::render {
 
@@ -39,7 +40,7 @@ luisa::string SceneNode::info() const noexcept {
     return luisa::format("Node <{}, {}>", scene_node_tag_description(_tag), impl_type()); }
     
 void SceneNode::Instance::add_resource(uint resource_index) noexcept {
-    _resources_indices.empplace_back(resource_index);
+    _resources_indices.emplace_back(resource_index);
 }
 
 SceneNode::Instance::~Instance() noexcept {

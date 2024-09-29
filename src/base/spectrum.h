@@ -13,8 +13,6 @@
 
 namespace luisa::render {
 
-class Pipeline;
-
 using compute::Expr;
 using compute::Float4;
 using compute::Image;

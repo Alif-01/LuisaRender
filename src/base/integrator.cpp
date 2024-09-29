@@ -39,8 +39,8 @@ ProgressiveIntegrator::Instance::~Instance() noexcept = default;
 
 void ProgressiveIntegrator::Instance::render(Stream &stream) noexcept {
     CommandBuffer command_buffer{&stream};
-    for (auto c: pipeline().cameras()) {
-        auto camera = c->second.get();
+    for (auto &c: pipeline().cameras()) {
+        auto camera = c.second.get();
         auto resolution = camera->film()->node()->resolution();
         auto pixel_count = resolution.x * resolution.y;
         camera->film()->prepare(command_buffer);
@@ -82,9 +82,8 @@ void ProgressiveIntegrator::Instance::_render_one_camera(
     command_buffer << compute::synchronize();
 
     LUISA_INFO(
-        "Rendering to '{}' of resolution {}x{} at {}spp.",
-        image_file.string(),
-        resolution.x, resolution.y, spp);
+        "Rendering to '{}' of resolution {}x{} at {} spp.",
+        image_file.string(), resolution.x, resolution.y, spp);
 
     using namespace luisa::compute;
 
@@ -109,10 +108,9 @@ void ProgressiveIntegrator::Instance::_render_one_camera(
     auto dispatch_count = 0u;
     auto sample_id = 0u;
     for (auto s : shutter_samples) {
-        auto updated = pipeline().update(command_buffer, s.point.time);     // TODO: UniSim, update is not needed
+        pipeline().update(command_buffer, s.point.time);
         for (auto i = 0u; i < s.spp; i++) {
-            command_buffer << render(sample_id++, s.point.time, s.point.weight)
-                                  .dispatch(resolution);
+            command_buffer << render(sample_id++, s.point.time, s.point.weight).dispatch(resolution);
             dispatch_count++;
             if (camera->film()->show(command_buffer)) { dispatch_count = 0u; }
             auto dispatches_per_commit = 4u;

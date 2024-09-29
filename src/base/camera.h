@@ -88,11 +88,11 @@ private:
     const Film *_film;
     const Filter *_filter;
     Transform *_transform;
-    float2 _shutter_span;
-    uint _shutter_samples;
     uint _spp;
-    std::filesystem::path _file;
+    uint _shutter_samples;
+    float2 _shutter_span;
     luisa::vector<ShutterPoint> _shutter_points;
+    std::filesystem::path _file;
 
 public:
     Camera(Scene *scene, const SceneNodeDesc *desc) noexcept;
@@ -102,8 +102,8 @@ public:
     [[nodiscard]] auto filter() const noexcept { return _filter; }
     [[nodiscard]] auto transform() const noexcept { return _transform; }
     [[nodiscard]] auto shutter_span() const noexcept { return _shutter_span; }
-    [[nodiscard]] auto shutter_weight(float time) const noexcept -> float;
-    [[nodiscard]] auto shutter_samples() const noexcept -> luisa::vector<ShutterSample>;
+    [[nodiscard]] float shutter_weight(float time) const noexcept;
+    [[nodiscard]] luisa::vector<ShutterSample> shutter_samples(float time_offset) const noexcept;
     [[nodiscard]] auto spp() const noexcept { return _spp; }
     [[nodiscard]] auto file() const noexcept { return _file; }
     [[nodiscard]] virtual bool requires_lens_sampling() const noexcept = 0;
