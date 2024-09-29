@@ -76,11 +76,13 @@ private:
     Polymorphic<Surface::Instance> _surfaces;
     Polymorphic<Light::Instance> _lights;
     Polymorphic<Medium::Instance> _media;
+    bool _lights_dirty{false};
 
     luisa::unordered_map<Transform *, uint> _transform_to_id;
     // luisa::vector<const Transform *> _transforms;
     luisa::vector<float4x4> _transform_matrices;
     Buffer<float4x4> _transform_matrix_buffer;
+    bool _transforms_dirty{false};
 
     luisa::unordered_map<const Texture *, luisa::unique_ptr<Texture::Instance>> _textures;
     luisa::unordered_map<const Filter *, luisa::unique_ptr<Filter::Instance>> _filters;
@@ -95,9 +97,6 @@ private:
 
     // registered transforms
     luisa::unordered_map<luisa::string, uint> _named_ids;
-
-    bool _lights_updated{false};
-    bool _transforms_updated{false};
 
     // other things
     float _initial_time{};
@@ -243,7 +242,7 @@ public:
     [[nodiscard]] auto named_tex3d(luisa::string_view name) const noexcept {
         return _bindless_array->tex3d(named_id(name));
     }
-    [[nodiscard]] Float4x4 transform(const Transform *transform) const noexcept;
+    [[nodiscard]] Float4x4 transform(Transform *transform) const noexcept;
 
     [[nodiscard]] Float4 constant(Expr<uint> index) const noexcept;
 

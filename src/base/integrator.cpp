@@ -29,9 +29,7 @@ Integrator::Instance::Instance(Pipeline &pipeline, CommandBuffer &command_buffer
     SceneNode::Instance{pipeline},
     _integrator{integrator},
     _sampler{integrator->sampler()->build(pipeline, command_buffer)},
-    _light_sampler{pipeline.has_lighting() ?
-        integrator->light_sampler()->build(pipeline, command_buffer) :
-        nullptr} { }
+    _light_sampler{integrator->light_sampler()->build(pipeline, command_buffer)} { }
 
 ProgressiveIntegrator::Instance::Instance(
     Pipeline &pipeline, CommandBuffer &command_buffer, const ProgressiveIntegrator *node) noexcept:

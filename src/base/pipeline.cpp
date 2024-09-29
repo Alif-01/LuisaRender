@@ -16,6 +16,12 @@ inline Pipeline::Pipeline(Device &device) noexcept:
 
 Pipeline::~Pipeline() noexcept = default;
 
+void Pipeline::update_bindless_if_dirty(CommandBuffer &command_buffer) noexcept {
+    if (_bindless_array.dirty()) {
+        command_buffer << _bindless_array.update();
+    }
+};
+
 uint Pipeline::register_surface(CommandBuffer &command_buffer, const Surface *surface) noexcept {
     if (auto iter = _surface_tags.find(surface);
         iter != _surface_tags.end()) { return iter->second; }
@@ -41,12 +47,18 @@ uint Pipeline::register_medium(CommandBuffer &command_buffer, const Medium *medi
     return tag;
 }
 
-void Pipeline::update_bindless_if_dirty(CommandBuffer &command_buffer) noexcept {
-    if (_bindless_array.dirty()) {
-        command_buffer << _bindless_array.update();
-    }
-};
 
+void Pipeline::register_transform(Transform *transform) noexcept {
+    if (transform == nullptr) { return; }
+    if (!_transform_to_id.contains(transform)) {
+        // transform->set_registered();
+        auto transform_id = static_cast<uint>(_transforms.size());
+        LUISA_ASSERT(transform_id < transform_matrix_buffer_size, "Transform matrix buffer overflows.");
+        _transform_to_id.emplace(transform, transform_id);
+        // _transforms.emplace_back(transform);
+        _transforms_dirty = true;
+    }
+}
 
 // bool Pipeline::update(CommandBuffer &command_buffer, float time) noexcept {
 //     // TODO: support deformable meshes
@@ -98,19 +110,7 @@ const PhaseFunction::Instance *Pipeline::build_phasefunction(CommandBuffer &comm
     return _phasefunctions.emplace(phasefunction, std::move(pf)).first->second.get();
 }
 
-void Pipeline::register_transform(Transform *transform) noexcept {
-    if (transform == nullptr) { return; }
-    if (!_transform_to_id.contains(transform)) {
-        transform->set_registered();
-        auto transform_id = static_cast<uint>(_transforms.size());
-        LUISA_ASSERT(transform_id < transform_matrix_buffer_size,
-                     "Transform matrix buffer overflows.");
-        _transform_to_id.emplace(transform, transform_id);
-        // _transforms.emplace_back(transform);
-        _transforms_updated = true;
-    }
-}
-
+// TODO: We should split create into Build and Update, and no need to pass scene to pipeline build. 
 luisa::unique_ptr<Pipeline> Pipeline::create(Device &device, Stream &stream, Scene &scene) noexcept {
     global_thread_pool().synchronize();
     auto pipeline = luisa::make_unique<Pipeline>(device);
@@ -138,7 +138,7 @@ luisa::unique_ptr<Pipeline> Pipeline::create(Device &device, Stream &stream, Sce
     pipeline->_geometry->build(command_buffer, scene.shapes(), pipeline->_initial_time);
     update_bindless_if_dirty();
 
-    if (auto env = scene.environment(); env != nullptr && !env->is_black()) {
+    if (auto env = scene.environment(); env != nullptr && env->dirty()) {
         pipeline->_environment = env->build(*pipeline, command_buffer);
         env->clear_dirty();
     }
@@ -161,7 +161,7 @@ luisa::unique_ptr<Pipeline> Pipeline::create(Device &device, Stream &stream, Sce
     }
     if (transform_updated || pipeline->_transforms_dirty) {
         command_buffer << pipeline->_transform_matrix_buffer
-            .view(0u, pipeline->_transforms.size())
+            .view(0u, pipeline->_transforms_to_id.size())
             .copy_from(pipeline->_transform_matrices.data());
         pipeline->_transforms_dirty = false;
     }
@@ -186,56 +186,64 @@ void Pipeline::scene_update(
 
     for (auto camera : scene.cameras()) {
         if (camera->dirty()) {
-            pipeline->_cameras.emplace(camera, camera->build(*pipeline, command_buffer));
+            _cameras[camera] = camera->build(*this, command_buffer);
             camera->clear_dirty();  // TODO: in Build
         }
     }
+    update_bindless_if_dirty();
 
-    if (scene.cameras_updated()) {
-        _cameras.clear();
-        _cameras.reserve(scene.cameras().size());
+    // if (scene.cameras_updated()) {
+    //     _cameras.clear();
+    //     _cameras.reserve(scene.cameras().size());
 
-        for (auto camera : scene.cameras()) {
-            _cameras.emplace_back(camera->build(*this, command_buffer));
-        }
-        update_bindless_if_dirty();
-    }
+    //     for (auto camera : scene.cameras()) {
+    //         _cameras.emplace_back(camera->build(*this, command_buffer));
+    //     }
+    //     update_bindless_if_dirty();
+    // }
 
-    if (scene.shapes_updated()) {
-        _geometry = luisa::make_unique<Geometry>(*this);
-        _geometry->build(command_buffer, scene.shapes(), time);
-        update_bindless_if_dirty();
-    }
+    // if (scene.shapes_updated()) {
+    _geometry = luisa::make_unique<Geometry>(*this);
+    _geometry->build(command_buffer, scene.shapes(), time);
+    update_bindless_if_dirty();
 
     bool environment_updated = false;
-    if (scene.environment_updated()) {
-        _environment = scene.environment()->build(*this, command_buffer);
+    if (auto env = scene.environment(); env != nullptr && env->dirty()) {
+        _environment = env->build(*this, command_buffer);
+        env->clear_dirty();
         environment_updated = true;
         update_bindless_if_dirty();
     }
 
-    if (environment_updated || _lights_updated) {
+    // TODO: integrator's light sampler reads lights and env, maybe it should be managed like transform.
+    if (environment_updated || _lights_dirty) { 
         _integrator = scene.integrator()->build(*this, command_buffer);
-        _lights_updated = false;
+        _lights_dirty = false;
         update_bindless_if_dirty();
     }
 
-    if (scene.transforms_updated() || _transforms_updated) {
-
-        for (auto i = 0u; i < _transforms.size(); ++i) {
-            _transform_matrices[i] = _transforms[i]->matrix(time);
+    bool transform_updated = false;
+    for (auto &transform_id : _transform_to_id) {
+        auto &transform = transform_id.first;
+        if (transform.dirty()) {
+            _transform_matrices[transform_id.second] = transform->matrix(time);
+            transform_updated = true;
+            transform.clear_dirty();
         }
-        command_buffer << _transform_matrix_buffer
-                          .view(0u, _transforms.size())
-                          .copy_from(_transform_matrices.data());
-        _transforms_updated = false;
-        update_bindless_if_dirty();
+        
     }
+    if (transform_updated || _transforms_dirty) {
+        command_buffer << _transform_matrix_buffer
+            .view(0u, _transforms_to_id.size())
+            .copy_from(_transform_matrices.data());
+        _transforms_dirty = false;
+    }
+    
+    update_bindless_if_dirty();
     command_buffer << compute::commit();
-    // scene.clear_update();
 }
 
-Float4x4 Pipeline::transform(const Transform *transform) const noexcept {
+Float4x4 Pipeline::transform(Transform *transform) const noexcept {
     if (transform == nullptr) { return make_float4x4(1.f); }
     if (transform->is_identity()) { return make_float4x4(1.f); }
     auto iter = _transform_to_id.find(transform);

@@ -8,8 +8,8 @@
 
 namespace luisa::render {
 
-LightSampler::LightSampler(Scene *scene, const SceneNodeDesc *desc) noexcept
-    : SceneNode{scene, desc, SceneNodeTag::LIGHT_SAMPLER} {}
+LightSampler::LightSampler(Scene *scene, const SceneNodeDesc *desc) noexcept:
+    SceneNode{scene, desc, SceneNodeTag::LIGHT_SAMPLER} {}
 
 LightSampler::Sample LightSampler::Instance::sample_selection(
     const Interaction &it_from, const Selection &sel, Expr<float2> u,

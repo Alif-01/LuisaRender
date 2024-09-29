@@ -246,8 +246,7 @@ void AuxiliaryBufferPathTracingInstance::_render_one_camera(
     auto image_file = camera->node()->file();
 
     if (!pipeline().has_lighting()) [[unlikely]] {
-        LUISA_WARNING_WITH_LOCATION(
-            "No lights in scene. Rendering aborted.");
+        LUISA_WARNING_WITH_LOCATION("No lights in scene. Rendering aborted.");
         return;
     }
 

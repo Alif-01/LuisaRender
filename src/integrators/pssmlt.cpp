@@ -695,8 +695,7 @@ private:
 protected:
     void _render_one_camera(CommandBuffer &command_buffer, Camera::Instance *camera) noexcept override {
         if (!pipeline().has_lighting()) [[unlikely]] {
-            LUISA_WARNING_WITH_LOCATION(
-                "No lights in scene. Rendering aborted.");
+            LUISA_WARNING_WITH_LOCATION("No lights in scene. Rendering aborted.");
             return;
         }
         auto shutter_samples = camera->node()->shutter_samples();

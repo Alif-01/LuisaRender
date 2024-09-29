@@ -43,8 +43,7 @@ public:
 protected:
     void _render_one_camera(CommandBuffer &command_buffer, Camera::Instance *camera) noexcept override {
         if (!pipeline().has_lighting()) [[unlikely]] {
-            LUISA_WARNING_WITH_LOCATION(
-                "No lights in scene. Rendering aborted.");
+            LUISA_WARNING_WITH_LOCATION("No lights in scene. Rendering aborted.");
             return;
         }
         //        pipeline().printer().set_log_dispatch_id(make_uint2(330, 770));

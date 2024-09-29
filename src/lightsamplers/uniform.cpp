@@ -14,9 +14,9 @@ private:
     float _environment_weight{.5f};
 
 public:
-    UniformLightSampler(Scene *scene, const SceneNodeDesc *desc) noexcept
-        : LightSampler{scene, desc},
-          _environment_weight{desc->property_float_or_default("environment_weight", 0.5f)} {}
+    UniformLightSampler(Scene *scene, const SceneNodeDesc *desc) noexcept:
+        LightSampler{scene, desc},
+        _environment_weight{desc->property_float_or_default("environment_weight", 0.5f)} {}
     [[nodiscard]] luisa::unique_ptr<Instance> build(Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept override;
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] auto environment_weight() const noexcept { return _environment_weight; }
@@ -29,8 +29,9 @@ private:
     float _env_prob{0.f};
 
 public:
-    UniformLightSamplerInstance(const UniformLightSampler *sampler, Pipeline &pipeline, CommandBuffer &command_buffer) noexcept
-        : LightSampler::Instance{pipeline, sampler} {
+    UniformLightSamplerInstance(Pipeline &pipeline, CommandBuffer &command_buffer,
+                                const UniformLightSampler *sampler) noexcept:
+        LightSampler::Instance{pipeline, sampler} {
         if (!pipeline.lights().empty()) {
             auto [view, _, buffer_id] = pipeline.bindless_buffer<Light::Handle>(pipeline.lights().size());
             _light_buffer_id = buffer_id;
@@ -41,8 +42,7 @@ public:
             if (pipeline.lights().empty()) {
                 _env_prob = 1.f;
             } else {
-                _env_prob = std::clamp(
-                    sampler->environment_weight(), 0.01f, 0.99f);
+                _env_prob = std::clamp(sampler->environment_weight(), 0.01f, 0.99f);
             }
         }
     }
@@ -180,7 +180,7 @@ private:
 unique_ptr<LightSampler::Instance> UniformLightSampler::build(
     Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept {
     return luisa::make_unique<UniformLightSamplerInstance>(
-        this, pipeline, command_buffer);
+        pipeline, command_buffer, this);
 }
 
 }// namespace luisa::render

@@ -440,8 +440,7 @@ void WavefrontPathTracingv2Instance::_render_one_camera(
     CommandBuffer &command_buffer, Camera::Instance *camera) noexcept {
     auto &&device = camera->pipeline().device();
     if (!pipeline().has_lighting()) [[unlikely]] {
-        LUISA_WARNING_WITH_LOCATION(
-            "No lights in scene. Rendering aborted.");
+        LUISA_WARNING_WITH_LOCATION("No lights in scene. Rendering aborted.");
         return;
     }
 
