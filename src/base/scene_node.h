@@ -35,11 +35,30 @@ class Pipeline;
 class SceneNode {
 
 public:
-    using Tag = SceneNodeTag;
+    class Instance {
+
+    private:
+        Pipeline &_pipeline;
+        luisa::vector<uint> _resources_indices;
+
+    public:
+        explicit Instance(Pipeline &pipeline) noexcept: _pipeline{pipeline} {}
+        Instance(const Instance &) noexcept = delete;
+        Instance(Instance &&another) noexcept = default;
+        Instance &operator=(const Instance &) noexcept = delete;
+        Instance &operator=(Instance &&) noexcept = delete;
+        void add_resource(uint resource_index) noexcept;
+        virtual ~Instance() noexcept;
+        [[nodiscard]] auto &pipeline() const noexcept { return _pipeline; }
+        [[nodiscard]] const auto &pipeline() const noexcept { return _pipeline; }
+    };
 
 private:
-    intptr_t _scene : 56u;
-    Tag _tag : 8u;
+    // intptr_t _scene : 56u;
+    // Tag _tag : 8u;
+    const Scene * _scene;
+    SceneNodeTag _tag;
+    bool _dirty;
 
 public:
     template <typename T>
@@ -52,17 +71,20 @@ public:
     }
 
 public:
-    SceneNode(const Scene *scene, const SceneNodeDesc *desc, Tag tag) noexcept;
-    SceneNode(const Scene *scene, Tag tag) noexcept;
+    SceneNode(const Scene *scene, const SceneNodeDesc *desc, SceneNodeTag tag) noexcept;
+    // SceneNode(const Scene *scene, Tag tag) noexcept;
     SceneNode(SceneNode &&) noexcept = delete;
     SceneNode(const SceneNode &) noexcept = delete;
-    virtual bool update(Scene *scene, const SceneNodeDesc *desc) noexcept;
+    virtual void update(Scene *scene, const SceneNodeDesc *desc) noexcept;
     [[nodiscard]] virtual luisa::string info() const noexcept;
     SceneNode &operator=(SceneNode &&) noexcept = delete;
     SceneNode &operator=(const SceneNode &) noexcept = delete;
     virtual ~SceneNode() noexcept = default;
-    [[nodiscard]] auto scene() const noexcept { return reinterpret_cast<const Scene *>(_scene); }
+    [[nodiscard]] auto scene() const noexcept { return _scene; }
     [[nodiscard]] auto tag() const noexcept { return _tag; }
+    [[nodiscard]] auto dirty() const noexcept { return _dirty; }
+    void set_updated(bool updated) noexcept { _dirty |= updated; }
+    void clear_dirty() noexcept { _dirty = false; }
     [[nodiscard]] virtual luisa::string_view impl_type() const noexcept = 0;
 };
 

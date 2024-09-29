@@ -43,10 +43,10 @@ private:
 
 public:
     MixSurfaceInstance(
-        const Pipeline &pipeline, const MixSurface *surface, const Texture::Instance *ratio,
-        luisa::unique_ptr<Surface::Instance> a, luisa::unique_ptr<Surface::Instance> b) noexcept
-        : Surface::Instance{pipeline, surface},
-          _a{std::move(a)}, _b{std::move(b)}, _ratio{ratio} {}
+        Pipeline &pipeline, const MixSurface *surface, const Texture::Instance *ratio,
+        luisa::unique_ptr<Surface::Instance> a, luisa::unique_ptr<Surface::Instance> b) noexcept:
+        Surface::Instance{pipeline, surface},
+        _a{std::move(a)}, _b{std::move(b)}, _ratio{ratio} {}
     [[nodiscard]] auto ratio() const noexcept { return _ratio; }
 
 public:

@@ -28,14 +28,14 @@ public:
         _v = normalize(cross(_w, _u));
     }
 
-    bool update(Scene *scene, const SceneNodeDesc *desc) noexcept override {
+    void update(Scene *scene, const SceneNodeDesc *desc) noexcept override {
         _origin = desc->property_float3_or_default("origin");
         auto front = desc->property_float3_or_default("front", make_float3(0.0f, 0.0f, -1.0f));
         auto up = desc->property_float3_or_default("up", make_float3(0.0f, 1.0f, 0.0f));
         _w = normalize(-front);
         _u = normalize(cross(up, _w));
         _v = normalize(cross(_w, _u));
-        return true;
+        set_updated(true);
     }
 
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }

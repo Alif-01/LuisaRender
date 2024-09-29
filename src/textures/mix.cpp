@@ -76,9 +76,9 @@ private:
     const Texture::Instance *_bottom;
 
 public:
-    MixTextureInstance(const Pipeline &pipeline, const Texture *node,
-                                const Texture::Instance *top, const Texture::Instance *bottom) noexcept
-        : Texture::Instance{pipeline, node}, _top{top}, _bottom{bottom} {}
+    MixTextureInstance(Pipeline &pipeline, const Texture *node,
+                       const Texture::Instance *top, const Texture::Instance *bottom) noexcept:
+        Texture::Instance{pipeline, node}, _top{top}, _bottom{bottom} {}
     [[nodiscard]] Float4 evaluate(const Interaction &it,
                                   Expr<float> time) const noexcept override {
         auto value = def(make_float4());

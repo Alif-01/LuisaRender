@@ -40,9 +40,9 @@ public:
         _build_matrix(desc->property_float_list_or_default("m"));
     }
 
-    bool update(Scene *scene, const SceneNodeDesc *desc) noexcept override {
+    void update(Scene *scene, const SceneNodeDesc *desc) noexcept override {
         _build_matrix(desc->property_float_list_or_default("m"));
-        return true;
+        set_updated(true);
     }
     [[nodiscard]] luisa::string info() const noexcept override {
         return luisa::format("{} matrix=[{}]", Transform::info(), _matrix);

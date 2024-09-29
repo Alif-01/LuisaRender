@@ -416,7 +416,7 @@ public:
         add_property_node("transform", pose);
     }
     bool loaded{false};
-    uint index{0};
+    void *camera{nullptr};
     bool denoise{false};
     luisa::unique_ptr<Buffer<float4>> color_buffer = nullptr;
     luisa::unique_ptr<Buffer<float4>> denoised_buffer = nullptr;

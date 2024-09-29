@@ -83,8 +83,8 @@ private:
 
 public:
     PMJ02BNSamplerInstance(Pipeline &pipeline, CommandBuffer &cb,
-                           const PMJ02BNSampler *sampler) noexcept
-        : Sampler::Instance{pipeline, sampler} {
+                           const PMJ02BNSampler *sampler) noexcept:
+        Sampler::Instance{pipeline, sampler} {
         auto k = BlueNoiseResolution;
         auto n = NumBlueNoiseTextures;
         auto blue_noise_texture = pipeline.create<Volume<float>>(

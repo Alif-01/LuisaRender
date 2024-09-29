@@ -26,10 +26,9 @@ using TextureSampler = compute::Sampler;
 class Texture : public SceneNode {
 
 public:
-    class Instance {
+    class Instance : public SceneNode::Instance {
 
     private:
-        const Pipeline &_pipeline;
         const Texture *_texture;
 
     protected:
@@ -41,13 +40,12 @@ public:
             const SampledWavelengths &swl, float4 v) const noexcept;
 
     public:
-        Instance(const Pipeline &pipeline, const Texture *texture) noexcept
-            : _pipeline{pipeline}, _texture{texture} {}
+        Instance(Pipeline &pipeline, const Texture *texture) noexcept:
+            SceneNode::Instance{pipeline}, _texture{texture} {}
         virtual ~Instance() noexcept = default;
         template<typename T = Texture>
             requires std::is_base_of_v<Texture, T>
         [[nodiscard]] auto node() const noexcept { return static_cast<const T *>(_texture); }
-        [[nodiscard]] auto &pipeline() const noexcept { return _pipeline; }
         [[nodiscard]] virtual Float4 evaluate(
             const Interaction &it, Expr<float> time) const noexcept = 0;
         [[nodiscard]] virtual Spectrum::Decode evaluate_albedo_spectrum(

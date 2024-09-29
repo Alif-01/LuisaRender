@@ -25,8 +25,8 @@ luisa::unique_ptr<Filter::Instance> Filter::build(
     return luisa::make_unique<Instance>(pipeline, this);
 }
 
-Filter::Instance::Instance(const Pipeline &pipeline, const Filter *filter) noexcept
-    : _pipeline{pipeline}, _filter{filter} {
+Filter::Instance::Instance(Pipeline &pipeline, const Filter *filter) noexcept:
+    SceneNode::Instance{pipeline}, _filter{filter} {
     static constexpr auto n = Filter::look_up_table_size - 1u;
     static constexpr auto inv_n = 1.0f / static_cast<float>(n);
     std::array<float, n> abs_f{};

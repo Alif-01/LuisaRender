@@ -32,8 +32,8 @@ public:
         }
     }
 
-    [[nodiscard]] bool update(Scene *scene, const SceneNodeDesc *desc) noexcept override {
-        return Shape::update(scene, desc);
+    void update(Scene *scene, const SceneNodeDesc *desc) noexcept override {
+        Shape::update(scene, desc);
     }
 
     [[nodiscard]] luisa::string info() const noexcept override {

@@ -27,19 +27,17 @@ public:
         Float dt_dy;
     };
 
-    class Instance {
+    class Instance : public SceneNode::Instance {
 
     private:
-        const Pipeline &_pipeline;
         const TextureMapping *_mapping;
 
     public:
-        Instance(const Pipeline &pipeline, const TextureMapping *mapping) noexcept
-            : _pipeline{pipeline}, _mapping{mapping} {}
+        Instance(Pipeline &pipeline, const TextureMapping *mapping) noexcept:
+            SceneNode::Instance{pipeline}, _mapping{mapping} {}
         template<typename T = TextureMapping>
             requires std::is_base_of_v<TextureMapping, T>
         [[nodiscard]] auto node() const noexcept { return static_cast<const T *>(_mapping); }
-        [[nodiscard]] auto &pipeline() const noexcept { return _pipeline; }
         [[nodiscard]] virtual Coord2D map(const Interaction &it, Expr<float> time) const noexcept = 0;
     };
 

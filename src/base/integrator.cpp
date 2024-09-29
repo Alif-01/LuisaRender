@@ -10,13 +10,13 @@
 
 namespace luisa::render {
 
-Integrator::Integrator(Scene *scene, const SceneNodeDesc *desc) noexcept
-    : SceneNode{scene, desc, SceneNodeTag::INTEGRATOR},
-      _sampler{scene->load_sampler(desc->property_node_or_default(
-          "sampler", SceneNodeDesc::shared_default_sampler("independent")))},
-      _light_sampler{scene->load_light_sampler(desc->property_node_or_default(
-          "light_sampler", SceneNodeDesc::shared_default_light_sampler("uniform")))},
-      _use_progress{desc->property_bool_or_default("use_progress", true)} {}
+Integrator::Integrator(Scene *scene, const SceneNodeDesc *desc) noexcept:
+    SceneNode{scene, desc, SceneNodeTag::INTEGRATOR},
+    _sampler{scene->load_sampler(desc->property_node_or_default(
+        "sampler", SceneNodeDesc::shared_default_sampler("independent")))},
+    _light_sampler{scene->load_light_sampler(desc->property_node_or_default(
+        "light_sampler", SceneNodeDesc::shared_default_light_sampler("uniform")))},
+    _use_progress{desc->property_bool_or_default("use_progress", true)} { }
 
 luisa::string Integrator::info() const noexcept {
     return luisa::format(
@@ -25,17 +25,17 @@ luisa::string Integrator::info() const noexcept {
         _light_sampler ? _light_sampler->info() : "");
 }
 
-Integrator::Instance::Instance(Pipeline &pipeline, CommandBuffer &command_buffer, const Integrator *integrator) noexcept
-    : _pipeline{pipeline}, _integrator{integrator},
-      _sampler{integrator->sampler()->build(pipeline, command_buffer)},
-      _light_sampler{pipeline.has_lighting() ?
-                     integrator->light_sampler()->build(pipeline, command_buffer) :
-                     nullptr} {}
+Integrator::Instance::Instance(Pipeline &pipeline, CommandBuffer &command_buffer, const Integrator *integrator) noexcept:
+    SceneNode::Instance{pipeline},
+    _integrator{integrator},
+    _sampler{integrator->sampler()->build(pipeline, command_buffer)},
+    _light_sampler{pipeline.has_lighting() ?
+        integrator->light_sampler()->build(pipeline, command_buffer) :
+        nullptr} { }
 
-ProgressiveIntegrator::Instance::Instance(Pipeline &pipeline,
-                                          CommandBuffer &command_buffer,
-                                          const ProgressiveIntegrator *node) noexcept
-    : Integrator::Instance{pipeline, command_buffer, node} {}
+ProgressiveIntegrator::Instance::Instance(
+    Pipeline &pipeline, CommandBuffer &command_buffer, const ProgressiveIntegrator *node) noexcept:
+    Integrator::Instance{pipeline, command_buffer, node} {}
 
 ProgressiveIntegrator::Instance::~Instance() noexcept = default;
 
@@ -59,20 +59,17 @@ void ProgressiveIntegrator::Instance::render(Stream &stream) noexcept {
 }
 
 void ProgressiveIntegrator::Instance::render_to_buffer(
-    Stream &stream, uint camera_index, luisa::vector<float4> &buffer) noexcept {
+    Stream &stream, Camera *camera, luisa::vector<float4> &buffer) noexcept {
     CommandBuffer command_buffer{&stream};
-    if (camera_index >= pipeline().camera_count()) [[unlikely]] {
-        LUISA_ERROR("Invalid camera number {}.", camera_index);
-    }
-    auto camera = pipeline().camera(camera_index);
-    auto resolution = camera->film()->node()->resolution();
+    auto camera_instance = pipeline().camera(camera);
+    auto resolution = camera_instance->film()->node()->resolution();
     auto pixel_count = resolution.x * resolution.y;
-    camera->film()->prepare(command_buffer);
-    _render_one_camera(command_buffer, camera);
+    camera_instance->film()->prepare(command_buffer);
+    _render_one_camera(command_buffer, camera_instance);
     buffer.resize(pixel_count);
-    camera->film()->download(command_buffer, buffer.data());
+    camera_instance->film()->download(command_buffer, buffer.data());
     command_buffer << compute::synchronize();
-    camera->film()->release();
+    camera_instance->film()->release();
 }
 
 void ProgressiveIntegrator::Instance::_render_one_camera(

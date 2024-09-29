@@ -135,24 +135,21 @@ public:
         }
     }
 
-    void render_to_buffer(Stream &stream, uint camera_index, luisa::vector<float4> &buffer) noexcept override {
+    void render_to_buffer(Stream &stream, Camera *camera, luisa::vector<float4> &buffer) noexcept override {
         auto pt = node<AuxiliaryBufferPathTracing>();
         CommandBuffer command_buffer{&stream};
-        if (camera_index >= pipeline().camera_count()) [[unlikely]] {
-            LUISA_ERROR("Invalid camera number {}.", camera_index);
-        }
-        auto camera = pipeline().camera(camera_index);
-        auto resolution = camera->film()->node()->resolution();
+        auto camera_instance = pipeline().camera(camera);
+        auto resolution = camera_instance->film()->node()->resolution();
         auto pixel_count = resolution.x * resolution.y;
 
         _clock.tic();
         _framerate.clear();
-        camera->film()->prepare(command_buffer);
-        _render_one_camera(command_buffer, camera);
+        camera_instance->film()->prepare(command_buffer);
+        _render_one_camera(command_buffer, camera_instance);
         buffer.resize(pixel_count);
-        camera->film()->download(command_buffer, buffer.data());
+        camera_instance->film()->download(command_buffer, buffer.data());
         command_buffer << compute::synchronize();
-        camera->film()->release();
+        camera_instance->film()->release();
     }
 };
 

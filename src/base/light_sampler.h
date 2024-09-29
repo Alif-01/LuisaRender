@@ -37,10 +37,9 @@ public:
     };
 
 public:
-    class Instance {
+    class Instance : public SceneNode {
 
     private:
-        const Pipeline &_pipeline;
         const LightSampler *_sampler;
 
     private:
@@ -57,14 +56,13 @@ public:
                                                           Expr<float> time) const noexcept = 0;
 
     public:
-        explicit Instance(const Pipeline &pipeline, const LightSampler *light_dist) noexcept
-            : _pipeline{pipeline}, _sampler{light_dist} {}
+        explicit Instance(Pipeline &pipeline, const LightSampler *light_dist) noexcept:
+            SceneNode::Instance{pipeline}, _sampler{light_dist} {}
         virtual ~Instance() noexcept = default;
 
         template<typename T = LightSampler>
             requires std::is_base_of_v<LightSampler, T>
         [[nodiscard]] auto node() const noexcept { return static_cast<const T *>(_sampler); }
-        [[nodiscard]] auto &pipeline() const noexcept { return _pipeline; }
         [[nodiscard]] virtual Evaluation evaluate_hit(
             const Interaction &it, Expr<float3> p_from,
             const SampledWavelengths &swl, Expr<float> time) const noexcept = 0;

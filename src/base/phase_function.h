@@ -25,13 +25,10 @@ public:
         Bool valid;
     };
 
-    class Instance;
-
-    class Instance {
+    class Instance : public SceneNode::Instance {
     public:
 
     protected:
-        const Pipeline &_pipeline;
         const PhaseFunction *_phase_function;
         friend class PhaseFunction;
 
@@ -41,13 +38,12 @@ public:
         [[nodiscard]] virtual Float pdf(Expr<float3> wo, Expr<float3> wi) const = 0;
 
     public:
-        Instance(const Pipeline &pipeline, const PhaseFunction *phase_function) noexcept
-            : _pipeline{pipeline}, _phase_function{phase_function} {}
+        Instance(Pipeline &pipeline, const PhaseFunction *phase_function) noexcept:
+            SceneNode::Instance{pipeline}, _phase_function{phase_function} {}
         virtual ~Instance() noexcept = default;
         template<typename T = PhaseFunction>
             requires std::is_base_of_v<PhaseFunction, T>
         [[nodiscard]] auto node() const noexcept { return static_cast<const T *>(_phase_function); }
-        [[nodiscard]] auto &pipeline() const noexcept { return _pipeline; }
     };
 
 protected:

@@ -39,9 +39,9 @@ private:
     const Texture::Instance *_texture;
 
 public:
-    UVMappingTextureInstance(const Pipeline &pipeline, const Texture *node,
-                             const Texture::Instance *uv_map, const Texture::Instance *texture) noexcept
-        : Texture::Instance{pipeline, node}, _uv_map{uv_map}, _texture{texture} {}
+    UVMappingTextureInstance(Pipeline &pipeline, const Texture *node,
+                             const Texture::Instance *uv_map, const Texture::Instance *texture) noexcept:
+        Texture::Instance{pipeline, node}, _uv_map{uv_map}, _texture{texture} {}
     [[nodiscard]] Float4 evaluate(const Interaction &it,
                                   Expr<float> time) const noexcept override {
         if (_texture == nullptr) {

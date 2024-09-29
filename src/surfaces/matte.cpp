@@ -40,9 +40,9 @@ private:
     const Texture::Instance *_sigma;
 
 public:
-    MatteInstance(const Pipeline &pipeline, const Surface *surface,
-                  const Texture::Instance *Kd, const Texture::Instance *sigma) noexcept
-        : Surface::Instance{pipeline, surface}, _kd{Kd}, _sigma{sigma} {}
+    MatteInstance(Pipeline &pipeline, const Surface *surface,
+                  const Texture::Instance *Kd, const Texture::Instance *sigma) noexcept:
+        Surface::Instance{pipeline, surface}, _kd{Kd}, _sigma{sigma} {}
 
 public:
     [[nodiscard]] luisa::unique_ptr<Surface::Closure> create_closure(const SampledWavelengths &swl, Expr<float> time) const noexcept override;

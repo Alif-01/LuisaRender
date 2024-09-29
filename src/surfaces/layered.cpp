@@ -160,10 +160,10 @@ private:
 
 public:
     LayeredSurfaceInstance(
-        const Pipeline &pipeline, const LayeredSurface *surface, const Texture::Instance *thickness, const Texture::Instance *g,
-        const Texture::Instance *albedo, luisa::unique_ptr<Surface::Instance> top, luisa::unique_ptr<Surface::Instance> bottom) noexcept
-        : Surface::Instance{pipeline, surface},
-          _top{std::move(top)}, _bottom{std::move(bottom)}, _thickness{thickness}, _g{g}, _albedo{albedo} {}
+        Pipeline &pipeline, const LayeredSurface *surface, const Texture::Instance *thickness, const Texture::Instance *g,
+        const Texture::Instance *albedo, luisa::unique_ptr<Surface::Instance> top, luisa::unique_ptr<Surface::Instance> bottom) noexcept:
+        Surface::Instance{pipeline, surface},
+        _top{std::move(top)}, _bottom{std::move(bottom)}, _thickness{thickness}, _g{g}, _albedo{albedo} {}
     [[nodiscard]] auto thickness() const noexcept { return _thickness; }
     [[nodiscard]] auto g() const noexcept { return _g; }
     [[nodiscard]] auto albedo() const noexcept { return _albedo; }

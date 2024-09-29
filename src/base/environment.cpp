@@ -17,13 +17,16 @@ luisa::string Environment::info() const noexcept {
         _transform ? _transform->info() : "");
 }
 
-bool Environment::update(Scene *scene, const SceneNodeDesc *desc) noexcept {
-    return update_value(_transform,
-        scene->load_transform(desc->property_node_or_default("transform")));
+void Environment::update(Scene *scene, const SceneNodeDesc *desc) noexcept {
+    set_updated(
+        update_value(_transform, scene->load_transform(desc->property_node_or_default("transform")))
+    );
 }
 
-Environment::Instance::Instance(Pipeline &pipeline, const Environment *env) noexcept
-    : _pipeline{pipeline}, _env{env} { pipeline.register_transform(env->transform()); }
+Environment::Instance::Instance(Pipeline &pipeline, const Environment *env) noexcept:
+    SceneNode::Instance{pipeline}, _env{env} {
+    pipeline.register_transform(env->transform());
+}
 
 Float3x3 Environment::Instance::transform_to_world() const noexcept {
     return make_float3x3(pipeline().transform(node()->transform()));

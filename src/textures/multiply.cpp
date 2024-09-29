@@ -62,11 +62,11 @@ private:
     const Texture::Instance *_b;
 
 public:
-    MultiplyTextureInstance(const Pipeline &pipeline,
+    MultiplyTextureInstance(Pipeline &pipeline,
                             const Texture *node,
                             const Texture::Instance *a,
-                            const Texture::Instance *b) noexcept
-        : Texture::Instance{pipeline, node}, _a{a}, _b{b} {}
+                            const Texture::Instance *b) noexcept:
+        Texture::Instance{pipeline, node}, _a{a}, _b{b} {}
     [[nodiscard]] Float4 evaluate(const Interaction &it,
                                   Expr<float> time) const noexcept override {
         auto a = _a->evaluate(it, time);

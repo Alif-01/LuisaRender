@@ -272,12 +272,12 @@ private:
     }
 
 public:
-    DisplayInstance(const Pipeline &pipeline, const Display *film,
-                    luisa::unique_ptr<Film::Instance> base) noexcept
-        : Film::Instance{pipeline, film},
-          _base{std::move(base)},
-          _tone_mapping{luisa::to_underlying(film->tone_mapping())},
-          _exposure{film->exposure().x} {}
+    DisplayInstance(Pipeline &pipeline, const Display *film,
+                    luisa::unique_ptr<Film::Instance> base) noexcept:
+        Film::Instance{pipeline, film},
+        _base{std::move(base)},
+        _tone_mapping{luisa::to_underlying(film->tone_mapping())},
+        _exposure{film->exposure().x} {}
 
     [[nodiscard]] Film::Accumulation read(Expr<uint2> pixel) const noexcept override {
         return _base->read(pixel);

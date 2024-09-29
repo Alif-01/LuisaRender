@@ -78,20 +78,18 @@ public:
                                             Expr<float2> u_direction) const noexcept = 0;
     };
 
-    class Instance {
+    class Instance : public SceneNode {
 
     private:
-        const Pipeline &_pipeline;
         const Light *_light;
 
     public:
-        Instance(const Pipeline &pipeline, const Light *light) noexcept
-            : _pipeline{pipeline}, _light{light} {}
+        Instance(Pipeline &pipeline, const Light *light) noexcept:
+            SceneNode::Instance{pipeline}, _light{light} {}
         virtual ~Instance() noexcept = default;
         template<typename T = Light>
             requires std::is_base_of_v<Light, T>
         [[nodiscard]] auto node() const noexcept { return static_cast<const T *>(_light); }
-        [[nodiscard]] auto &pipeline() const noexcept { return _pipeline; }
         [[nodiscard]] virtual luisa::unique_ptr<Closure> closure(
             const SampledWavelengths &swl, Expr<float> time) const noexcept = 0;
     };

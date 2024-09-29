@@ -156,10 +156,10 @@ public:
 
     public:
         HomogeneousMediumInstance(
-            const Pipeline &pipeline, const Medium *medium,
+            Pipeline &pipeline, const Medium *medium,
             const Texture::Instance *sigma_a, const Texture::Instance *sigma_s,
-            const Texture::Instance *Le, const PhaseFunction::Instance *phase_function) noexcept
-            : Medium::Instance(pipeline, medium), _sigma_a{sigma_a}, _sigma_s{sigma_s}, _le{Le}, _phase_function{phase_function} {}
+            const Texture::Instance *Le, const PhaseFunction::Instance *phase_function) noexcept:
+            Medium::Instance(pipeline, medium), _sigma_a{sigma_a}, _sigma_s{sigma_s}, _le{Le}, _phase_function{phase_function} {}
         [[nodiscard]] luisa::unique_ptr<Closure> closure(
             Expr<Ray> ray, const SampledWavelengths &swl, Expr<float> time) const noexcept override {
             Interaction it;

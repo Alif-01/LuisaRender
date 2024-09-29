@@ -184,7 +184,7 @@ private:
     SPD _k;
 
 public:
-    MetalInstance(const Pipeline &pipeline, const Surface *surface,
+    MetalInstance(Pipeline &pipeline, const Surface *surface,
                   const Texture::Instance *roughness, const Texture::Instance *Kd,
                   SPD eta, SPD k) noexcept
         : Surface::Instance{pipeline, surface},

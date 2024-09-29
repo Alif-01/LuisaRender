@@ -40,9 +40,9 @@ private:
     uint2 _resolution;
 
 public:
-    TileSharedSamplerInstance(const Pipeline &pipeline, const TileSharedSampler *sampler,
-                              luisa::unique_ptr<Sampler::Instance> base) noexcept
-        : Sampler::Instance{pipeline, sampler}, _base{std::move(base)} {}
+    TileSharedSamplerInstance(Pipeline &pipeline, const TileSharedSampler *sampler,
+                              luisa::unique_ptr<Sampler::Instance> base) noexcept:
+        Sampler::Instance{pipeline, sampler}, _base{std::move(base)} {}
     void reset(CommandBuffer &command_buffer, uint2 resolution,
                uint state_count, uint spp) noexcept override {
         _tile_size = luisa::min(resolution, node<TileSharedSampler>()->tile_size());

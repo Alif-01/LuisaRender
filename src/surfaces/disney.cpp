@@ -918,7 +918,7 @@ private:
 
 public:
     DisneySurfaceInstance(
-        const Pipeline &pipeline, const Surface *surface,
+        Pipeline &pipeline, const Surface *surface,
         const Texture::Instance *color, const Texture::Instance *metallic,
         const Texture::Instance *eta, const Texture::Instance *roughness,
         const Texture::Instance *specular_tint, const Texture::Instance *anisotropic,

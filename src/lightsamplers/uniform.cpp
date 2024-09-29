@@ -169,7 +169,7 @@ private:
         Var<Ray> shadow_ray{};
         pipeline().lights().dispatch(light_inst.light_tag(), [&](auto light) noexcept {
             auto closure = light->closure(swl, time);
-            auto [sp_tp,ray_tp] = closure->sample_le(handle.instance_id, u_light, u_direction);
+            auto [sp_tp, ray_tp] = closure->sample_le(handle.instance_id, u_light, u_direction);
             sp = sp_tp;
             shadow_ray = ray_tp;
         });

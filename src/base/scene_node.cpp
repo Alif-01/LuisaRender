@@ -7,8 +7,8 @@
 
 namespace luisa::render {
 
-SceneNode::SceneNode(const Scene *scene, const SceneNodeDesc *desc, SceneNodeTag tag) noexcept
-    : _scene{reinterpret_cast<intptr_t>(scene)}, _tag{tag} {
+SceneNode::SceneNode(const Scene *scene, const SceneNodeDesc *desc, SceneNodeTag tag) noexcept:
+    _scene{scene}, _tag{tag}, _dirty{true} {
     if (!desc->is_defined()) [[unlikely]] {
         LUISA_ERROR_WITH_LOCATION(
             "Undefined scene description "
@@ -28,13 +28,24 @@ SceneNode::SceneNode(const Scene *scene, const SceneNodeDesc *desc, SceneNodeTag
     }
 }
 
-SceneNode::SceneNode(const Scene *scene, SceneNodeTag tag) noexcept
-    : _scene{reinterpret_cast<intptr_t>(scene)}, _tag{tag} {}
+// SceneNode::SceneNode(const Scene *scene, SceneNodeTag tag) noexcept
+//     : _scene{reinterpret_cast<intptr_t>(scene)}, _tag{tag} {}
 
-bool SceneNode::update(Scene *scene, const SceneNodeDesc *desc) noexcept {
+void SceneNode::update(Scene *scene, const SceneNodeDesc *desc) noexcept {
     LUISA_NOT_IMPLEMENTED();
 }
 
 luisa::string SceneNode::info() const noexcept {
     return luisa::format("Node <{}, {}>", scene_node_tag_description(_tag), impl_type()); }
+    
+void SceneNode::Instance::add_resource(uint resource_index) noexcept {
+    _resources_indices.empplace_back(resource_index);
 }
+
+SceneNode::Instance::~Instance() noexcept {
+    for (auto resource_index: _resources_indices) {
+        _pipeline.remove_resource(resource_index);
+    }
+}
+
+}   // luisa::render

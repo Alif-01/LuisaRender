@@ -37,9 +37,9 @@ LightSampler::Sample LightSampler::Instance::sample_selection_le(
     const SampledWavelengths &swl, Expr<float> time) const noexcept {
     auto sample = Sample::zero(swl.dimension());
     if (!pipeline().has_lighting()) { return sample; }
-    if (_pipeline.environment() != nullptr) {// possibly environment lighting
+    if (_pipeline.environment() != nullptr) {   // possibly environment lighting
         if (_pipeline.lights().empty()) {    // no lights, just environment lighting
-            sample = sample_environment_le(sel, u_light,u_direction, swl, time);
+            sample = sample_environment_le(sel, u_light, u_direction, swl, time);
         } else {// environment lighting and lights
             $if(sel.tag == selection_environment) {
                 sample = sample_environment_le(sel, u_light, u_direction, swl, time);
@@ -87,26 +87,28 @@ LightSampler::Sample LightSampler::Instance::sample_environment(
 LightSampler::Sample LightSampler::Instance::sample_light_le(
     const LightSampler::Selection &sel, Expr<float2> u_light, Expr<float2> u_direction,
     const SampledWavelengths &swl, Expr<float> time) const noexcept {
-    auto s = _sample_light_le(sel.tag, u_light,u_direction, swl, time);
+    auto s = _sample_light_le(sel.tag, u_light, u_direction, swl, time);
     s.eval.pdf *= sel.prob;
     return s;
 }
 
 LightSampler::Sample LightSampler::Instance::sample_environment_le(
-    const LightSampler::Selection &sel, Expr<float2> u_light, Expr<float2>u_direction,
+    const LightSampler::Selection &sel, Expr<float2> u_light, Expr<float2> u_direction,
     const SampledWavelengths &swl, Expr<float> time) const noexcept {
     auto s = _sample_environment(u_direction, swl, time);
     s.eval.pdf *= sel.prob;
     auto cd = sample_uniform_disk_concentric(u_light);
-    auto world_min = pipeline().geometry()->world_min();
-    auto world_max = pipeline().geometry()->world_max();
-    auto world_radius = distance(world_min, world_max) * 0.501f;
-    auto world_center = 0.5f * (world_max + world_min);
+    // auto world_min = pipeline().geometry()->world_min();
+    // auto world_max = pipeline().geometry()->world_max();
+    // auto world_radius = distance(world_min, world_max) * 0.501f;
+    // auto world_center = 0.5f * (world_max + world_min);
     Frame fr = Frame::make(s.wi);
     auto to_world = cd.x * fr.s() + cd.y * fr.t() + 1.0f * fr.n();
-    auto origin =world_center+world_radius * to_world;
-    s.eval.pdf *= 1 / (pi * world_radius * world_radius);
-    return Sample{.eval = s.eval, .shadow_ray = make_ray(origin,-s.wi)};
+    // auto origin = world_center + world_radius * to_world;
+    auto origin = 1e7f * to_world;
+    // s.eval.pdf *= 1 / (pi * world_radius * world_radius);
+    s.eval.pdf *= inv_pi;
+    return Sample{.eval = s.eval, .shadow_ray = make_ray(origin, -s.wi)};
 }
 
 LightSampler::Sample LightSampler::Sample::zero(uint spec_dim) noexcept {

@@ -50,14 +50,14 @@ int main(int argc, char *argv[]) {
     auto desc = scene_desc.get();
     auto scene = Scene::create(context, desc);
 
-    auto camera = scene->cameras()[0];
+    auto camera = *(scene->cameras().begin());
     auto resolution = camera->film()->resolution();
     uint pixel_count = resolution.x * resolution.y;
 
     auto pipeline = Pipeline::create(device, stream, *scene);
     luisa::vector<float4> buffer;
     auto buffer_p = reinterpret_cast<float *>(buffer.data());
-    pipeline->render_to_buffer(stream, 0, buffer);
+    pipeline->render_to_buffer(stream, camera, buffer);
 
     auto color_buffer = device.create_buffer<float4>(pixel_count);
     auto output_buffer = device.create_buffer<float4>(pixel_count);

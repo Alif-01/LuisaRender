@@ -12,8 +12,8 @@ namespace luisa::render {
 Surface::Surface(Scene *scene, const SceneNodeDesc *desc) noexcept
     : SceneNode{scene, desc, SceneNodeTag::SURFACE} {}
 
-bool Surface::update(Scene *scene, const SceneNodeDesc *desc) noexcept {
-    return false;
+void Surface::update(Scene *scene, const SceneNodeDesc *desc) noexcept {
+    // TODO: update surface
 }
 
 luisa::unique_ptr<Surface::Instance> Surface::build(

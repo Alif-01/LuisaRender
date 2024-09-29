@@ -74,9 +74,9 @@ private:
     }
 
 public:
-    CheckerboardTextureInstance(const Pipeline &pipeline, const Texture *node,
-                                const Texture::Instance *on, const Texture::Instance *off) noexcept
-        : Texture::Instance{pipeline, node}, _on{on}, _off{off} {}
+    CheckerboardTextureInstance(Pipeline &pipeline, const Texture *node,
+                                const Texture::Instance *on, const Texture::Instance *off) noexcept:
+        Texture::Instance{pipeline, node}, _on{on}, _off{off} {}
     [[nodiscard]] Float4 evaluate(const Interaction &it,
                                   Expr<float> time) const noexcept override {
         auto value = def(make_float4());

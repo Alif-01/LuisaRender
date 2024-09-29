@@ -96,9 +96,8 @@ private:
 
 public:
     explicit SobolSamplerInstance(
-        const Pipeline &pipeline, CommandBuffer &command_buffer,
-        const SobolSampler *s) noexcept
-        : Sampler::Instance{pipeline, s} {
+        Pipeline &pipeline, CommandBuffer &command_buffer, const SobolSampler *s) noexcept:
+        Sampler::Instance{pipeline, s} {
         _sobol_matrices = pipeline.device().create_buffer<uint>(SobolMatrixSize * NSobolDimensions);
         _vdc_sobol_matrices = pipeline.device().create_buffer<ulong>(SobolMatrixSize);
         _vdc_sobol_matrices_inv = pipeline.device().create_buffer<ulong>(SobolMatrixSize);

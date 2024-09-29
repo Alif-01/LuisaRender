@@ -25,12 +25,12 @@ public:
         );
     }
 
-    [[nodiscard]] bool update(Scene *scene, const SceneNodeDesc *desc) noexcept override {
+    void update(Scene *scene, const SceneNodeDesc *desc) noexcept override {
         _geometry = SpheresProceduralGeometry::create(
             desc->property_float_list("centers"),
             desc->property_float_list("radii")
         );
-        return true;
+        set_updated(true);
     }
 
     [[nodiscard]] luisa::string info() const noexcept override {

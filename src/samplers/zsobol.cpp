@@ -65,8 +65,8 @@ private:
     }
 
 public:
-    explicit ZSobolSamplerInstance(const Pipeline &pipeline, CommandBuffer &command_buffer, const ZSobolSampler *s) noexcept
-        : Sampler::Instance{pipeline, s} {
+    explicit ZSobolSamplerInstance(Pipeline &pipeline, CommandBuffer &command_buffer, const ZSobolSampler *s) noexcept:
+        Sampler::Instance{pipeline, s} {
         std::array<uint2, max_dimension> sample_hash{};
         for (auto i = 0u; i < max_dimension; i++) {
             auto u = (static_cast<uint64_t>(s->seed()) << 32u) | i;

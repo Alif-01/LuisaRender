@@ -83,9 +83,9 @@ private:
     const Texture::Instance *_base;
 
 public:
-    SwizzleTextureInstance(const Pipeline &pipeline, const Texture *node,
-                           const Texture::Instance *base) noexcept
-        : Texture::Instance{pipeline, node}, _base{base} {}
+    SwizzleTextureInstance(Pipeline &pipeline, const Texture *node,
+                           const Texture::Instance *base) noexcept:
+        Texture::Instance{pipeline, node}, _base{base} {}
     [[nodiscard]] Float4 evaluate(const Interaction &it,
                                   Expr<float> time) const noexcept override {
         auto v = _base->evaluate(it, time);

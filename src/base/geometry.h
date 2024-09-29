@@ -38,16 +38,6 @@ public:
         uint buffer_id_base;
     };
 
-    // struct MeshData {
-    //     Mesh *resource;
-    //     uint shadow_term : 10;
-    //     uint intersection_offset : 10;
-    //     uint clamp_normal : 12;
-    //     uint geometry_buffer_id_base : 22;
-    //     uint vertex_properties : 10;
-    // };
-    // static_assert(sizeof(MeshData) == 16u);
-
     static constexpr float inv_sqrt3 = 0.57735026918962576450914878050196f;
 
 private:
@@ -55,13 +45,12 @@ private:
     Accel _accel;
     TransformTree _transform_tree;
     luisa::vector<uint> _resource_store;
-    // luisa::unordered_map<uint64_t, MeshGeometry> _mesh_cache;
     luisa::vector<Light::Handle> _instanced_lights;
     luisa::vector<uint4> _instances;
     luisa::vector<InstancedTransform> _dynamic_transforms;
     Buffer<uint4> _instance_buffer;
-    float3 _world_min;
-    float3 _world_max;
+    // float3 _world_min;
+    // float3 _world_max;
     bool _any_non_opaque{false};
 
 private:
@@ -84,8 +73,8 @@ public:
     bool update(CommandBuffer &command_buffer, float time) noexcept;
     [[nodiscard]] auto instances() const noexcept { return luisa::span{_instances}; }
     [[nodiscard]] auto light_instances() const noexcept { return luisa::span{_instanced_lights}; }
-    [[nodiscard]] auto world_min() const noexcept { return _world_min; }
-    [[nodiscard]] auto world_max() const noexcept { return _world_max; }
+    // [[nodiscard]] auto world_min() const noexcept { return _world_min; }
+    // [[nodiscard]] auto world_max() const noexcept { return _world_max; }
     [[nodiscard]] Var<CommittedHit> trace_closest(const Var<Ray> &ray) const noexcept;
     [[nodiscard]] Var<bool> trace_any(const Var<Ray> &ray) const noexcept;
     [[nodiscard]] luisa::shared_ptr<Interaction> interaction(const Var<Ray> &ray, const Var<CommittedHit> &hit) const noexcept;

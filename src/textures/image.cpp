@@ -142,7 +142,7 @@ public:
     }
 
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
-    [[nodiscard]] auto image() const noexcept { return _image.get(); }
+    [[nodiscard]] auto &image() const noexcept { return _image.get(); }
     [[nodiscard]] bool is_black() const noexcept override { return all(_scale == 0.f); }
     [[nodiscard]] bool is_constant() const noexcept override { return false; }
     [[nodiscard]] uint2 resolution() const noexcept override { return _image.get().size(); }
@@ -161,8 +161,6 @@ public:
 class ImageTextureInstance final : public Texture::Instance {
 
 private:
-    Pipeline &_pipeline;
-    uint _image_id;
     uint _texture_id;
 
 private:
@@ -196,14 +194,14 @@ public:
     ImageTextureInstance(Pipeline &pipeline,
                          const ImageTexture *texture,
                          CommandBuffer &command_buffer) noexcept:
-        Texture::Instance{pipeline, texture}, _pipeline{pipeline} {
+        Texture::Instance{pipeline, texture} {
         const LoadedImage &image = texture->image();
         auto [device_image, image_index] = pipeline.create_with_index<Image<float>>(
             image.pixel_storage(), image.size(), texture->mipmaps());
         auto tex_id = pipeline.register_bindless(*device_image, texture->sampler());
         
         command_buffer << device_image->copy_from(image.pixels()) << compute::commit();
-        _image_id = image_index;
+        add_resource(image_index);
         _texture_id = tex_id;
 
         // if (device_image->mip_levels() > 1u) {
@@ -221,16 +219,12 @@ public:
         auto v = pipeline().tex2d(_texture_id).sample(uv);  // TODO: LOD
         return _decode(v);
     }
-    ~ImageTextureInstance() noexcept {
-        _pipeline.remove_resource(_image_id);
-    }
 };
 
 luisa::unique_ptr<Texture::Instance> ImageTexture::build(
     Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept {
     LUISA_ASSERT(_image.valid(), "Building with Invalid texture.");
     auto p = luisa::make_unique<ImageTextureInstance>(pipeline, this, command_buffer);
-    _image = {};
     return std::move(p);
 }
 

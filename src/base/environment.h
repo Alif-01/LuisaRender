@@ -26,10 +26,9 @@ public:
     };
 
 public:
-    class Instance {
+    class Instance : public SceneNode::Instance {
 
     private:
-        const Pipeline &_pipeline;
         const Environment *_env;
 
     public:
@@ -38,7 +37,6 @@ public:
         template<typename T = Environment>
             requires std::is_base_of_v<Environment, T>
         [[nodiscard]] auto node() const noexcept { return static_cast<const T *>(_env); }
-        [[nodiscard]] auto &pipeline() const noexcept { return _pipeline; }
         [[nodiscard]] virtual Evaluation evaluate(Expr<float3> wi,
                                                   const SampledWavelengths &swl,
                                                   Expr<float> time) const noexcept = 0;
@@ -54,7 +52,7 @@ private:
 public:
     Environment(Scene *scene, const SceneNodeDesc *desc) noexcept;
     [[nodiscard]] virtual luisa::string info() const noexcept override;
-    [[nodiscard]] virtual bool update(Scene *scene, const SceneNodeDesc *desc) noexcept override;
+    virtual void update(Scene *scene, const SceneNodeDesc *desc) noexcept override;
     [[nodiscard]] auto transform() const noexcept { return _transform; }
     [[nodiscard]] virtual bool is_black() const noexcept = 0;
     [[nodiscard]] virtual luisa::unique_ptr<Instance> build(

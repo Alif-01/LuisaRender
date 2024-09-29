@@ -22,14 +22,14 @@ public:
             desc->property_float_list_or_default("uvs")
         )} { }
 
-    [[nodiscard]] bool update(Scene *scene, const SceneNodeDesc *desc) noexcept override {
+    void update(Scene *scene, const SceneNodeDesc *desc) noexcept override {
         _geometry = MeshGeometry::create(
             desc->property_float_list_or_default("positions"),
             desc->property_uint_list_or_default("indices"),
             desc->property_float_list_or_default("normals"),
             desc->property_float_list_or_default("uvs")
         );
-        return true;
+        set_updated(true);
     }
 
     [[nodiscard]] luisa::string info() const noexcept override {

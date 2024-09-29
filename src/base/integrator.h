@@ -19,10 +19,9 @@ class Display;
 class Integrator : public SceneNode {
 
 public:
-    class Instance {
+    class Instance : public SceneNode::Instance {
 
     private:
-        Pipeline &_pipeline;
         const Integrator *_integrator;
         luisa::unique_ptr<Sampler::Instance> _sampler;
         luisa::unique_ptr<LightSampler::Instance> _light_sampler;
@@ -34,15 +33,13 @@ public:
         template<typename T = Integrator>
             requires std::is_base_of_v<Integrator, T>
         [[nodiscard]] auto node() const noexcept { return static_cast<const T *>(_integrator); }
-        [[nodiscard]] auto &pipeline() noexcept { return _pipeline; }
-        [[nodiscard]] const auto &pipeline() const noexcept { return _pipeline; }
         [[nodiscard]] auto sampler() noexcept { return _sampler.get(); }
         [[nodiscard]] auto sampler() const noexcept { return _sampler.get(); }
         [[nodiscard]] auto light_sampler() noexcept { return _light_sampler.get(); }
         [[nodiscard]] auto light_sampler() const noexcept { return _light_sampler.get(); }
         [[nodiscard]] bool use_progress() const noexcept { return _integrator->use_progress(); }
         virtual void render(Stream &stream) noexcept = 0;
-        virtual void render_to_buffer(Stream &stream, uint camera_index, luisa::vector<float4> &buffer) noexcept = 0;
+        virtual void render_to_buffer(Stream &stream, Camera *camera, luisa::vector<float4> &buffer) noexcept = 0;
     };
 
 private:
@@ -76,7 +73,7 @@ public:
                  const ProgressiveIntegrator *node) noexcept;
         ~Instance() noexcept override;
         void render(Stream &stream) noexcept override;
-        void render_to_buffer(Stream &stream, uint camera_index, luisa::vector<float4> &buffer) noexcept override;
+        void render_to_buffer(Stream &stream, Camera *camera, luisa::vector<float4> &buffer) noexcept override;
     };
 
 public:

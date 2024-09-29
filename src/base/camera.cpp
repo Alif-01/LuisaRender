@@ -141,9 +141,10 @@ Camera::Camera(Scene *scene, const SceneNodeDesc *desc) noexcept:
     }
 }
 
-bool Camera::update(Scene *scene, const SceneNodeDesc *desc) noexcept {
-    return update_value(_transform,
-        scene->load_transform(desc->property_node_or_default("transform")));
+void Camera::update(Scene *scene, const SceneNodeDesc *desc) noexcept {
+    set_updated(
+        update_value(_transform, scene->load_transform(desc->property_node_or_default("transform")))
+    );
 }
 
 luisa::string Camera::info() const noexcept {
@@ -209,10 +210,10 @@ auto Camera::shutter_samples() const noexcept -> vector<ShutterSample> {
     return buckets;
 }
 
-Camera::Instance::Instance(Pipeline &pipeline, CommandBuffer &command_buffer, const Camera *camera) noexcept
-    : _pipeline{&pipeline}, _camera{camera},
-      _film{camera->film()->build(pipeline, command_buffer)},
-      _filter{pipeline.build_filter(command_buffer, camera->filter())} {
+Camera::Instance::Instance(Pipeline &pipeline, CommandBuffer &command_buffer, const Camera *camera) noexcept:
+    SceneNode::Instance{pipeline}, _camera{camera},
+    _film{camera->film()->build(pipeline, command_buffer)},
+    _filter{pipeline.build_filter(command_buffer, camera->filter())} {
     pipeline.register_transform(camera->transform());
 }
 

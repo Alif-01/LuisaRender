@@ -36,10 +36,11 @@ public:
         Camera{scene, desc},
         _fov{radians(std::clamp(desc->property_float_or_default("fov", 35.0f), 1e-3f, 180.f - 1e-3f))} {}
 
-    [[nodiscard]] bool update(Scene *scene, const SceneNodeDesc *desc) noexcept override {
-        return Camera::update(scene, desc) |
-            update_value(_fov, radians(std::clamp(
-                desc->property_float_or_default("fov", 35.0f), 1e-3f, 180.f - 1e-3f)));
+    void update(Scene *scene, const SceneNodeDesc *desc) noexcept override {
+        Camera::update(scene, desc);
+        set_updated(
+            update_value(_fov, radians(std::clamp(desc->property_float_or_default("fov", 35.0f), 1e-3f, 180.f - 1e-3f)))
+        );
     }
     
     [[nodiscard]] luisa::string info() const noexcept override {
@@ -60,9 +61,8 @@ private:
 
 public:
     explicit PinholeCameraInstance(
-        Pipeline &ppl, CommandBuffer &command_buffer,
-        const PinholeCamera *camera) noexcept
-        : Camera::Instance{ppl, command_buffer, camera},
+        Pipeline &ppl, CommandBuffer &command_buffer, const PinholeCamera *camera
+    ) noexcept: Camera::Instance{ppl, command_buffer, camera},
           _device_data{ppl.create<Buffer<PinholeCameraData>>(1u)->view()} {
         PinholeCameraData host_data{make_float2(camera->film()->resolution()),
                                     tan(camera->fov() * 0.5f)};

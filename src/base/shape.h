@@ -53,7 +53,7 @@ private:
 
 public:
     Shape(Scene *scene, const SceneNodeDesc *desc) noexcept;
-    virtual bool update(Scene *scene, const SceneNodeDesc *desc) noexcept override;
+    virtual void update(Scene *scene, const SceneNodeDesc *desc) noexcept override;
     [[nodiscard]] virtual luisa::string info() const noexcept override;
     [[nodiscard]] const Surface *surface() const noexcept;
     [[nodiscard]] const Light *light() const noexcept;

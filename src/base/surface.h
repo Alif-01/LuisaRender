@@ -104,10 +104,9 @@ public:
         [[nodiscard]] virtual Float2 roughness() const noexcept = 0;        // roughness, might not be exact, for AOV only
     };
 
-    class Instance {
+    class Instance : public SceneNode::Instance {
 
     private:
-        const Pipeline &_pipeline;
         const Surface *_surface;
 
     private:
@@ -122,13 +121,12 @@ public:
             const SampledWavelengths &swl, Expr<float> time) const noexcept = 0;
 
     public:
-        Instance(const Pipeline &pipeline, const Surface *surface) noexcept
-            : _pipeline{pipeline}, _surface{surface} {}
+        Instance(Pipeline &pipeline, const Surface *surface) noexcept:
+            SceneNode::Instance{pipeline}, _surface{surface} {}
         virtual ~Instance() noexcept = default;
         template<typename T = Surface>
             requires std::is_base_of_v<Surface, T>
         [[nodiscard]] auto node() const noexcept { return static_cast<const T *>(_surface); }
-        [[nodiscard]] auto &pipeline() const noexcept { return _pipeline; }
 
         [[nodiscard]] virtual bool maybe_non_opaque() const noexcept { return false; }
         [[nodiscard]] virtual luisa::optional<Float> evaluate_opacity(const Interaction &it, Expr<float> time) const noexcept { return luisa::nullopt; }
@@ -149,7 +147,7 @@ protected:
 
 public:
     Surface(Scene *scene, const SceneNodeDesc *desc) noexcept;
-    virtual bool update(Scene *scene, const SceneNodeDesc *desc) noexcept override;
+    virtual void update(Scene *scene, const SceneNodeDesc *desc) noexcept override;
     [[nodiscard]] virtual uint properties() const noexcept = 0;
     [[nodiscard]] virtual bool is_null() const noexcept { return false; }
     [[nodiscard]] auto is_reflective() const noexcept { return static_cast<bool>(properties() & property_reflective); }

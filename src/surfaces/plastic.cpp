@@ -92,13 +92,13 @@ private:
     const Texture::Instance *_thickness;
 
 public:
-    PlasticInstance(const Pipeline &pipeline, const Surface *surface,
+    PlasticInstance(Pipeline &pipeline, const Surface *surface,
                     const Texture::Instance *Kd, const Texture::Instance *Ks,
                     const Texture::Instance *roughness, const Texture::Instance *sigma_a,
-                    const Texture::Instance *eta, const Texture::Instance *thickness) noexcept
-        : Surface::Instance{pipeline, surface},
-          _kd{Kd}, _ks{Ks}, _roughness{roughness}, _sigma_a{sigma_a},
-          _eta{eta}, _thickness{thickness} {}
+                    const Texture::Instance *eta, const Texture::Instance *thickness) noexcept:
+        Surface::Instance{pipeline, surface},
+        _kd{Kd}, _ks{Ks}, _roughness{roughness}, _sigma_a{sigma_a},
+        _eta{eta}, _thickness{thickness} {}
 
 public:
     [[nodiscard]] luisa::unique_ptr<Surface::Closure> create_closure(

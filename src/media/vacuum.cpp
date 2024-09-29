@@ -52,8 +52,8 @@ public:
         friend class VacuumMedium;
 
     public:
-        VacuumMediumInstance(const Pipeline &pipeline, const Medium *medium) noexcept
-            : Medium::Instance(pipeline, medium) {}
+        VacuumMediumInstance(Pipeline &pipeline, const Medium *medium) noexcept:
+            Medium::Instance(pipeline, medium) {}
         [[nodiscard]] luisa::unique_ptr<Closure> closure(
             Expr<Ray> ray, const SampledWavelengths &swl, Expr<float> time) const noexcept override {
             return luisa::make_unique<VacuumMediumClosure>(this, ray, swl, time);

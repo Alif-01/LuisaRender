@@ -43,10 +43,10 @@ private:
 
 public:
     MirrorInstance(
-        const Pipeline &pipeline, const Surface *surface,
-        const Texture::Instance *color, const Texture::Instance *roughness) noexcept
-        : Surface::Instance{pipeline, surface},
-          _color{color}, _roughness{roughness} {}
+        Pipeline &pipeline, const Surface *surface,
+        const Texture::Instance *color, const Texture::Instance *roughness) noexcept:
+        Surface::Instance{pipeline, surface},
+        _color{color}, _roughness{roughness} {}
     [[nodiscard]] auto color() const noexcept { return _color; }
     [[nodiscard]] auto roughness() const noexcept { return _roughness; }
 

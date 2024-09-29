@@ -9,10 +9,10 @@
 
 namespace luisa::render {
 
-inline Pipeline::Pipeline(Device &device) noexcept
-    : _device{device},
-      _bindless_array{device.create_bindless_array(bindless_array_capacity)},
-      _general_buffer_arena{luisa::make_unique<BufferArena>(device, 16_M)} {}
+inline Pipeline::Pipeline(Device &device) noexcept:
+    _device{device},
+    _bindless_array{device.create_bindless_array(bindless_array_capacity)},
+    _general_buffer_arena{luisa::make_unique<BufferArena>(device, 16_M)} {}
 
 Pipeline::~Pipeline() noexcept = default;
 
@@ -41,66 +41,133 @@ uint Pipeline::register_medium(CommandBuffer &command_buffer, const Medium *medi
     return tag;
 }
 
+void Pipeline::update_bindless_if_dirty(CommandBuffer &command_buffer) noexcept {
+    if (_bindless_array.dirty()) {
+        command_buffer << _bindless_array.update();
+    }
+};
+
+
+// bool Pipeline::update(CommandBuffer &command_buffer, float time) noexcept {
+//     // TODO: support deformable meshes
+//     auto updated = _geometry->update(command_buffer, time);
+//     return updated;
+//     // if (_any_dynamic_transforms) {
+//     //     updated = true;
+//     //     for (auto i = 0u; i < _transforms.size(); ++i) {
+//     //         _transform_matrices[i] = _transforms[i]->matrix(time);
+//     //     }
+//     //     command_buffer << _transform_matrix_buffer
+//     //                       .view(0u, _transforms.size())
+//     //                       .copy_from(_transform_matrices.data());
+//     // }
+// }
+
+void Pipeline::render(Stream &stream) noexcept {
+    _integrator->render(stream);
+}
+
+void Pipeline::render_to_buffer(Stream &stream, Camera *camera, luisa::vector<float4> &buffer) noexcept {
+    _integrator->render_to_buffer(stream, camera, buffer);
+}
+
+const Texture::Instance *Pipeline::build_texture(CommandBuffer &command_buffer, const Texture *texture) noexcept {
+    if (texture == nullptr) { return nullptr; }
+    if (auto iter = _textures.find(texture); iter != _textures.end()) {
+        return iter->second.get();
+    }
+    auto t = texture->build(*this, command_buffer);
+    return _textures.emplace(texture, std::move(t)).first->second.get();
+}
+
+const Filter::Instance *Pipeline::build_filter(CommandBuffer &command_buffer, const Filter *filter) noexcept {
+    if (filter == nullptr) { return nullptr; }
+    if (auto iter = _filters.find(filter); iter != _filters.end()) {
+        return iter->second.get();
+    }
+    auto f = filter->build(*this, command_buffer);
+    return _filters.emplace(filter, std::move(f)).first->second.get();
+}
+
+const PhaseFunction::Instance *Pipeline::build_phasefunction(CommandBuffer &command_buffer, const PhaseFunction *phasefunction) noexcept {
+    if (phasefunction == nullptr) { return nullptr; }
+    if (auto iter = _phasefunctions.find(phasefunction); iter != _phasefunctions.end()) {
+        return iter->second.get();
+    }
+    auto pf = phasefunction->build(*this, command_buffer);
+    return _phasefunctions.emplace(phasefunction, std::move(pf)).first->second.get();
+}
+
+void Pipeline::register_transform(Transform *transform) noexcept {
+    if (transform == nullptr) { return; }
+    if (!_transform_to_id.contains(transform)) {
+        transform->set_registered();
+        auto transform_id = static_cast<uint>(_transforms.size());
+        LUISA_ASSERT(transform_id < transform_matrix_buffer_size,
+                     "Transform matrix buffer overflows.");
+        _transform_to_id.emplace(transform, transform_id);
+        // _transforms.emplace_back(transform);
+        _transforms_updated = true;
+    }
+}
+
 luisa::unique_ptr<Pipeline> Pipeline::create(Device &device, Stream &stream, Scene &scene) noexcept {
     global_thread_pool().synchronize();
     auto pipeline = luisa::make_unique<Pipeline>(device);
+    CommandBuffer command_buffer{&stream};
+
     pipeline->_transform_matrices.resize(transform_matrix_buffer_size);
     pipeline->_transform_matrix_buffer = device.create_buffer<float4x4>(transform_matrix_buffer_size);
-
-    auto initial_time = std::numeric_limits<float>::max();
+    pipeline->_initial_time = std::numeric_limits<float>::max();
     for (auto c : scene.cameras()) {
-        if (c->shutter_span().x < initial_time) {
-            initial_time = c->shutter_span().x;
+        if (c->shutter_span().x < pipeline->_initial_time) {
+            pipeline->_initial_time = c->shutter_span().x;
         }
     }
-    pipeline->_initial_time = initial_time;
-
-    CommandBuffer command_buffer{&stream};
-    auto update_bindless_if_dirty = [&pipeline, &command_buffer] {
-        if (pipeline->_bindless_array.dirty()) {
-            command_buffer << pipeline->_bindless_array.update();
-        }
-    };
-
     pipeline->_spectrum = scene.spectrum()->build(*pipeline, command_buffer);
+
+    for (auto camera : scene.cameras()) {
+        if (camera->dirty()) {
+            pipeline->_cameras.emplace(camera, camera->build(*pipeline, command_buffer));
+            camera->clear_dirty();  // TODO: in Build
+        }
+    }
     update_bindless_if_dirty();
 
-    if (scene.cameras_updated()) {
-        pipeline->_cameras.reserve(scene.cameras().size());
-        for (auto camera : scene.cameras()) {
-            pipeline->_cameras.emplace_back(camera->build(*pipeline, command_buffer));
-        }
-        update_bindless_if_dirty();
-    }
-
     pipeline->_geometry = luisa::make_unique<Geometry>(*pipeline);
-    if (scene.shapes_updated()) {
-        pipeline->_geometry->build(command_buffer, scene.shapes(), pipeline->_initial_time);
-        update_bindless_if_dirty();
-    }
+    pipeline->_geometry->build(command_buffer, scene.shapes(), pipeline->_initial_time);
+    update_bindless_if_dirty();
 
     if (auto env = scene.environment(); env != nullptr && !env->is_black()) {
         pipeline->_environment = env->build(*pipeline, command_buffer);
+        env->clear_dirty();
     }
     if (auto environment_medium = scene.environment_medium(); environment_medium != nullptr) {
         pipeline->_environment_medium_tag = pipeline->register_medium(command_buffer, environment_medium);
     }
     update_bindless_if_dirty();
+
+    // integrator may needs world min/max
     pipeline->_integrator = scene.integrator()->build(*pipeline, command_buffer);
 
-    if (scene.transforms_updated() || pipeline->_transforms_updated) {
-        for (auto i = 0u; i < pipeline->_transforms.size(); ++i) {
-            pipeline->_transform_matrices[i] = pipeline->_transforms[i]->matrix(initial_time);
+    bool transform_updated = false;
+    for (auto &transform_id : pipeline->_transform_to_id) {
+        auto &transform = transform_id.first;
+        if (transform.dirty()) {
+            pipeline->_transform_matrices[transform_id.second] = transform->matrix(pipeline->_initial_time);
+            transform_updated = true;
+            transform.clear_dirty();
         }
+    }
+    if (transform_updated || pipeline->_transforms_dirty) {
         command_buffer << pipeline->_transform_matrix_buffer
-                          .view(0u, pipeline->_transforms.size())
-                          .copy_from(pipeline->_transform_matrices.data());
-        update_bindless_if_dirty();
-        pipeline->_transforms_updated = false;
+            .view(0u, pipeline->_transforms.size())
+            .copy_from(pipeline->_transform_matrices.data());
+        pipeline->_transforms_dirty = false;
     }
 
+    update_bindless_if_dirty();
     command_buffer << compute::commit();
-    scene.clear_update();
     
     LUISA_INFO("Created pipeline with {} camera(s), {} shape instance(s), "
                "{} surface instance(s), and {} light instance(s).",
@@ -112,16 +179,17 @@ luisa::unique_ptr<Pipeline> Pipeline::create(Device &device, Stream &stream, Sce
 }
 
 void Pipeline::scene_update(
-    Stream &stream, Scene &scene, float time) noexcept {
+    Stream &stream, Scene &scene, float time
+) noexcept {
     global_thread_pool().synchronize();
     CommandBuffer command_buffer{&stream};
 
-    auto update_bindless_if_dirty = [this, &command_buffer] {
-        if (_bindless_array.dirty()) {
-            command_buffer << _bindless_array.update();
+    for (auto camera : scene.cameras()) {
+        if (camera->dirty()) {
+            pipeline->_cameras.emplace(camera, camera->build(*pipeline, command_buffer));
+            camera->clear_dirty();  // TODO: in Build
         }
-    };
-    update_bindless_if_dirty();
+    }
 
     if (scene.cameras_updated()) {
         _cameras.clear();
@@ -164,70 +232,7 @@ void Pipeline::scene_update(
         update_bindless_if_dirty();
     }
     command_buffer << compute::commit();
-    scene.clear_update();
-}
-
-bool Pipeline::update(CommandBuffer &command_buffer, float time) noexcept {
-    // TODO: support deformable meshes
-    auto updated = _geometry->update(command_buffer, time);
-    return updated;
-    // if (_any_dynamic_transforms) {
-    //     updated = true;
-    //     for (auto i = 0u; i < _transforms.size(); ++i) {
-    //         _transform_matrices[i] = _transforms[i]->matrix(time);
-    //     }
-    //     command_buffer << _transform_matrix_buffer
-    //                       .view(0u, _transforms.size())
-    //                       .copy_from(_transform_matrices.data());
-    // }
-}
-
-void Pipeline::render(Stream &stream) noexcept {
-    _integrator->render(stream);
-}
-
-void Pipeline::render_to_buffer(Stream &stream, uint camera_index, luisa::vector<float4> &buffer) noexcept {
-    _integrator->render_to_buffer(stream, camera_index, buffer);
-}
-
-const Texture::Instance *Pipeline::build_texture(CommandBuffer &command_buffer, const Texture *texture) noexcept {
-    if (texture == nullptr) { return nullptr; }
-    if (auto iter = _textures.find(texture); iter != _textures.end()) {
-        return iter->second.get();
-    }
-    auto t = texture->build(*this, command_buffer);
-    return _textures.emplace(texture, std::move(t)).first->second.get();
-}
-
-const Filter::Instance *Pipeline::build_filter(CommandBuffer &command_buffer, const Filter *filter) noexcept {
-    if (filter == nullptr) { return nullptr; }
-    if (auto iter = _filters.find(filter); iter != _filters.end()) {
-        return iter->second.get();
-    }
-    auto f = filter->build(*this, command_buffer);
-    return _filters.emplace(filter, std::move(f)).first->second.get();
-}
-
-const PhaseFunction::Instance *Pipeline::build_phasefunction(CommandBuffer &command_buffer, const PhaseFunction *phasefunction) noexcept {
-    if (phasefunction == nullptr) { return nullptr; }
-    if (auto iter = _phasefunctions.find(phasefunction); iter != _phasefunctions.end()) {
-        return iter->second.get();
-    }
-    auto pf = phasefunction->build(*this, command_buffer);
-    return _phasefunctions.emplace(phasefunction, std::move(pf)).first->second.get();
-}
-
-void Pipeline::register_transform(Transform *transform) noexcept {
-    if (transform == nullptr) { return; }
-    if (!_transform_to_id.contains(transform)) {
-        transform->set_registered();
-        auto transform_id = static_cast<uint>(_transforms.size());
-        LUISA_ASSERT(transform_id < transform_matrix_buffer_size,
-                     "Transform matrix buffer overflows.");
-        _transform_to_id.emplace(transform, transform_id);
-        _transforms.emplace_back(transform);
-        _transforms_updated = true;
-    }
+    // scene.clear_update();
 }
 
 Float4x4 Pipeline::transform(const Transform *transform) const noexcept {
@@ -240,8 +245,7 @@ Float4x4 Pipeline::transform(const Transform *transform) const noexcept {
 
 uint Pipeline::named_id(luisa::string_view name) const noexcept {
     auto iter = _named_ids.find(name);
-    LUISA_ASSERT(iter != _named_ids.cend(),
-                 "Named ID '{}' not found.", name);
+    LUISA_ASSERT(iter != _named_ids.cend(), "Named ID '{}' not found.", name);
     return iter->second;
 }
 

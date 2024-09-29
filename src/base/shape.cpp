@@ -20,9 +20,10 @@ Shape::Shape(Scene *scene, const SceneNodeDesc *desc) noexcept :
     _medium{scene->load_medium(desc->property_node_or_default("medium"))},
     _transform{scene->load_transform(desc->property_node_or_default("transform"))} {}
 
-bool Shape::update(Scene *scene, const SceneNodeDesc *desc) noexcept {
-    return true | update_value(_transform,
-        (const Transform *)scene->load_transform(desc->property_node_or_default("transform")));
+void Shape::update(Scene *scene, const SceneNodeDesc *desc) noexcept {
+    set_updated(
+        update_value(_transform, (const Transform *)scene->load_transform(desc->property_node_or_default("transform")))
+    );
 }
 
 luisa::string Shape::info() const noexcept {

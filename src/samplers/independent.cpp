@@ -21,7 +21,7 @@ private:
     luisa::optional<Var<uint>> _state;
 
 public:
-    IndependentSamplerInstance(const Pipeline &pipeline, const IndependentSampler *sampler) noexcept;
+    IndependentSamplerInstance(Pipeline &pipeline, const IndependentSampler *sampler) noexcept;
     void reset(CommandBuffer &command_buffer, uint2 resolution, uint state_count, uint spp) noexcept override;
     void start(Expr<uint2> pixel, Expr<uint> sample_index) noexcept override;
     void save_state(Expr<uint> state_id) noexcept override;
@@ -43,9 +43,8 @@ public:
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
 };
 
-IndependentSamplerInstance::IndependentSamplerInstance(
-    const Pipeline &pipeline, const IndependentSampler *sampler) noexcept
-    : Sampler::Instance{pipeline, sampler} {}
+IndependentSamplerInstance::IndependentSamplerInstance(Pipeline &pipeline, const IndependentSampler *sampler) noexcept:
+    Sampler::Instance{pipeline, sampler} {}
 
 void IndependentSamplerInstance::reset(
     CommandBuffer &command_buffer, uint2, uint state_count, uint) noexcept {

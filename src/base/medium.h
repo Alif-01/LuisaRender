@@ -206,9 +206,8 @@ public:
         }
     };
 
-    class Instance {
+    class Instance : public SceneNode::Instance {
     protected:
-        const Pipeline &_pipeline;
         const Medium *_medium;
         friend class Medium;
 
@@ -216,13 +215,12 @@ public:
         [[nodiscard]] auto priority() const noexcept { return _medium->_priority; }
 
     public:
-        Instance(const Pipeline &pipeline, const Medium *medium) noexcept
-            : _pipeline{pipeline}, _medium{medium} {}
+        Instance(Pipeline &pipeline, const Medium *medium) noexcept:
+            SceneNode::Instance{pipeline}, _medium{medium} {}
         virtual ~Instance() noexcept = default;
         template<typename T = Medium>
             requires std::is_base_of_v<Medium, T>
         [[nodiscard]] auto node() const noexcept { return static_cast<const T *>(_medium); }
-        [[nodiscard]] auto &pipeline() const noexcept { return _pipeline; }
         [[nodiscard]] virtual luisa::unique_ptr<Closure> closure(
             Expr<Ray> ray, const SampledWavelengths &swl, Expr<float> time) const noexcept = 0;
     };

@@ -112,7 +112,7 @@ private:
     const Texture::Instance *_eta;
 
 public:
-    GlassInstance(const Pipeline &pipeline, const Surface *surface,
+    GlassInstance(Pipeline &pipeline, const Surface *surface,
                   const Texture::Instance *Kr, const Texture::Instance *Kt,
                   const Texture::Instance *roughness, const Texture::Instance *eta) noexcept
         : Surface::Instance{pipeline, surface}, _kr{Kr}, _kt{Kt}, _roughness{roughness}, _eta{eta} {}

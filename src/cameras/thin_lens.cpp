@@ -33,11 +33,13 @@ public:
         _focus_distance = std::max(std::abs(_focus_distance), 1e-4f);
     }
 
-    [[nodiscard]] bool update(Scene *scene, const SceneNodeDesc *desc) noexcept override {
-        return Camera::update(scene, desc) |
+    void update(Scene *scene, const SceneNodeDesc *desc) noexcept override {
+        Camera::update(scene, desc);
+        set_updated(
             update_value(_aperture, desc->property_float_or_default("aperture", 2.f)) |
             update_value(_focal_length, desc->property_float_or_default("focal_length", 35.f)) |
-            update_value(_focus_distance, std::max(std::abs(desc->property_float("focus_distance")), 1e-4f));
+            update_value(_focus_distance, std::max(std::abs(desc->property_float("focus_distance")), 1e-4f))
+        );
     }
 
     [[nodiscard]] luisa::string info() const noexcept override {

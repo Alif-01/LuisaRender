@@ -35,10 +35,9 @@ public:
         [[nodiscard]] static auto zero(uint dim) noexcept { return constant(dim, 0.f); }
     };
 
-    class Instance {
+    class Instance : public SceneNode::Instance {
 
     private:
-        const Pipeline &_pipeline;
         const Spectrum *_spectrum;
         SPD _cie_x;
         SPD _cie_y;
@@ -47,7 +46,6 @@ public:
     public:
         Instance(Pipeline &pipeline, CommandBuffer &cb, const Spectrum *spec) noexcept;
         virtual ~Instance() noexcept = default;
-        [[nodiscard]] auto &pipeline() const noexcept { return _pipeline; }
 
         template<typename T = Spectrum>
             requires std::is_base_of_v<Spectrum, T>

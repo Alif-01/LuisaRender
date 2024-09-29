@@ -69,12 +69,11 @@ Float3 Spectrum::Instance::wavelength_mul(const SampledWavelengths &target_swl, 
     }
     return srgb(ret_swl, ret_sp);
 }
-Spectrum::Instance::Instance(Pipeline &pipeline, CommandBuffer &cb,
-                             const Spectrum *spec) noexcept
-    : _pipeline{pipeline}, _spectrum{spec},
-      _cie_x{SPD::create_cie_x(pipeline, cb)},
-      _cie_y{SPD::create_cie_y(pipeline, cb)},
-      _cie_z{SPD::create_cie_z(pipeline, cb)} {}
+Spectrum::Instance::Instance(Pipeline &pipeline, CommandBuffer &cb, const Spectrum *spec) noexcept:
+    SceneNode::Instance{pipeline}, _spectrum{spec},
+    _cie_x{SPD::create_cie_x(pipeline, cb)},
+    _cie_y{SPD::create_cie_y(pipeline, cb)},
+    _cie_z{SPD::create_cie_z(pipeline, cb)} {}
 
 Spectrum::Spectrum(Scene *scene, const SceneNodeDesc *desc) noexcept
     : SceneNode{scene, desc, SceneNodeTag::SPECTRUM} {}

@@ -52,9 +52,9 @@ private:
 
 public:
     DiffuseLightInstance(
-        const Pipeline &ppl, const Light *light,
-        const Texture::Instance *texture) noexcept
-        : Light::Instance{ppl, light}, _texture{texture} {}
+        Pipeline &ppl, const Light *light,
+        const Texture::Instance *texture) noexcept:
+        Light::Instance{ppl, light}, _texture{texture} {}
     [[nodiscard]] auto texture() const noexcept { return _texture; }
     [[nodiscard]] luisa::unique_ptr<Light::Closure> closure(
         const SampledWavelengths &swl, Expr<float> time) const noexcept override;
@@ -189,11 +189,9 @@ public:
             if (two_sided) {
                 $if(u_direction.x > 0.5f) {
                     we = sample_uniform_cone(make_float2(u_direction.x * 2.f - 1.f, u_direction.y), cos_half_angle);
-                    // we = sample_cosine_hemisphere(make_float2(u_direction.x * 2.f - 1.f, u_direction.y));
                 }
                 $else {
                     we = sample_uniform_cone(make_float2(u_direction.x * 2.f, u_direction.y), cos_half_angle);
-                    // we = sample_cosine_hemisphere(make_float2(u_direction.x * 2.f, u_direction.y));
                     we.z *= -1;
                 };
             } else {

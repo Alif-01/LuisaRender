@@ -59,9 +59,9 @@ private:
     const Texture::Instance *_base;
 
 public:
-    ScaleTextureInstance(const Pipeline &pipeline, const Texture *node,
-                         const Texture::Instance *base) noexcept
-        : Texture::Instance{pipeline, node}, _base{base} {}
+    ScaleTextureInstance(Pipeline &pipeline, const Texture *node,
+                         const Texture::Instance *base) noexcept:
+        Texture::Instance{pipeline, node}, _base{base} {}
     [[nodiscard]] Float4 evaluate(const Interaction &it,
                                   Expr<float> time) const noexcept override {
         return _base->evaluate(it, time) * node<ScaleTexture>()->scale() + node<ScaleTexture>()->offset();

@@ -92,10 +92,10 @@ private:
 
 public:
     explicit PaddedSobolSamplerInstance(
-        const Pipeline &pipeline, CommandBuffer &command_buffer,
-        const PaddedSobolSampler *s) noexcept
-        : Sampler::Instance{pipeline, s},
-          _sobol_matrices{pipeline.device().create_buffer<uint>(SobolMatrixSize * 2u)} {
+        Pipeline &pipeline, CommandBuffer &command_buffer,
+        const PaddedSobolSampler *s) noexcept:
+        Sampler::Instance{pipeline, s},
+        _sobol_matrices{pipeline.device().create_buffer<uint>(SobolMatrixSize * 2u)} {
         command_buffer << _sobol_matrices.copy_from(SobolMatrices32);
     }
     void reset(CommandBuffer &command_buffer, uint2 resolution, uint state_count, uint spp) noexcept override {

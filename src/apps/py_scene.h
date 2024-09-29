@@ -69,14 +69,14 @@ public:
 
     void update_camera(PyCamera *camera, bool denoise) noexcept {
         camera->define_in_scene(_scene_desc.get());
-        auto [camera_node, camera_index] = _scene->update_camera(camera->node(), !camera->loaded);
+        auto camera_node = _scene->update_camera(camera->node(), !camera->loaded);
         LUISA_INFO("Update {}: {}", camera->node()->identifier(), camera_node->info());
         
         if (!camera->loaded) {
             const auto &resolution = camera_node->film()->resolution();
             uint pixel_count = resolution.x * resolution.y;
             camera->loaded = true;
-            camera->index = camera_index;
+            camera->camera = (void *)camera_node;
             camera->denoise = denoise;
             if (denoise) {
                 camera->color_buffer = luisa::make_unique<Buffer<float4>>(
@@ -102,11 +102,10 @@ public:
     PyFloatArr render_frame(PyCamera *camera, float time) noexcept {
         _pipeline->scene_update(_stream, *_scene, time);
 
-        auto idx = camera->index;
-        const auto &resolution = _scene->cameras()[idx]->film()->resolution();
-
+        auto camera_node = (Camera *)(camera->camera);
+        const auto &resolution = camera_node->film()->resolution();
         luisa::vector<float4> buffer;
-        _pipeline->render_to_buffer(_stream, idx, buffer);
+        _pipeline->render_to_buffer(_stream, camera_node, buffer);
 
         _stream.synchronize();
         auto buffer_p = reinterpret_cast<float *>(buffer.data());

@@ -39,10 +39,9 @@ public:
         Float weight;
     };
 
-    class Instance {
+    class Instance : public SceneNode::Instance {
 
     private:
-        const Pipeline *_pipeline;
         const Camera *_camera;
         luisa::unique_ptr<Film::Instance> _film;
         const Filter::Instance *_filter;
@@ -64,7 +63,6 @@ public:
         template<typename T = Camera>
             requires std::is_base_of_v<Camera, T>
         [[nodiscard]] auto node() const noexcept { return static_cast<const T *>(_camera); }
-        [[nodiscard]] auto &pipeline() const noexcept { return *_pipeline; }
         [[nodiscard]] auto film() noexcept { return _film.get(); }
         [[nodiscard]] auto film() const noexcept { return _film.get(); }
         [[nodiscard]] auto filter() noexcept { return _filter; }
@@ -98,7 +96,7 @@ private:
 
 public:
     Camera(Scene *scene, const SceneNodeDesc *desc) noexcept;
-    [[nodiscard]] virtual bool update(Scene *scene, const SceneNodeDesc *desc) noexcept override;
+    virtual void update(Scene *scene, const SceneNodeDesc *desc) noexcept override;
     [[nodiscard]] virtual luisa::string info() const noexcept override;
     [[nodiscard]] auto film() const noexcept { return _film; }
     [[nodiscard]] auto filter() const noexcept { return _filter; }

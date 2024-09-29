@@ -20,17 +20,15 @@ private:
     uint _seed;
 
 public:
-    class Instance {
+    class Instance : public SceneNode::Instance {
 
     private:
-        const Pipeline &_pipeline;
         const Sampler *_sampler;
 
     public:
-        explicit Instance(const Pipeline &pipeline, const Sampler *sampler) noexcept
-            : _pipeline{pipeline}, _sampler{sampler} {}
+        explicit Instance(Pipeline &pipeline, const Sampler *sampler) noexcept:
+            SceneNode::Instance{pipeline}, _sampler{sampler} {}
         virtual ~Instance() noexcept = default;
-        [[nodiscard]] auto &pipeline() const noexcept { return _pipeline; }
 
         template<typename T = Sampler>
             requires std::is_base_of_v<Sampler, T>

@@ -60,24 +60,33 @@ public:
 
 private:
     Device &_device;
-    BindlessArray _bindless_array;
     luisa::unique_ptr<BufferArena> _general_buffer_arena;
+    luisa::vector<ResourceHandle> _resources;
     size_t _bindless_buffer_count{0u};
     size_t _bindless_tex2d_count{0u};
     size_t _bindless_tex3d_count{0u};
-    luisa::vector<ResourceHandle> _resources;
-    Buffer<float4> _constant_buffer;
+    BindlessArray _bindless_array;
+    
     size_t _constant_count{0u};
-    Polymorphic<Surface::Instance> _surfaces;
-    Polymorphic<Light::Instance> _lights;
-    Polymorphic<Medium::Instance> _media;
+    Buffer<float4> _constant_buffer;
+
     luisa::unordered_map<const Surface *, uint> _surface_tags;
     luisa::unordered_map<const Light *, uint> _light_tags;
     luisa::unordered_map<const Medium *, uint> _medium_tags;
+    Polymorphic<Surface::Instance> _surfaces;
+    Polymorphic<Light::Instance> _lights;
+    Polymorphic<Medium::Instance> _media;
+
+    luisa::unordered_map<Transform *, uint> _transform_to_id;
+    // luisa::vector<const Transform *> _transforms;
+    luisa::vector<float4x4> _transform_matrices;
+    Buffer<float4x4> _transform_matrix_buffer;
+
     luisa::unordered_map<const Texture *, luisa::unique_ptr<Texture::Instance>> _textures;
     luisa::unordered_map<const Filter *, luisa::unique_ptr<Filter::Instance>> _filters;
     luisa::unordered_map<const PhaseFunction *, luisa::unique_ptr<PhaseFunction::Instance>> _phasefunctions;
-    luisa::vector<luisa::unique_ptr<Camera::Instance>> _cameras;
+    // luisa::vector<luisa::unique_ptr<Camera::Instance>> _cameras;
+    luisa::unordered_map<const Camera *, luisa::unique_ptr<Camera::Instance>> _cameras;
     luisa::unique_ptr<Spectrum::Instance> _spectrum;
     luisa::unique_ptr<Integrator::Instance> _integrator;
     luisa::unique_ptr<Environment::Instance> _environment;
@@ -85,10 +94,6 @@ private:
     luisa::unique_ptr<Geometry> _geometry;
 
     // registered transforms
-    luisa::unordered_map<const Transform *, uint> _transform_to_id;
-    luisa::vector<const Transform *> _transforms;
-    luisa::vector<float4x4> _transform_matrices;
-    Buffer<float4x4> _transform_matrix_buffer;
     luisa::unordered_map<luisa::string, uint> _named_ids;
 
     bool _lights_updated{false};
@@ -135,7 +140,6 @@ public:
     }
 
     void register_transform(Transform *transform) noexcept;
-
     [[nodiscard]] uint register_surface(CommandBuffer &command_buffer, const Surface *surface) noexcept;
     [[nodiscard]] uint register_light(CommandBuffer &command_buffer, const Light *light) noexcept;
     [[nodiscard]] uint register_medium(CommandBuffer &command_buffer, const Medium *medium) noexcept;
@@ -204,8 +208,8 @@ public:
     [[nodiscard]] auto &bindless_array() noexcept { return _bindless_array; }
     [[nodiscard]] auto &bindless_array() const noexcept { return _bindless_array; }
     [[nodiscard]] auto camera_count() const noexcept { return _cameras.size(); }
-    [[nodiscard]] auto camera(size_t i) noexcept { return _cameras[i].get(); }
-    [[nodiscard]] auto camera(size_t i) const noexcept { return _cameras[i].get(); }
+    [[nodiscard]] auto camera(Camera *camera) noexcept { return _cameras[camera].get(); }
+    [[nodiscard]] auto camera(Camera *camera) const noexcept { return _cameras[camera].get(); }
     [[nodiscard]] auto &surfaces() const noexcept { return _surfaces; }
     [[nodiscard]] auto &lights() const noexcept { return _lights; }
     [[nodiscard]] auto &media() const noexcept { return _media; }
@@ -220,9 +224,8 @@ public:
     [[nodiscard]] const Filter::Instance *build_filter(CommandBuffer &command_buffer, const Filter *filter) noexcept;
     [[nodiscard]] const PhaseFunction::Instance *build_phasefunction(CommandBuffer &command_buffer, const PhaseFunction *phasefunction) noexcept;
     void scene_update(Stream &stream, Scene &scene, float time) noexcept;
-    bool update(CommandBuffer &command_buffer, float time) noexcept;
     void render(Stream &stream) noexcept;
-    void render_to_buffer(Stream &stream, uint camera_inde, luisa::vector<float4> &buffer) noexcept;
+    void render_to_buffer(Stream &stream, Camera *camera, luisa::vector<float4> &buffer) noexcept;
     [[nodiscard]] uint named_id(luisa::string_view name) const noexcept;
     template<typename T, typename I>
     [[nodiscard]] auto buffer(I &&i) const noexcept { return _bindless_array->buffer<T>(std::forward<I>(i)); }

@@ -37,7 +37,8 @@ public:
           _max_depth{std::max(desc->property_uint_or_default("depth", 10u), 1u)},
           _rr_depth{std::max(desc->property_uint_or_default("rr_depth", 2u), 0u)},
           _rr_threshold{std::max(desc->property_float_or_default("rr_threshold", 0.95f), 0.05f)},
-          _initial_radius{std::max(desc->property_float_or_default("initial_radius", -200.f), -10000.f)},//<0 for world_size/-radius (-grid count)
+        //   _initial_radius{std::max(desc->property_float_or_default("initial_radius", -200.f), -10000.f)},//<0 for world_size/-radius (-grid count)
+          _initial_radius{std::max(desc->property_float_or_default("initial_radius", 0.5f), 0.f)},  // should be 1%~5% of scene diagonal.
           _photon_per_iter{std::max(desc->property_uint_or_default("photon_per_iter", 200000u), 10u)},
           _separate_direct{true},                                                  //when false, use photon mapping for all flux and gathering at first intersection. Just for debug
           _shared_radius{desc->property_bool_or_default("shared_radius", true)} {};//whether or not use the shared radius trick in SPPM paper. True is better in performance.
@@ -192,16 +193,15 @@ public:
             _grid_len->write(0u, len);
         }
         auto split(Expr<float> grid_count) const noexcept {
-            /* Float3 grid_min = {_grid_min->read(0),
+            Float3 grid_min = {_grid_min->read(0),
                                _grid_min->read(1),
                                _grid_min->read(2)};
             Float3 grid_max = {_grid_max->read(0),
                                _grid_max->read(1),
                                _grid_max->read(2)};
-            auto _grid_size = grid_max - grid_min;
-            */
-            auto _grid_size = _spectrum->pipeline().geometry()->world_max() - _spectrum->pipeline().geometry()->world_min();
-            return min(min(_grid_size.x / grid_count, _grid_size.y / grid_count), _grid_size.z / grid_count);
+            auto grid_size = grid_max - grid_min;
+            // auto grid_size = _spectrum->pipeline().geometry()->world_max() - _spectrum->pipeline().geometry()->world_min();
+            return min(min(grid_size.x / grid_count, grid_size.y / grid_count), grid_size.z / grid_count);
         }
     };
     //Store the information of pixel updates
@@ -402,10 +402,10 @@ protected:
         using namespace luisa::compute;
         auto &&device = camera->pipeline().device();
         auto radius = node<MegakernelPhotonMapping>()->initial_radius();
-        if (radius < 0) {
-            auto _grid_size = spectrum->pipeline().geometry()->world_max() - spectrum->pipeline().geometry()->world_min();
-            radius = min(min(_grid_size.x / -radius, _grid_size.y / -radius), _grid_size.z / -radius);
-        }
+        // if (radius < 0) {
+        //     auto grid_size = spectrum->pipeline().geometry()->world_max() - spectrum->pipeline().geometry()->world_min();
+        //     radius = min(min(grid_size.x / -radius, grid_size.y / -radius), grid_size.z / -radius);
+        // }
         auto clamp = camera->film()->node()->clamp() * photon_per_iter * pi * radius * radius;
         PixelIndirect indirect(photon_per_iter, spectrum, camera->film(), clamp, node<MegakernelPhotonMapping>()->shared_radius());
         PhotonMap photons(photon_per_iter * node<MegakernelPhotonMapping>()->max_depth(), spectrum);
@@ -419,10 +419,10 @@ protected:
             Buffer<float> _tau;
             auto index = dispatch_id().xy();
             auto radius = node<MegakernelPhotonMapping>()->initial_radius();
-            if (radius < 0)
-                photons.write_grid_len(photons.split(-radius));
-            else
-                photons.write_grid_len(node<MegakernelPhotonMapping>()->initial_radius());
+            // if (radius < 0)
+            //     photons.write_grid_len(photons.split(-radius));
+            // else
+            photons.write_grid_len(node<MegakernelPhotonMapping>()->initial_radius());
             //camera->pipeline().printer().info("grid:{}", photons.grid_len());
             indirect.write_radius(index, photons.grid_len());
             //camera->pipeline().printer().info("rad:{}", indirect.radius(index));
