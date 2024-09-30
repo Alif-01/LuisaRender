@@ -305,7 +305,7 @@ void AuxiliaryBufferPathTracingInstance::_render_one_camera(
             $if (depth == 0 & it->valid()) {
                 aux_buffers.at("mask")->accumulate(dispatch_id().xy(), make_float4(1.f));
                 auto p_ndc = make_float3((camera_sample.pixel / make_float2(resolution) * 2.f - 1.f) * make_float2(1.f, -1.f),
-                                         depth / (ray->t_max() - ray->t_min()));
+                                         cast<float>(depth) / (ray->t_max() - ray->t_min()));
                 aux_buffers.at("ndc")->accumulate(dispatch_id().xy(), make_float4(p_ndc, 1.f));
                 normal = it->shading().n();
                 auto distance = length(it->p() - ray->origin());

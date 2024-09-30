@@ -182,7 +182,7 @@ public:
             auto hash = xxhash32(make_uint4(pixel, dimension, seed));
             auto index = _permutation_element(sample_index, spp, w, hash);
             auto delta = _blue_noise(dimension, pixel, array, bn_tex_id);
-            auto u = (cast<float>(index) + delta) * cast<float>(1.f / spp);
+            auto u = (cast<float>(index) + delta) / cast<float>(spp);
             return clamp(u, 0.f, one_minus_epsilon);
         };
         auto u = impl(*_pixel, *_dimension, node()->seed(), *_sample_index,

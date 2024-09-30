@@ -100,8 +100,7 @@ public:
     }
 
     PyFloatArr render_frame(PyCamera *camera, float time) noexcept {
-        _pipeline->scene_update(_stream, *_scene, time);
-
+        // _pipeline->scene_update(_stream, *_scene, time);
         auto camera_node = (Camera *)(camera->camera);
         const auto &resolution = camera_node->film()->resolution();
         luisa::vector<float4> buffer;

@@ -192,7 +192,7 @@ public:
                 }
                 $else {
                     we = sample_uniform_cone(make_float2(u_direction.x * 2.f, u_direction.y), cos_half_angle);
-                    we.z *= -1;
+                    we.z *= -1.f;
                 };
             } else {
                 we = sample_uniform_cone(make_float2(u_direction), cos_half_angle);

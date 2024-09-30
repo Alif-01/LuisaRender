@@ -51,7 +51,7 @@ private:
                 i += 1u;
             };
             v = _fast_owen_scramble(hash, v);
-            return min(v * 0x1p-32f, one_minus_epsilon);
+            return min(cast<float>(v) * 0x1p-32f, one_minus_epsilon);
         };
         return impl(a, dimension, hash, _sobol_matrices.view());
     }

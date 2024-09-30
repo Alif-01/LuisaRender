@@ -58,7 +58,7 @@ private:
                 i = i + 1u;
             };
             if constexpr (scramble) { v = _fast_owen_scramble(hash, v); }
-            return v * 0x1p-32f;
+            return cast<float>(v) * 0x1p-32f;
         };
         return impl(a, dimension, _sobol_matrices.view(), hash);
     }

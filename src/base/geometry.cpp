@@ -269,13 +269,13 @@ Bool Geometry::_alpha_skip(const Interaction &it, Expr<float> u) const noexcept 
 
 Bool Geometry::_alpha_skip(const Var<Ray> &ray, const Var<SurfaceHit> &hit) const noexcept {
     auto it = interaction(ray, hit);
-    auto u = as<float>(xxhash32(make_uint4(hit.inst, hit.prim, as<uint2>(hit.bary)))) * 0x1p-32f;
+    auto u = cast<float>(xxhash32(make_uint4(hit.inst, hit.prim, as<uint2>(hit.bary)))) * 0x1p-32f;
     return _alpha_skip(*it, u);
 }
 
 Bool Geometry::_alpha_skip(const Var<Ray> &ray, const Var<ProceduralHit> &hit) const noexcept {
     auto it = interaction(ray, hit);
-    auto u = as<float>(xxhash32(make_uint2(hit.inst, hit.prim))) * 0x1p-32f;
+    auto u = cast<float>(xxhash32(make_uint2(hit.inst, hit.prim))) * 0x1p-32f;
     return _alpha_skip(*it, u);
 }
 

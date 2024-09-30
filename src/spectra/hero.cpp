@@ -307,7 +307,7 @@ public:
                     auto index = ite(i + rotate >= target_swl.dimension(), i + rotate - target_swl.dimension(), i + rotate);
                     auto lambda = swl.lambda(index);
                     auto pdf = swl.pdf(index);
-                    ret_swl.set_pdf(i, target_pdf * pdf * swl.dimension() * 2 * error_bound);
+                    ret_swl.set_pdf(i, target_pdf * pdf * (float)swl.dimension() * 2.f * error_bound);
                     ret_sp[i] = target_sp[i] * sp[index];
                 }
                 res = srgb(ret_swl, ret_sp);

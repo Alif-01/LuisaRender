@@ -25,19 +25,19 @@ public:
     explicit HGPhaseFunction(Float g) noexcept : g(g) {}
 
     [[nodiscard]] Float HenyeyGreenstein(Float cosTheta, Float g) const noexcept {
-        Float denom = 1 + sqr(g) + 2 * g * cosTheta;
-        return inv_pi / 4.0f * (1 - sqr(g)) / (denom * sqrt(denom));
+        Float denom = 1.f + sqr(g) + 2.f * g * cosTheta;
+        return inv_pi / 4.0f * (1.f - sqr(g)) / (denom * sqrt(denom));
     }
 
     [[nodiscard]] Float3 SampleHenyeyGreenstein(Float3 wo, Float g, Float2 u, Float &pdf) const noexcept {
         // Compute $\cos \theta$ for Henyey--Greenstein sample
         Float cosTheta;
-        cosTheta = ite(abs(g) < 1e-3f, 1 - 2 * u.x,
-                       -1 / (2 * g) * (1 + sqr(g) - sqr((1 - sqr(g)) / (1 + g - 2 * g * u.x))));
+        cosTheta = ite(abs(g) < 1e-3f, 1.f - 2.f * u.x,
+            -1.f / (2.f * g) * (1.f + sqr(g) - sqr((1.f - sqr(g)) / (1.f + g - 2.f * g * u.x))));
 
         // Compute direction _wi_ for Henyey--Greenstein sample
-        Float sinTheta = sqrt(1 - sqr(cosTheta));
-        Float phi = 2 * pi * u.y;
+        Float sinTheta = sqrt(1.f - sqr(cosTheta));
+        Float phi = 2.f * pi * u.y;
         Frame wFrame = Frame::make(wo);
         Float3 wi = wFrame.local_to_world(spherical_direction(sinTheta, cosTheta, phi));
 

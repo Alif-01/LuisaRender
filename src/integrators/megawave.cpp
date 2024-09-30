@@ -288,7 +288,7 @@ void MegakernelWaveFrontInstance::_render_one_camera(
     auto spp = camera->node()->spp();
     auto resolution = camera->film()->node()->resolution();
     auto pixel_count = resolution.x * resolution.y;
-    auto use_global= node<MegakernelWaveFront>()->use_global();
+    auto use_global = node<MegakernelWaveFront>()->use_global();
     bool use_sort = true;
     bool direct_launch = false;
 
@@ -298,7 +298,7 @@ void MegakernelWaveFrontInstance::_render_one_camera(
     //assume KERNEL_COUNT< block_size_x
     auto block_size = node<MegakernelWaveFront>()->block_size();
     auto block_count = node<MegakernelWaveFront>()->block_count();
-    auto launch_size = block_count*block_size;
+    auto launch_size = block_count * block_size;
     auto q_factor = 1u;
     auto g_factor = KERNEL_COUNT - q_factor;
     StateSOA state_soa{spectrum, use_global ? launch_size * g_factor:1 };
@@ -338,9 +338,9 @@ void MegakernelWaveFrontInstance::_render_one_camera(
         rem_local[0] = 0u;
         sync_block();
         //pipeline().printer().info("work counter {} of block {}: {}", -1, block_x(), -1);
-        auto count_limit = (tot_samples*1.2f)/min(block_count,50u)/(use_global?block_size:block_size/KERNEL_COUNT);
+        auto count_limit = (cast<float>(tot_samples) * 1.2f) / (float)min(block_count, 50u) / (use_global ? block_size : block_size / KERNEL_COUNT);
         
-        $while((rem_global[0] != 0u | rem_local[0] != 0u) & (count!= count_limit)) {
+        $while((rem_global[0] != 0u | rem_local[0] != 0u) & (count < count_limit)) {
             sync_block();//very important, synchronize for condition
             rem_local[0] = 0u;
             count += 1;

@@ -123,6 +123,8 @@ public:
     public:
         Instance(Pipeline &pipeline, const Surface *surface) noexcept:
             SceneNode::Instance{pipeline}, _surface{surface} {}
+        Instance(const Instance &) noexcept = delete;
+        Instance(Instance &&another) noexcept = default;
         virtual ~Instance() noexcept = default;
         template<typename T = Surface>
             requires std::is_base_of_v<Surface, T>
@@ -214,17 +216,12 @@ public:
 protected:
     [[nodiscard]] luisa::unique_ptr<Surface::Instance> _build(
         Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept override {
-        return luisa::make_unique<Instance>(
+        auto base = BaseSurface::_build(pipeline, command_buffer);
+        return luisa::make_unique<OpacitySurfaceWrapper::Instance>(
             std::move(dynamic_cast<BaseInstance &>(*base)),
             [this](auto &pipeline, auto &command_buffer) noexcept {
                 return pipeline.build_texture(command_buffer, _opacity);
             }(pipeline, command_buffer));
-        // auto base = BaseSurface::_build(pipeline, command_buffer);
-        // return luisa::make_unique<Instance>(
-        //     std::move(dynamic_cast<BaseInstance &>(*base)),
-        //     [this](auto &pipeline, auto &command_buffer) noexcept {
-        //         return pipeline.build_texture(command_buffer, _opacity);
-        //     }(pipeline, command_buffer));
     }
 };
 
@@ -290,7 +287,7 @@ protected:
     [[nodiscard]] luisa::unique_ptr<Surface::Instance> _build(
         Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept override {
         auto base = BaseSurface::_build(pipeline, command_buffer);
-        return luisa::make_unique<Instance>(
+        return luisa::make_unique<NormalMapWrapper::Instance>(
             std::move(dynamic_cast<BaseInstance &>(*base)),
             [this](auto &pipeline, auto &command_buffer) noexcept {
                 return pipeline.build_texture(command_buffer, _normal_map);
@@ -340,7 +337,7 @@ protected:
     [[nodiscard]] luisa::unique_ptr<Surface::Instance> _build(
         Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept override {
         auto base = BaseSurface::_build(pipeline, command_buffer);
-        return luisa::make_unique<Instance>(
+        return luisa::make_unique<TwoSidedWrapper::Instance>(
             std::move(dynamic_cast<BaseInstance &>(*base)), _two_sided);
     }
     [[nodiscard]] uint properties() const noexcept override {
