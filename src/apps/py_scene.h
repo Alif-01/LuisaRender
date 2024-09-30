@@ -62,20 +62,19 @@ public:
 
     void update_shape(PyShape *shape) noexcept {
         shape->define_in_scene(_scene_desc.get());
-        auto shape_node = _scene->update_shape(shape->node(), !shape->loaded);
+        auto shape_node = _scene->update_shape(shape->node());
         LUISA_INFO("Update {}: {}", shape->node()->identifier(), shape_node->info());
-        if (!shape->loaded) shape->loaded = true;
+        // if (!shape->loaded) shape->loaded = true;
     }
 
     void update_camera(PyCamera *camera, bool denoise) noexcept {
         camera->define_in_scene(_scene_desc.get());
-        auto camera_node = _scene->update_camera(camera->node(), !camera->loaded);
+        auto camera_node = _scene->update_camera(camera->node());
         LUISA_INFO("Update {}: {}", camera->node()->identifier(), camera_node->info());
         
-        if (!camera->loaded) {
+        if (camera->camera == nullptr) {
             const auto &resolution = camera_node->film()->resolution();
             uint pixel_count = resolution.x * resolution.y;
-            camera->loaded = true;
             camera->camera = (void *)camera_node;
             camera->denoise = denoise;
             if (denoise) {
@@ -84,7 +83,7 @@ public:
                 camera->denoised_buffer = luisa::make_unique<Buffer<float4>>(
                     _device.create_buffer<float4>(pixel_count));
                 camera->denoiser = denoiser_ext->create(_stream);
-                auto input = DenoiserExt::DenoiserInput{resolution.x, resolution.y};
+                auto input = DenoiserExt::DenoiserInput(resolution.x, resolution.y);
                 input.push_noisy_image(
                     camera->color_buffer->view(),
                     camera->denoised_buffer->view(),
@@ -100,7 +99,7 @@ public:
     }
 
     PyFloatArr render_frame(PyCamera *camera, float time) noexcept {
-        // _pipeline->scene_update(_stream, *_scene, time);
+        _pipeline->set_time(time);
         auto camera_node = (Camera *)(camera->camera);
         const auto &resolution = camera_node->film()->resolution();
         luisa::vector<float4> buffer;

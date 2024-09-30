@@ -353,7 +353,7 @@ public:
             $if(cur_n(pixel_id) > 0) {
                 Float gamma = 2.0f / 3.0f;
                 UInt n_new = n_photon(pixel_id) + cur_n(pixel_id);
-                Float r_new = radius(pixel_id) * sqrt(cast<float>(n_new) * gamma / (gamma * n_photon(pixel_id) + cur_n(pixel_id)));
+                Float r_new = radius(pixel_id) * sqrt(gamma * n_new / (gamma * n_photon(pixel_id) + cur_n(pixel_id)));
                 // indirect.write_tau(pixel_id, (indirect.tau(pixel_id) + indirect.phi(pixel_id)) * (r_new * r_new) / (indirect.radius(pixel_id) * indirect.radius(pixel_id)));
                 update_tau(pixel_id, r_new * r_new / (radius(pixel_id) * radius(pixel_id)));
                 if (!_shared_radius) {
@@ -369,7 +369,7 @@ public:
             $if(cur_n(pixel_id) > 0) {
                 Float gamma = 2.0f / 3.0f;
                 UInt n_new = n_photon(pixel_id) + cur_n(pixel_id);
-                Float r_new = radius(pixel_id) * sqrt(n_new * gamma / (n_photon(pixel_id) * gamma + cur_n(pixel_id)));
+                Float r_new = radius(pixel_id) * sqrt(gamma * n_new / (gamma * n_photon(pixel_id) + cur_n(pixel_id)));
                 write_n_photon(pixel_id, n_new);
                 write_cur_n(pixel_id, 0u);
                 write_radius(pixel_id, r_new);

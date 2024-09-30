@@ -303,7 +303,7 @@ protected:
                                                                 // Russian roulette
                                                                 SampledSpectrum Tr = T_ray / (r_l + r_u).average();
                                                                 Float q = 0.75f;
-                                                                T_ray = ite(Tr.max() < 0.05f, ite(rng.uniform_float() < q, 0.f, T_ray / (1 - q)), T_ray);
+                                                                T_ray = ite(Tr.max() < 0.05f, ite(rng.uniform_float() < q, 0.f, T_ray / (1.f - q)), T_ray);
 
                                                                 return ite(T_ray.is_zero(), false, true);
                                                             });

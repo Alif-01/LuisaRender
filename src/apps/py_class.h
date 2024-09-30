@@ -303,7 +303,7 @@ public:
         add_property_node("light", emission);
         _node->add_property("clamp_normal", clamp_normal);
     }
-    bool loaded{false};
+    // bool loaded{false};
 };
 
 class PyRigid: public PyShape {
@@ -415,7 +415,7 @@ public:
     void update(PyTransform *pose) noexcept {
         add_property_node("transform", pose);
     }
-    bool loaded{false};
+    // bool loaded{false};
     void *camera{nullptr};
     bool denoise{false};
     luisa::unique_ptr<Buffer<float4>> color_buffer = nullptr;
