@@ -175,8 +175,8 @@ public:
         }
 
     public:
-        Instance(BaseInstance &&base, const Texture::Instance *opacity) noexcept
-            : BaseInstance{std::move(base)}, _opacity{opacity} {}
+        Instance(BaseInstance &&base, const Texture::Instance *opacity) noexcept:
+            BaseInstance{std::move(base)}, _opacity{opacity} {}
 
         [[nodiscard]] bool maybe_non_opaque() const noexcept override {
             if (BaseInstance::maybe_non_opaque()) { return true; }
@@ -198,14 +198,12 @@ private:
     const Texture *_opacity;
 
 public:
-    OpacitySurfaceWrapper(Scene *scene, const SceneNodeDesc *desc) noexcept
-        : BaseSurface{scene, desc},
-          _opacity{[](auto scene, auto desc) noexcept {
-              return scene->load_texture(desc->property_node_or_default(
-                  "alpha", lazy_construct([desc] {
-                      return desc->property_node_or_default("opacity");
-                  })));
-          }(scene, desc)} {}
+    OpacitySurfaceWrapper(Scene *scene, const SceneNodeDesc *desc) noexcept:
+        BaseSurface{scene, desc},
+        _opacity{[](auto scene, auto desc) noexcept {
+            return scene->load_texture(desc->property_node_or_default(
+                "alpha", lazy_construct([desc] { return desc->property_node_or_default("opacity"); })));
+        }(scene, desc)} {}
 
     [[nodiscard]] virtual luisa::string info() const noexcept override {
         return luisa::format(
@@ -216,12 +214,17 @@ public:
 protected:
     [[nodiscard]] luisa::unique_ptr<Surface::Instance> _build(
         Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept override {
-        auto base = BaseSurface::_build(pipeline, command_buffer);
         return luisa::make_unique<Instance>(
             std::move(dynamic_cast<BaseInstance &>(*base)),
             [this](auto &pipeline, auto &command_buffer) noexcept {
                 return pipeline.build_texture(command_buffer, _opacity);
             }(pipeline, command_buffer));
+        // auto base = BaseSurface::_build(pipeline, command_buffer);
+        // return luisa::make_unique<Instance>(
+        //     std::move(dynamic_cast<BaseInstance &>(*base)),
+        //     [this](auto &pipeline, auto &command_buffer) noexcept {
+        //         return pipeline.build_texture(command_buffer, _opacity);
+        //     }(pipeline, command_buffer));
     }
 };
 
@@ -240,8 +243,8 @@ public:
         float _strength;
 
     public:
-        Instance(BaseInstance &&base, const Texture::Instance *normal, float strength) noexcept
-            : BaseInstance{std::move(base)}, _map{normal}, _strength{strength} {}
+        Instance(BaseInstance &&base, const Texture::Instance *normal, float strength) noexcept:
+            BaseInstance{std::move(base)}, _map{normal}, _strength{strength} {}
 
     public:
         void populate_closure(Surface::Closure *closure, const Interaction &it,

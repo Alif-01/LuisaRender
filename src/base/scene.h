@@ -127,8 +127,8 @@ public:
     [[nodiscard]] Environment *environment() const noexcept { return _config->environment; }
     [[nodiscard]] Medium *environment_medium() const noexcept { return _config->environment_medium; }
     [[nodiscard]] Spectrum *spectrum() const noexcept { return _config->spectrum; }
-    [[nodiscard]] luisa::unordered_set<Shape *> &shapes() const noexcept { return _config->shapes; }
-    [[nodiscard]] luisa::unordered_set<Camera *> &cameras() const noexcept { return _config->cameras; }
+    [[nodiscard]] auto &shapes() const noexcept { return _config->shapes; }
+    [[nodiscard]] auto &cameras() const noexcept { return _config->cameras; }
     [[nodiscard]] float shadow_terminator_factor() const noexcept { return _config->shadow_terminator; }
     [[nodiscard]] float intersection_offset_factor() const noexcept { return _config->intersection_offset; }
     [[nodiscard]] float clamp_normal_factor() const noexcept { return _config->clamp_normal; }

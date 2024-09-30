@@ -20,8 +20,7 @@ set(LUISA_RENDER_BASE_SOURCES
         geometry.cpp geometry.h
         spd.cpp spd.h
         medium.cpp medium.h
-        phase_function.cpp phase_function.h
-        raw_type.cpp raw_type.h)
+        phase_function.cpp phase_function.h)
 
 add_library(luisa-render-base SHARED ${LUISA_RENDER_BASE_SOURCES})
 target_link_libraries(luisa-render-base PUBLIC

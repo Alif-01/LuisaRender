@@ -103,7 +103,7 @@ public:
     [[nodiscard]] auto transform() const noexcept { return _transform; }
     [[nodiscard]] auto shutter_span() const noexcept { return _shutter_span; }
     [[nodiscard]] float shutter_weight(float time) const noexcept;
-    [[nodiscard]] luisa::vector<ShutterSample> shutter_samples(float time_offset) const noexcept;
+    [[nodiscard]] luisa::vector<ShutterSample> shutter_samples() const noexcept;
     [[nodiscard]] auto spp() const noexcept { return _spp; }
     [[nodiscard]] auto file() const noexcept { return _file; }
     [[nodiscard]] virtual bool requires_lens_sampling() const noexcept = 0;
@@ -119,19 +119,19 @@ private:
     float2 _clip_plane;
 
 public:
-    ClipPlaneCameraWrapper(Scene *scene, const SceneNodeDesc *desc) noexcept
-        : Base{scene, desc},
-          _clip_plane{desc->property_float2_or_default(
-              "clip", lazy_construct([desc] {
-                  return desc->property_float2_or_default(
-                      "clip_plane", lazy_construct([desc] {
-                          auto near_plane = desc->property_float_or_default(
-                              "clip", lazy_construct([desc] {
-                                  return desc->property_float_or_default("clip_plane", 0.f);
-                              }));
-                          return make_float2(near_plane, 1e10f);
-                      }));
-              }))} {
+    ClipPlaneCameraWrapper(Scene *scene, const SceneNodeDesc *desc) noexcept:
+        Base{scene, desc},
+        _clip_plane{desc->property_float2_or_default(
+            "clip", lazy_construct([desc] {
+                return desc->property_float2_or_default(
+                    "clip_plane", lazy_construct([desc] {
+                        auto near_plane = desc->property_float_or_default(
+                            "clip", lazy_construct([desc] {
+                                return desc->property_float_or_default("clip_plane", 0.f);
+                            }));
+                        return make_float2(near_plane, 1e10f);
+                    }));
+            }))} {
         _clip_plane = clamp(_clip_plane, 0.f, 1e10f);
         if (_clip_plane.x > _clip_plane.y) { std::swap(_clip_plane.x, _clip_plane.y); }
     }
@@ -140,8 +140,8 @@ public:
     class Instance : public BaseInstance {
 
     public:
-        explicit Instance(BaseInstance base) noexcept
-            : BaseInstance{std::move(base)} {}
+        explicit Instance(BaseInstance base) noexcept: 
+            BaseInstance{std::move(base)} {}
         [[nodiscard]] std::pair<Var<Ray>, Float>
         _generate_ray_in_camera_space(Expr<float2> pixel,
                                       Expr<float2> u_lens,

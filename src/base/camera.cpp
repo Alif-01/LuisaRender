@@ -166,7 +166,7 @@ float Camera::shutter_weight(float time) const noexcept {
     return std::lerp(p0.weight, p1.weight, t);
 }
 
-vector<ShutterSample> Camera::shutter_samples() const noexcept {
+vector<Camera::ShutterSample> Camera::shutter_samples() const noexcept {
     if (_shutter_span.x == _shutter_span.y) {
         ShutterPoint sp{_shutter_span.x, 1.0f};
         return {ShutterSample{sp, _spp}};

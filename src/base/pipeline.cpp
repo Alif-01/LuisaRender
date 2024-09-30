@@ -75,7 +75,7 @@ luisa::unique_ptr<Pipeline> Pipeline::create(Device &device, Stream &stream, Sce
     // }
     // if (transform_updated || pipeline->_transforms_dirty) {
     //     command_buffer << pipeline->_transform_matrix_buffer
-    //         .view(0u, pipeline->_transforms_to_id.size())
+    //         .view(0u, pipeline->_transform_to_id.size())
     //         .copy_from(pipeline->_transform_matrices.data());
     //     pipeline->_transforms_dirty = false;
     // }
@@ -110,7 +110,7 @@ void Pipeline::update(
             camera->clear_dirty();  // TODO: in Build
         }
     }
-    update_bindless_if_dirty();
+    update_bindless_if_dirty(command_buffer);
 
     // if (_scene.cameras_updated()) {
     //     _cameras.clear();
@@ -124,14 +124,14 @@ void Pipeline::update(
 
     _geometry = luisa::make_unique<Geometry>(*this);
     _geometry->build(command_buffer, _scene.shapes(), time);
-    update_bindless_if_dirty();
+    update_bindless_if_dirty(command_buffer);
 
     bool environment_updated = false;
     if (auto env = _scene.environment(); env != nullptr && env->dirty()) {
         _environment = env->build(*this, command_buffer);
         env->clear_dirty();
         environment_updated = true;
-        update_bindless_if_dirty();
+        update_bindless_if_dirty(command_buffer);
     }
     if (auto env_medium = _scene.environment_medium(); env_medium != nullptr && env_medium->dirty()) {
         _environment_medium_tag = register_medium(command_buffer, env_medium);
@@ -141,27 +141,27 @@ void Pipeline::update(
     if (environment_updated || _lights_dirty) { 
         _integrator = _scene.integrator()->build(*this, command_buffer);
         _lights_dirty = false;
-        update_bindless_if_dirty();
+        update_bindless_if_dirty(command_buffer);
     }
 
     bool transform_updated = false;
     for (auto &transform_id : _transform_to_id) {
         auto &transform = transform_id.first;
-        if (transform.dirty()) {
+        if (transform->dirty()) {
             _transform_matrices[transform_id.second] = transform->matrix(time);
             transform_updated = true;
-            transform.clear_dirty();
+            transform->clear_dirty();
         }
         
     }
     if (transform_updated || _transforms_dirty) {
         command_buffer << _transform_matrix_buffer
-            .view(0u, _transforms_to_id.size())
+            .view(0u, _transform_to_id.size())
             .copy_from(_transform_matrices.data());
         _transforms_dirty = false;
     }
     
-    update_bindless_if_dirty();
+    update_bindless_if_dirty(command_buffer);
     command_buffer << compute::commit();
 }
 
@@ -196,7 +196,7 @@ void Pipeline::register_transform(Transform *transform) noexcept {
     if (transform == nullptr) { return; }
     if (!_transform_to_id.contains(transform)) {
         // transform->set_registered();
-        auto transform_id = static_cast<uint>(_transforms.size());
+        auto transform_id = static_cast<uint>(_transform_to_id.size());
         LUISA_ASSERT(transform_id < transform_matrix_buffer_size, "Transform matrix buffer overflows.");
         _transform_to_id.emplace(transform, transform_id);
         // _transforms.emplace_back(transform);

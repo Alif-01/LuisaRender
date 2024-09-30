@@ -16,8 +16,8 @@ LightSampler::Sample LightSampler::Instance::sample_selection(
     const SampledWavelengths &swl, Expr<float> time) const noexcept {
     auto sample = Sample::zero(swl.dimension());
     if (!pipeline().has_lighting()) { return sample; }
-    if (_pipeline.environment() != nullptr) {// possibly environment lighting
-        if (_pipeline.lights().empty()) {    // no lights, just environment lighting
+    if (pipeline().environment() != nullptr) {// possibly environment lighting
+        if (pipeline().lights().empty()) {    // no lights, just environment lighting
             sample = sample_environment(it_from, sel, u, swl, time);
         } else {// environment lighting and lights
             $if(sel.tag == selection_environment) {
@@ -32,13 +32,14 @@ LightSampler::Sample LightSampler::Instance::sample_selection(
     }
     return sample;
 }
+
 LightSampler::Sample LightSampler::Instance::sample_selection_le(
     const Selection &sel, Expr<float2> u_light, Expr<float2> u_direction, 
     const SampledWavelengths &swl, Expr<float> time) const noexcept {
     auto sample = Sample::zero(swl.dimension());
     if (!pipeline().has_lighting()) { return sample; }
-    if (_pipeline.environment() != nullptr) {   // possibly environment lighting
-        if (_pipeline.lights().empty()) {    // no lights, just environment lighting
+    if (pipeline().environment() != nullptr) {   // possibly environment lighting
+        if (pipeline().lights().empty()) {    // no lights, just environment lighting
             sample = sample_environment_le(sel, u_light, u_direction, swl, time);
         } else {// environment lighting and lights
             $if(sel.tag == selection_environment) {
@@ -57,14 +58,14 @@ LightSampler::Sample LightSampler::Instance::sample_selection_le(
 LightSampler::Sample LightSampler::Instance::sample(
     const Interaction &it_from, Expr<float> u_sel, Expr<float2> u_light,
     const SampledWavelengths &swl, Expr<float> time) const noexcept {
-    if (!_pipeline.has_lighting()) { return Sample::zero(swl.dimension()); }
+    if (!pipeline().has_lighting()) { return Sample::zero(swl.dimension()); }
     auto sel = select(it_from, u_sel, swl, time);
     return sample_selection(it_from, sel, u_light, swl, time);
 }
 LightSampler::Sample LightSampler::Instance::sample_le(
     Expr<float> u_sel, Expr<float2> u_light, Expr<float2> u_direction,
     const SampledWavelengths &swl, Expr<float> time) const noexcept {
-    if (!_pipeline.has_lighting()) { return Sample::zero(swl.dimension()); }
+    if (!pipeline().has_lighting()) { return Sample::zero(swl.dimension()); }
     auto sel = select(u_sel, swl, time);
     return sample_selection_le(sel, u_light, u_direction, swl, time);
 }

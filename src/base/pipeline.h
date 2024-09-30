@@ -199,7 +199,7 @@ public:
     }
 
     [[nodiscard]] std::pair<BufferView<float4>, uint> allocate_constant_slot() noexcept;
-
+    void update_bindless_if_dirty(CommandBuffer &command_buffer) noexcept;
 
 public:
     [[nodiscard]] static luisa::unique_ptr<Pipeline> create(Device &device, Stream &stream, Scene &scene) noexcept;

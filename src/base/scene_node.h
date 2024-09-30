@@ -46,7 +46,7 @@ public:
         Instance(const Instance &) noexcept = delete;
         Instance(Instance &&another) noexcept = default;
         Instance &operator=(const Instance &) noexcept = delete;
-        Instance &operator=(Instance &&) noexcept = delete;
+        Instance &operator=(Instance &&another) noexcept = default;
         void add_resource(uint resource_index) noexcept;
         virtual ~Instance() noexcept;
         [[nodiscard]] auto &pipeline() noexcept { return _pipeline; }

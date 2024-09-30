@@ -16,7 +16,7 @@ Geometry::~Geometry() noexcept {
 }
 
 void Geometry::build(
-    CommandBuffer &command_buffer, const luisa::unordered_set<const Shape *const> &shapes, float time
+    CommandBuffer &command_buffer, const luisa::unordered_set<Shape *> &shapes, float time
 ) noexcept {
     // TODO: AccelOption
     _accel = _pipeline.device().create_accel({});
@@ -24,7 +24,7 @@ void Geometry::build(
     //     _world_max[i] = -std::numeric_limits<float>::max();
     //     _world_min[i] = std::numeric_limits<float>::max();
     // }
-    for (auto shape : shapes) { _process_shape(command_buffer, shape, time); }
+    for (auto shape : shapes) { _process_shape(command_buffer, time, shape); }
     _instance_buffer = _pipeline.device().create_buffer<uint4>(_instances.size());
     command_buffer << _instance_buffer.copy_from(_instances.data())
                    << _accel.build();
@@ -235,7 +235,7 @@ void Geometry::_process_shape(
     } else {
         _transform_tree.push(shape->transform());
         for (auto child : shape->children()) {
-            _process_shape(command_buffer, child, time, surface, light, medium, visible);
+            _process_shape(command_buffer, time, child, surface, light, medium, visible);
         }
         _transform_tree.pop(shape->transform());
     }
@@ -269,13 +269,13 @@ Bool Geometry::_alpha_skip(const Interaction &it, Expr<float> u) const noexcept 
 
 Bool Geometry::_alpha_skip(const Var<Ray> &ray, const Var<SurfaceHit> &hit) const noexcept {
     auto it = interaction(ray, hit);
-    auto u = xxhash32(make_uint4(hit.inst, hit.prim, compute::as<uint2>(hit.bary))) * 0x1p-32f;
+    auto u = as<float>(xxhash32(make_uint4(hit.inst, hit.prim, as<uint2>(hit.bary)))) * 0x1p-32f;
     return _alpha_skip(*it, u);
 }
 
 Bool Geometry::_alpha_skip(const Var<Ray> &ray, const Var<ProceduralHit> &hit) const noexcept {
     auto it = interaction(ray, hit);
-    auto u = xxhash32(make_uint2(hit.inst, hit.prim)) * 0x1p-32f;
+    auto u = as<float>(xxhash32(make_uint2(hit.inst, hit.prim))) * 0x1p-32f;
     return _alpha_skip(*it, u);
 }
 

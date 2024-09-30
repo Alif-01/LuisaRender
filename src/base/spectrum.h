@@ -69,7 +69,6 @@ public:
 
 public:
     Spectrum(Scene *scene, const SceneNodeDesc *desc) noexcept;
-    Spectrum(Scene *scene) noexcept;
     [[nodiscard]] virtual bool is_fixed() const noexcept = 0;
     [[nodiscard]] virtual uint dimension() const noexcept = 0;
     [[nodiscard]] virtual float4 encode_static_srgb_albedo(float3 rgb) const noexcept = 0;

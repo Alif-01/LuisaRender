@@ -61,11 +61,11 @@ Float3 Spectrum::Instance::wavelength_mul(const SampledWavelengths &target_swl, 
             auto lambda = swl.lambda(j);
             auto pdf = swl.pdf(j);
             Bool is_same = (lambda < target_lambda + error_bound) & (lambda > target_lambda - error_bound);
-            accum_pdf += ite(is_same, target_pdf * pdf,0.0f);
-            ret_sp[i] += ite(is_same, target_sp[i] * sp[j],0.0f);
+            accum_pdf += ite(is_same, target_pdf * pdf, 0.0f);
+            ret_sp[i] += ite(is_same, target_sp[i] * sp[j], 0.0f);
         }
-        //The actual pdf(p(lambda)) is pdf*dimension
-        ret_swl.set_pdf(i, accum_pdf*swl.dimension()*2*error_bound);
+        //The actual pdf(p(lambda)) is pdf * dimension
+        ret_swl.set_pdf(i, accum_pdf * (float)swl.dimension() * 2.f * error_bound);
     }
     return srgb(ret_swl, ret_sp);
 }
@@ -77,7 +77,5 @@ Spectrum::Instance::Instance(Pipeline &pipeline, CommandBuffer &cb, const Spectr
 
 Spectrum::Spectrum(Scene *scene, const SceneNodeDesc *desc) noexcept
     : SceneNode{scene, desc, SceneNodeTag::SPECTRUM} {}
-
-Spectrum::Spectrum(Scene *scene) noexcept : SceneNode{scene, SceneNodeTag::SPECTRUM} {}
 
 }// namespace luisa::render
