@@ -108,7 +108,7 @@ void ProgressiveIntegrator::Instance::_render_one_camera(
     auto dispatch_count = 0u;
     auto sample_id = 0u;
     for (auto s : shutter_samples) {
-        pipeline().update(command_buffer, s.point.time);
+        pipeline().shutter_update(command_buffer, s.point.time);
         for (auto i = 0u; i < s.spp; i++) {
             command_buffer << render(sample_id++, s.point.time, s.point.weight).dispatch(resolution);
             dispatch_count++;

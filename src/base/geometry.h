@@ -71,7 +71,7 @@ public:
     explicit Geometry(Pipeline &pipeline) noexcept : _pipeline{pipeline} {};
     ~Geometry() noexcept;
     void build(CommandBuffer &command_buffer, const luisa::unordered_set<Shape *> &shapes, float time) noexcept;
-    // bool update(CommandBuffer &command_buffer, float time) noexcept;
+    bool shutter_update(CommandBuffer &command_buffer, float time) noexcept;
     [[nodiscard]] auto instances() const noexcept { return luisa::span{_instances}; }
     [[nodiscard]] auto light_instances() const noexcept { return luisa::span{_instanced_lights}; }
     // [[nodiscard]] auto world_min() const noexcept { return _world_min; }

@@ -202,9 +202,11 @@ public:
     void update_bindless_if_dirty(CommandBuffer &command_buffer) noexcept;
 
 public:
-    [[nodiscard]] static luisa::unique_ptr<Pipeline> create(Device &device, Stream &stream, Scene &scene) noexcept;
+    // [[nodiscard]] static luisa::unique_ptr<Pipeline> create(Device &device, Stream &stream, Scene &scene) noexcept;
+    [[nodiscard]] static luisa::unique_ptr<Pipeline> create(Device &device, Scene &scene) noexcept;
     // void scene_update(Stream &stream, Scene &scene, float time) noexcept;
-    void update(CommandBuffer &command_buffer, float time_offset) noexcept;
+    void shutter_update(CommandBuffer &command_buffer, float time_offset) noexcept;
+    void update(Stream &stream) noexcept;
     void render(Stream &stream) noexcept;
     void render_to_buffer(Stream &stream, Camera *camera, luisa::vector<float4> &buffer) noexcept;
     void set_time(float time) noexcept { _time = time; }

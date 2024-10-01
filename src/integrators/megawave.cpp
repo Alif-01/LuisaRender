@@ -816,7 +816,7 @@ void MegakernelWaveFrontInstance::_render_one_camera(
         uint host_sample_count = s.spp * pixel_count;
         static uint zero = 0u;
         auto time = s.point.time;
-        pipeline().update(command_buffer, time);
+        pipeline().shutter_update(command_buffer, time);
         if (use_global)
             command_buffer << clear_global_shader.get()().dispatch(launch_size * g_factor);
         command_buffer << sample_count.copy_from(&zero)

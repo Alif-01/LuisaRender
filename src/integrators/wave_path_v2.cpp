@@ -1082,7 +1082,7 @@ void WavefrontPathTracingv2Instance::_render_one_camera(
 
         shutter_spp += s.spp;
         auto time = s.point.time;
-        pipeline().update(command_buffer, time);
+        pipeline().shutter_update(command_buffer, time);
         aqueue.clear_counter_buffer(command_buffer);
         long long launch_state_count = s.spp * pixel_count;
         auto last_committed_state = launch_state_count;

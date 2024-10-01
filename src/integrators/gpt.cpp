@@ -1212,7 +1212,7 @@ void GradientPathTracingInstance::_render_one_camera(
     auto sample_id = 0u;
     clear_image_buffer();
     for (auto s : shutter_samples) {
-        pipeline().update(command_buffer, s.point.time);
+        pipeline().shutter_update(command_buffer, s.point.time);
         for (auto i = 0u; i < s.spp; i++) {
             current_frame_buffer.clear(command_buffer);
             command_buffer << render(sample_id++, s.point.time, s.point.weight)

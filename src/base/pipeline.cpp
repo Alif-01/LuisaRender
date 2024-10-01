@@ -33,9 +33,14 @@ void Pipeline::update_bindless_if_dirty(CommandBuffer &command_buffer) noexcept 
     }
 };
 
-// TODO: We should split create into Build and Update, and no need to pass scene to pipeline build. 
-luisa::unique_ptr<Pipeline> Pipeline::create(Device &device, Stream &stream, Scene &scene) noexcept {
-    global_thread_pool().synchronize();
+// TODO: We should split create into Build and Update, and no need to pass scene to pipeline build.
+// luisa::unique_ptr<Pipeline> Pipeline::create(Device &device, Stream &stream, Scene &scene) noexcept {
+luisa::unique_ptr<Pipeline> Pipeline::create(Device &device, Scene &scene) noexcept {
+    // global_thread_pool().synchronize();
+    // auto pipeline = luisa::make_unique<Pipeline>(device, scene);
+    // CommandBuffer command_buffer{&stream};
+    // pipeline->update(command_buffer, pipeline->time());
+    // return std::move(pipeline);
     return luisa::make_unique<Pipeline>(device, scene);
 
     // CommandBuffer command_buffer{&stream};
@@ -93,12 +98,8 @@ luisa::unique_ptr<Pipeline> Pipeline::create(Device &device, Stream &stream, Sce
 }
 
 // bool Pipeline::update(CommandBuffer &command_buffer, float time) noexcept {
-void Pipeline::update(
-    // Stream &stream, Scene &scene, float time
-    CommandBuffer &command_buffer, float time_offset
-) noexcept {
-    float time = _time + time_offset;
-
+void Pipeline::update(Stream &stream) noexcept {
+    CommandBuffer command_buffer{&stream};
     if (auto spectrum = _scene.spectrum(); spectrum->dirty()) {
         _spectrum = spectrum->build(*this, command_buffer);
         spectrum->clear_dirty();
@@ -123,7 +124,7 @@ void Pipeline::update(
     // }
 
     _geometry = luisa::make_unique<Geometry>(*this);
-    _geometry->build(command_buffer, _scene.shapes(), time);
+    _geometry->build(command_buffer, _scene.shapes(), _time);
     update_bindless_if_dirty(command_buffer);
 
     bool environment_updated = false;
@@ -145,14 +146,12 @@ void Pipeline::update(
     }
 
     bool transform_updated = false;
-    for (auto &transform_id : _transform_to_id) {
-        auto &transform = transform_id.first;
+    for (auto &[transform, transform_id] : _transform_to_id) {
         if (transform->dirty()) {
-            _transform_matrices[transform_id.second] = transform->matrix(time);
+            _transform_matrices[transform_id] = transform->matrix(_time);
             transform_updated = true;
             transform->clear_dirty();
         }
-        
     }
     if (transform_updated || _transforms_dirty) {
         command_buffer << _transform_matrix_buffer
@@ -165,6 +164,20 @@ void Pipeline::update(
     command_buffer << compute::commit();
 }
 
+void Pipeline::shutter_update(CommandBuffer &command_buffer, float time_offset) noexcept {
+    // TODO: support deformable meshes
+    _geometry->shutter_update(command_buffer, _time + time_offset);
+    if (_any_dynamic_transforms) {
+        for (auto &[transform, tranform_id] : _transform_to_id) {
+            if (!transform->is_static()) {
+                _transform_matrices[transform_id] = transform->matrix(_time + time_offset);
+            }
+        }
+        command_buffer << _transform_matrix_buffer
+                          .view(0u, _transform_to_id.size())
+                          .copy_from(_transform_matrices.data());
+    }
+}
 
 uint Pipeline::register_surface(CommandBuffer &command_buffer, const Surface *surface) noexcept {
     if (auto iter = _surface_tags.find(surface);
@@ -191,25 +204,23 @@ uint Pipeline::register_medium(CommandBuffer &command_buffer, const Medium *medi
     return tag;
 }
 
-
 void Pipeline::register_transform(Transform *transform) noexcept {
     if (transform == nullptr) { return; }
     if (!_transform_to_id.contains(transform)) {
-        // transform->set_registered();
         auto transform_id = static_cast<uint>(_transform_to_id.size());
         LUISA_ASSERT(transform_id < transform_matrix_buffer_size, "Transform matrix buffer overflows.");
         _transform_to_id.emplace(transform, transform_id);
-        // _transforms.emplace_back(transform);
         _transforms_dirty = true;
     }
 }
 
-
 void Pipeline::render(Stream &stream) noexcept {
+    update(stream);
     _integrator->render(stream);
 }
 
 void Pipeline::render_to_buffer(Stream &stream, Camera *camera, luisa::vector<float4> &buffer) noexcept {
+    update(stream);
     _integrator->render_to_buffer(stream, camera, buffer);
 }
 
@@ -239,22 +250,6 @@ const PhaseFunction::Instance *Pipeline::build_phasefunction(CommandBuffer &comm
     auto pf = phasefunction->build(*this, command_buffer);
     return _phasefunctions.emplace(phasefunction, std::move(pf)).first->second.get();
 }
-
-
-// bool Pipeline::update(CommandBuffer &command_buffer, float time) noexcept {
-//     // TODO: support deformable meshes
-//     auto updated = _geometry->update(command_buffer, time);
-//     return updated;
-//     // if (_any_dynamic_transforms) {
-//     //     updated = true;
-//     //     for (auto i = 0u; i < _transforms.size(); ++i) {
-//     //         _transform_matrices[i] = _transforms[i]->matrix(time);
-//     //     }
-//     //     command_buffer << _transform_matrix_buffer
-//     //                       .view(0u, _transforms.size())
-//     //                       .copy_from(_transform_matrices.data());
-//     // }
-// }
 
 Float4x4 Pipeline::transform(Transform *transform) const noexcept {
     if (transform == nullptr) { return make_float4x4(1.f); }

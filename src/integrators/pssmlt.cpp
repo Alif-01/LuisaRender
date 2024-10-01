@@ -622,7 +622,7 @@ private:
         auto total_mutations = static_cast<uint64_t>(camera->node()->spp()) * pixel_count;
         auto last_effective_spp = 0.;
         for (auto s : shutter_samples) {
-            pipeline().update(command_buffer, s.point.time);
+            pipeline().shutter_update(command_buffer, s.point.time);
             auto mutations = static_cast<uint64_t>(s.spp) * pixel_count;
             auto mutations_per_chain = (mutations + chains - 1u) / chains;
             for (auto i = static_cast<uint64_t>(0u); i < mutations_per_chain; i++) {
@@ -706,7 +706,7 @@ protected:
 
         // bootstrap
         auto initial_time = shutter_samples.front().point.time;
-        pipeline().update(command_buffer, initial_time);
+        pipeline().shutter_update(command_buffer, initial_time);
         auto [bs, b] = _bootstrap(command_buffer, camera, initial_time);
 
         // perform actual rendering

@@ -18,41 +18,34 @@ Geometry::~Geometry() noexcept {
 void Geometry::build(
     CommandBuffer &command_buffer, const luisa::unordered_set<Shape *> &shapes, float time
 ) noexcept {
-    // TODO: AccelOption
-    _accel = _pipeline.device().create_accel({});
-    // for (auto i = 0u; i < 3u; ++i) {
-    //     _world_max[i] = -std::numeric_limits<float>::max();
-    //     _world_min[i] = std::numeric_limits<float>::max();
-    // }
+    if (shapes.size() == 0) return;
+    _accel = _pipeline.device().create_accel({});       // TODO: AccelOption
     for (auto shape : shapes) { _process_shape(command_buffer, time, shape); }
     _instance_buffer = _pipeline.device().create_buffer<uint4>(_instances.size());
     command_buffer << _instance_buffer.copy_from(_instances.data())
                    << _accel.build();
 }
 
-// bool Geometry::update(
-//     CommandBuffer &command_buffer, float time
-// ) noexcept {
-//     auto updated = false;
-//     if (!_dynamic_transforms.empty()) {
-//         updated = true;
-//         if (_dynamic_transforms.size() < 128u) {
-//             for (auto t : _dynamic_transforms) {
-//                 _accel.set_transform_on_update(t.instance_id(), t.matrix(time));
-//             }
-//         } else {
-//             global_thread_pool().parallel(
-//                 _dynamic_transforms.size(),
-//                 [this, time](auto i) noexcept {
-//                     auto t = _dynamic_transforms[i];
-//                     _accel.set_transform_on_update(t.instance_id(), t.matrix(time));
-//                 });
-//             global_thread_pool().synchronize();
-//         }
-//         command_buffer << _accel.build();
-//     }
-//     return updated;
-// }
+void Geometry::shutter_update(
+    CommandBuffer &command_buffer, float time
+) noexcept {
+    if (!_dynamic_transforms.empty()) {
+        if (_dynamic_transforms.size() < 128u) {
+            for (auto t : _dynamic_transforms) {
+                _accel.set_transform_on_update(t.instance_id(), t.matrix(time));
+            }
+        } else {
+            global_thread_pool().parallel(
+                _dynamic_transforms.size(),
+                [this, time](auto i) noexcept {
+                    auto t = _dynamic_transforms[i];
+                    _accel.set_transform_on_update(t.instance_id(), t.matrix(time));
+                });
+            global_thread_pool().synchronize();
+        }
+        command_buffer << _accel.build();
+    }
+}
 
 void Geometry::_process_shape(
     CommandBuffer &command_buffer, float time,
