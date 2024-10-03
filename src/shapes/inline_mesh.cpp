@@ -14,8 +14,8 @@ private:
     uint _properties{};
 
 public:
-    InlineMesh(Scene *scene, const SceneNodeDesc *desc) noexcept
-        : Shape{scene, desc} {
+    InlineMesh(Scene *scene, const SceneNodeDesc *desc) noexcept:
+        Shape{scene, desc} {
 
         auto triangles = desc->property_uint_list("indices");
         auto positions = desc->property_float_list("positions");

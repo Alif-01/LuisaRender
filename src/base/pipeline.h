@@ -77,13 +77,14 @@ private:
     Polymorphic<Surface::Instance> _surfaces;
     Polymorphic<Light::Instance> _lights;
     Polymorphic<Medium::Instance> _media;
-    bool _lights_dirty{false};
+    // bool _lights_dirty{false};
 
     luisa::unordered_map<Transform *, uint> _transform_to_id;
     // luisa::vector<const Transform *> _transforms;
     luisa::vector<float4x4> _transform_matrices;
     Buffer<float4x4> _transform_matrix_buffer;
     bool _transforms_dirty{false};
+    bool _any_dynamic_transforms{false};
 
     luisa::unordered_map<const Texture *, luisa::unique_ptr<Texture::Instance>> _textures;
     luisa::unordered_map<const Filter *, luisa::unique_ptr<Filter::Instance>> _filters;
@@ -101,7 +102,7 @@ private:
 
     // other things
     float _time{0.f};
-    bool _any_non_opaque_surface{false};
+    // bool _any_non_opaque_surface{false};
 
 public:
     // for internal use only; use Pipeline::create() instead
@@ -115,28 +116,39 @@ public:
 public:
     template<typename T>
     [[nodiscard]] auto register_bindless(BufferView<T> buffer) noexcept {
-        auto buffer_id = _bindless_buffer_count++;
-        _bindless_array.emplace_on_update(buffer_id, buffer);
-        return static_cast<uint>(buffer_id);
+        _bindless_array.emplace_on_update(_bindless_buffer_count, buffer);
+        return static_cast<uint>(_bindless_buffer_count++);
     }
-
     template<typename T>
     [[nodiscard]] auto register_bindless(const Buffer<T> &buffer) noexcept {
         return register_bindless(buffer.view());
     }
-
     template<typename T>
     [[nodiscard]] auto register_bindless(const Image<T> &image, TextureSampler sampler) noexcept {
-        auto tex2d_id = _bindless_tex2d_count++;
-        _bindless_array.emplace_on_update(tex2d_id, image, sampler);
-        return static_cast<uint>(tex2d_id);
+        _bindless_array.emplace_on_update(_bindless_tex2d_count, image, sampler);
+        return static_cast<uint>(_bindless_tex2d_count++);
+    }
+    template<typename T>
+    [[nodiscard]] auto register_bindless(const Volume<T> &volume, TextureSampler sampler) noexcept {
+        _bindless_array.emplace_on_update(_bindless_tex3d_count, volume, sampler);
+        return static_cast<uint>(_bindless_tex3d_count++);
     }
 
     template<typename T>
-    [[nodiscard]] auto register_bindless(const Volume<T> &volume, TextureSampler sampler) noexcept {
-        auto tex3d_id = _bindless_tex3d_count++;
-        _bindless_array.emplace_on_update(tex3d_id, volume, sampler);
-        return static_cast<uint>(tex3d_id);
+    [[nodiscard]] void update_bindless(BufferView<T> buffer, size_t buffer_id) noexcept {
+        _bindless_array.emplace_on_update(buffer_id, buffer);
+    }
+    template<typename T>
+    [[nodiscard]] void update_bindless(const Buffer<T> &buffer, size_t buffer_id) noexcept {
+        update_bindless(buffer.view(), buffer_id);
+    }
+    template<typename T>
+    [[nodiscard]] void update_bindless(const Image<T> &image, TextureSampler sampler, size_t buffer_id) noexcept {
+        _bindless_array.emplace_on_update(buffer_id, image, sampler);
+    }
+    template<typename T>
+    [[nodiscard]] void update_bindless(const Volume<T> &volume, TextureSampler sampler, size_t buffer_id) noexcept {
+        _bindless_array.emplace_on_update(buffer_id, volume, sampler);
     }
 
     void register_transform(Transform *transform) noexcept;
@@ -163,15 +175,15 @@ public:
         return p;
     }
 
-    template<typename T, typename... Args>
-        requires std::is_base_of_v<Resource, T>
-    [[nodiscard]] auto create_with_index(Args &&...args) noexcept -> std::pair<T *, uint> {
-        auto resource = luisa::make_unique<T>(_device.create<T>(std::forward<Args>(args)...));
-        auto p = resource.get();
-        auto index = _resources.size();
-        _resources.emplace_back(std::move(resource));
-        return std::make_pair(p, index);
-    }
+    // template<typename T, typename... Args>
+    //     requires std::is_base_of_v<Resource, T>
+    // [[nodiscard]] auto create_with_index(Args &&...args) noexcept -> std::pair<T *, uint> {
+    //     auto resource = luisa::make_unique<T>(_device.create<T>(std::forward<Args>(args)...));
+    //     auto p = resource.get();
+    //     auto index = _resources.size();
+    //     _resources.emplace_back(std::move(resource));
+    //     return std::make_pair(p, index);
+    // }
 
     template<uint dim, typename Def>
     void register_shader(luisa::string_view name, Def &&def) noexcept {
@@ -185,17 +197,17 @@ public:
         });
     }
 
-    void remove_resource(uint index) noexcept {
-        _resources[index] = nullptr;
-    }
+    // void remove_resource(uint index) noexcept {
+    //     _resources[index] = nullptr;
+    // }
 
     /* buffer view, resource id, bindless id */
     template<typename T>
-    [[nodiscard]] std::tuple<BufferView<T>, uint, uint> bindless_buffer(size_t n) noexcept {
-        auto [buffer, buffer_index] = create_with_index<Buffer<T>>(n);
+    [[nodiscard]] std::pair<BufferView<T>, uint> bindless_buffer(size_t n) noexcept {
+        auto buffer = create<Buffer<T>>(n);
         auto view = buffer->view();
         auto buffer_id = register_bindless(view);
-        return std::make_tuple(view, buffer_index, buffer_id);
+        return std::make_pair(view, buffer_id);
     }
 
     [[nodiscard]] std::pair<BufferView<float4>, uint> allocate_constant_slot() noexcept;
@@ -227,7 +239,7 @@ public:
     [[nodiscard]] auto spectrum() const noexcept { return _spectrum.get(); }
     [[nodiscard]] auto geometry() const noexcept { return _geometry.get(); }
     [[nodiscard]] auto has_lighting() const noexcept { return !_lights.empty() || _environment != nullptr; }
-    [[nodiscard]] auto has_non_opaque_surfaces() const noexcept { return _any_non_opaque_surface; }
+    // [[nodiscard]] auto has_non_opaque_surfaces() const noexcept { return _any_non_opaque_surface; }
     [[nodiscard]] const Texture::Instance *build_texture(CommandBuffer &command_buffer, const Texture *texture) noexcept;
     [[nodiscard]] const Filter::Instance *build_filter(CommandBuffer &command_buffer, const Filter *filter) noexcept;
     [[nodiscard]] const PhaseFunction::Instance *build_phasefunction(CommandBuffer &command_buffer, const PhaseFunction *phasefunction) noexcept;

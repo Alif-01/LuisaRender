@@ -136,10 +136,10 @@ public:
 
     static constexpr auto buffer_base_max = (1u << (32u - property_flag_bits)) - 1u;
 
-    static constexpr auto light_tag_bits = 12u;
+    static constexpr auto light_tag_bits = 13u;
     static constexpr auto light_tag_max = (1u << light_tag_bits) - 1u;
     static constexpr auto light_tag_offset = 0u;
-    static constexpr auto surface_tag_bits = 12u;
+    static constexpr auto surface_tag_bits = 13u;
     static constexpr auto surface_tag_max = (1u << surface_tag_bits) - 1u;
     static constexpr auto surface_tag_offset = light_tag_offset + light_tag_bits;
     static constexpr auto medium_tag_bits = 32u - light_tag_bits - surface_tag_bits;
@@ -156,9 +156,11 @@ public:
     static constexpr auto clamp_normal_mask = (1u << clamp_normal_bits) - 1u;
     static constexpr auto clamp_normal_offset = inter_offset_offset + inter_offset_bits;
 
-    static constexpr auto vertex_buffer_id_offset = 0u;
-    static constexpr auto triangle_buffer_id_offset = 1u;
-    static constexpr auto aabb_buffer_id_offset = 0u;
+    static constexpr auto alias_bindless_offset = 0u;
+    static constexpr auto pdf_bindless_offset = 1u;
+    static constexpr auto vertices_bindless_offset = 2u;
+    static constexpr auto triangles_bindless_offset = 3u;
+    static constexpr auto aabbs_bindless_offset = 2u;
 
 private:
     UInt _buffer_base;
@@ -170,7 +172,7 @@ private:
     Float _shadow_terminator;
     Float _intersection_offset;
     Float _clamp_normal;
-    UInt _alias_table_buffer_id_offset;
+    // UInt _alias_table_buffer_id_offset;
 
 private:
     Handle(Expr<uint> buffer_base, Expr<uint> flags,
@@ -182,8 +184,8 @@ private:
         _shadow_terminator{shadow_terminator},
         _intersection_offset{intersection_offset},
         _clamp_normal{clamp_normal} {
-        _alias_table_buffer_id_offset = ite(
-            (_properties & luisa::render::Shape::property_flag_triangle) != 0u, 2u, 1u);
+        // _alias_table_buffer_id_offset = ite(
+            // (_properties & luisa::render::Shape::property_flag_triangle) != 0u, 2u, 1u);
     }
 
 public:
@@ -199,23 +201,23 @@ public:
 public:
     [[nodiscard]] auto geometry_buffer_base() const noexcept { return _buffer_base; }
     [[nodiscard]] auto property_flags() const noexcept { return _properties; }
-    [[nodiscard]] auto vertex_buffer_id() const noexcept { return geometry_buffer_base() + luisa::render::Shape::Handle::vertex_buffer_id_offset; }
-    [[nodiscard]] auto triangle_buffer_id() const noexcept { return geometry_buffer_base() + luisa::render::Shape::Handle::triangle_buffer_id_offset; }
-    [[nodiscard]] auto aabb_buffer_id() const noexcept { return geometry_buffer_base() + luisa::render::Shape::Handle::aabb_buffer_id_offset; }
     [[nodiscard]] auto primitive_count() const noexcept { return _primitive_count; }
-    [[nodiscard]] auto alias_table_buffer_id() const noexcept { return geometry_buffer_base() + _alias_table_buffer_id_offset; }
-    [[nodiscard]] auto pdf_buffer_id() const noexcept { return geometry_buffer_base() + _alias_table_buffer_id_offset + 1u; }
+    [[nodiscard]] auto vertex_buffer_id() const noexcept { return geometry_buffer_base() + Shape::Handle::vertices_bindless_offset; }
+    [[nodiscard]] auto triangle_buffer_id() const noexcept { return geometry_buffer_base() + Shape::Handle::triangles_bindless_offset; }
+    [[nodiscard]] auto aabb_buffer_id() const noexcept { return geometry_buffer_base() + Shape::Handle::aabbs_bindless_offset; }
+    [[nodiscard]] auto alias_table_buffer_id() const noexcept { return geometry_buffer_base() + Shape::Handle::alias_bindless_offset; }
+    [[nodiscard]] auto pdf_buffer_id() const noexcept { return geometry_buffer_base() + Shape::Handle::pdf_bindless_offset; }
     [[nodiscard]] auto surface_tag() const noexcept { return _surface_tag; }
     [[nodiscard]] auto light_tag() const noexcept { return _light_tag; }
     [[nodiscard]] auto medium_tag() const noexcept { return _medium_tag; }
-    [[nodiscard]] auto test_property_flag(luisa::uint flag) const noexcept { return (property_flags() & flag) != 0u; }
-    [[nodiscard]] auto has_vertex_normal() const noexcept { return test_property_flag(luisa::render::Shape::property_flag_has_vertex_normal); }
-    [[nodiscard]] auto has_vertex_uv() const noexcept { return test_property_flag(luisa::render::Shape::property_flag_has_vertex_uv); }
-    [[nodiscard]] auto has_light() const noexcept { return test_property_flag(luisa::render::Shape::property_flag_has_light); }
-    [[nodiscard]] auto has_surface() const noexcept { return test_property_flag(luisa::render::Shape::property_flag_has_surface); }
-    [[nodiscard]] auto has_medium() const noexcept { return test_property_flag(luisa::render::Shape::property_flag_has_medium); }
-    [[nodiscard]] auto maybe_non_opaque() const noexcept { return test_property_flag(luisa::render::Shape::property_flag_maybe_non_opaque); }
-    [[nodiscard]] auto is_triangle() const noexcept { return test_property_flag(luisa::render::Shape::property_flag_triangle); }
+    [[nodiscard]] auto test_property_flag(uint flag) const noexcept { return (property_flags() & flag) != 0u; }
+    [[nodiscard]] auto has_vertex_normal() const noexcept { return test_property_flag(Shape::property_flag_has_vertex_normal); }
+    [[nodiscard]] auto has_vertex_uv() const noexcept { return test_property_flag(Shape::property_flag_has_vertex_uv); }
+    [[nodiscard]] auto has_light() const noexcept { return test_property_flag(Shape::property_flag_has_light); }
+    [[nodiscard]] auto has_surface() const noexcept { return test_property_flag(Shape::property_flag_has_surface); }
+    [[nodiscard]] auto has_medium() const noexcept { return test_property_flag(Shape::property_flag_has_medium); }
+    [[nodiscard]] auto maybe_non_opaque() const noexcept { return test_property_flag(Shape::property_flag_maybe_non_opaque); }
+    [[nodiscard]] auto is_triangle() const noexcept { return test_property_flag(Shape::property_flag_triangle); }
     [[nodiscard]] auto shadow_terminator_factor() const noexcept { return _shadow_terminator; }
     [[nodiscard]] auto intersection_offset_factor() const noexcept { return _intersection_offset; }
     [[nodiscard]] auto clamp_normal_factor() const noexcept { return _clamp_normal; }

@@ -39,7 +39,8 @@ public:
         LUISA_INFO("Scene created in {} ms.", scene_create_time);
         LUISA_INFO("Create {}: {}", render->node()->identifier(), _scene->info());
 
-        _pipeline = Pipeline::create(_device, _stream, *_scene);
+        // _pipeline = Pipeline::create(_device, _stream, *_scene);
+        _pipeline = Pipeline::create(_device, *_scene);
         auto pipeline_create_time = clock.toc();
         LUISA_INFO("Pipeline created in {} ms.", pipeline_create_time - scene_create_time);
 

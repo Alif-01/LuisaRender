@@ -198,9 +198,9 @@ private:
     SamplingMethod _method{};
 
 public:
-    HeroWavelengthSpectrum(Scene *scene, const SceneNodeDesc *desc) noexcept
-        : Spectrum{scene, desc},
-          _dimension{std::max(desc->property_uint_or_default("dimension", 4u), 1u)} {
+    HeroWavelengthSpectrum(Scene *scene, const SceneNodeDesc *desc) noexcept:
+        Spectrum{scene, desc},
+        _dimension{std::max(desc->property_uint_or_default("dimension", 4u), 1u)} {
         auto m = desc->property_string_or_default("sample", "visible");
         for (auto &c : m) { c = static_cast<char>(std::tolower(c)); }
         if (m == "visible") {
@@ -243,10 +243,10 @@ private:
 
 public:
     HeroWavelengthSpectrumInstance(Pipeline &pipeline, CommandBuffer &cb,
-                                   const Spectrum *spectrum, uint t0) noexcept
-        : Spectrum::Instance{pipeline, cb, spectrum},
-          _illum_d65{SPD::create_cie_d65(pipeline, cb)},
-          _rgb2spec_t0{t0} {}
+                                   const Spectrum *spectrum, uint t0) noexcept:
+        Spectrum::Instance{pipeline, cb, spectrum},
+        _illum_d65{SPD::create_cie_d65(pipeline, cb)},
+        _rgb2spec_t0{t0} {}
     [[nodiscard]] Spectrum::Decode decode_albedo(
         const SampledWavelengths &swl, Expr<float4> v) const noexcept override {
         auto spec = RGBAlbedoSpectrum{RGBSigmoidPolynomial{v.xyz()}};

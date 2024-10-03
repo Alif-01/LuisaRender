@@ -14,8 +14,9 @@ private:
     const Shape *_shape;
 
 public:
-    ShapeInstance(Scene *scene, const SceneNodeDesc *desc) noexcept
-        : Shape{scene, desc}, _shape{scene->load_shape(desc->property_node("shape"))} {}
+    ShapeInstance(Scene *scene, const SceneNodeDesc *desc) noexcept:
+        Shape{scene, desc},
+        _shape{scene->load_shape(desc->property_node("shape"))} {}
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] span<const Shape *const> children() const noexcept override { return {&_shape, 1u}; }
 };

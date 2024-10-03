@@ -49,19 +49,4 @@ public:
     [[nodiscard]] std::pair<const Node *, bool /* is_static */> leaf(const Transform *t) noexcept;
 };
 
-class InstancedTransform {
-
-private:
-    const TransformTree::Node *_node;
-    size_t _instance_id;
-
-public:
-    InstancedTransform(const TransformTree::Node *node, size_t inst) noexcept
-        : _node{node}, _instance_id{inst} {}
-    [[nodiscard]] auto instance_id() const noexcept { return _instance_id; }
-    [[nodiscard]] auto matrix(float time) const noexcept {
-        return _node == nullptr ? make_float4x4(1.0f) : _node->matrix(time);
-    }
-};
-
 }// namespace luisa::render

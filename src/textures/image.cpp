@@ -162,6 +162,7 @@ class ImageTextureInstance final : public Texture::Instance {
 
 private:
     uint _texture_id;
+    Image<float> _device_image;
 
 private:
     [[nodiscard]] Float2 _compute_uv(const Interaction &it) const noexcept {
@@ -195,15 +196,11 @@ public:
                          const ImageTexture *texture,
                          CommandBuffer &command_buffer) noexcept:
         Texture::Instance{pipeline, texture} {
-        const LoadedImage &image = texture->image();
-        auto [device_image, image_index] = pipeline.create_with_index<Image<float>>(
+        auto &image = texture->image();
+        _device_image = pipeline.device().create<Image<float>>(
             image.pixel_storage(), image.size(), texture->mipmaps());
-        auto tex_id = pipeline.register_bindless(*device_image, texture->sampler());
-        
-        command_buffer << device_image->copy_from(image.pixels()) << compute::commit();
-        add_resource(image_index);
-        _texture_id = tex_id;
-
+        _texture_id = pipeline.register_bindless(_device_image, texture->sampler());
+        command_buffer << _device_image.copy_from(image.pixels()) << compute::commit();
         // if (device_image->mip_levels() > 1u) {
         //     switch (_encoding) {
         //         case Encoding::LINEAR: _generate_mipmaps_linear(pipeline, command_buffer, *device_image); break;

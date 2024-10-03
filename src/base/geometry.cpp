@@ -9,21 +9,36 @@
 
 namespace luisa::render {
 
-Geometry::~Geometry() noexcept {
-    for (auto index: _resource_store) {
-        _pipeline.remove_resource(index);
-    }
-}
+Geometry::Geometry(Pipeline &pipeline) noexcept:
+    _pipeline{pipeline} {}
 
-void Geometry::build(
+// Geometry::~Geometry() noexcept {}
+
+void Geometry::update(
     CommandBuffer &command_buffer, const luisa::unordered_set<Shape *> &shapes, float time
 ) noexcept {
-    if (shapes.size() == 0) return;
-    _accel = _pipeline.device().create_accel({});       // TODO: AccelOption
+    _accel = pipeline.device().create_accel({});    // TODO: AccelOption
+    _instances.clear();
+    _light_instances.clear();
+    _any_non_opaque = false;
+
     for (auto shape : shapes) { _process_shape(command_buffer, time, shape); }
-    _instance_buffer = _pipeline.device().create_buffer<uint4>(_instances.size());
-    command_buffer << _instance_buffer.copy_from(_instances.data())
-                   << _accel.build();
+
+    if (_instances.size() > 0) {
+        if (_instance_buffer.size() != _instances.size()) {
+            _instance_buffer = _pipeline.device().create_buffer<uint4>(_instances.size());
+        }
+        command_buffer << _instance_buffer.copy_from(_instances.data());
+    }
+    if (_light_instances.size() > 0) {
+        if (_light_instance_buffer.size() != _light_instances.size()) {
+            _light_instance_buffer = _pipeline.device().create_buffer<uint>(_light_instances.size());
+        }
+        command_buffer << _light_instance_buffer.copy_from(_light_instances.data());
+    }
+    if (_accel.dirty()) {
+        command_buffer << _accel.build();
+    }
 }
 
 void Geometry::shutter_update(
@@ -53,102 +68,142 @@ void Geometry::_process_shape(
     const Surface *overridden_surface,
     const Light *overridden_light,
     const Medium *overridden_medium,
-    bool overridden_visible) noexcept {
+    bool overridden_visible,
+    uint64_t parent_hash) noexcept {
 
     auto surface = overridden_surface == nullptr ? shape->surface() : overridden_surface;
     auto light = overridden_light == nullptr ? shape->light() : overridden_light;
     auto medium = overridden_medium == nullptr ? shape->medium() : overridden_medium;
     auto visible = overridden_visible && shape->visible();
-    
-    if (shape->empty()) { return; }
+    auto hash = luisa::pointer_hash(shape, parent_hash);
+
     if (shape->is_mesh() || shape->is_spheres()) {
-        luisa::vector<float> primitive_areas;
-        auto shape_geom = [&] {
-            auto buffer_id_base = 0u;
-            void *geom_resource = nullptr;
-
-            if (shape->is_mesh()) {
-                auto [vertices, triangles] = shape->mesh();
-                // auto hash = luisa::hash64(
-                //     triangles.data(), triangles.size_bytes(), luisa::hash64(
-                //     vertices.data(), vertices.size_bytes(), luisa::hash64_default_seed
-                // ));
-                // if (auto mesh_iter = _mesh_cache.find(hash);
-                //     mesh_iter != _mesh_cache.end()) {
-                //     return mesh_iter->second;
-                // }
-
-                // create mesh
-                auto [vertex_buffer, vertex_index] = _pipeline.create_with_index<Buffer<Vertex>>(vertices.size());
-                auto [triangle_buffer, triangle_index] = _pipeline.create_with_index<Buffer<Triangle>>(triangles.size());
-                auto [mesh, mesh_index] = _pipeline.create_with_index<Mesh>(
-                    *vertex_buffer, *triangle_buffer, shape->build_option());
-                command_buffer << vertex_buffer->copy_from(vertices.data())
-                                << triangle_buffer->copy_from(triangles.data())
-                                << mesh->build()
-                                << compute::commit();
-                auto vertex_buffer_id = _pipeline.register_bindless(vertex_buffer->view());
-                auto triangle_buffer_id = _pipeline.register_bindless(triangle_buffer->view());
-                _resource_store.insert(_resource_store.end(), {vertex_index, triangle_index, mesh_index});
-                LUISA_ASSERT(triangle_buffer_id - vertex_buffer_id == 1u, "Invalid.");
-
-                // compute alias table
-                primitive_areas.resize(triangles.size());
-                for (auto i = 0u; i < triangles.size(); ++i) {
-                    auto t = triangles[i];
-                    auto p0 = vertices[t.i0].position();
-                    auto p1 = vertices[t.i1].position();
-                    auto p2 = vertices[t.i2].position();
-                    primitive_areas[i] = std::abs(length(cross(p1 - p0, p2 - p0)));
-                }
-
-                buffer_id_base = vertex_buffer_id;
-                geom_resource = (void *)mesh;
-                // _mesh_cache.emplace(hash, geom);
-            } else {
-                auto [aabbs] = shape->spheres();
-                auto [aabb_buffer, aabb_index] = _pipeline.create_with_index<Buffer<AABB>>(aabbs.size());
-                auto [procedural, procedural_index] = _pipeline.create_with_index<ProceduralPrimitive>(aabb_buffer->view(), shape->build_option());
-                command_buffer << aabb_buffer->copy_from(aabbs.data())
-                                << procedural->build()
-                                << compute::commit();
-                auto aabbs_buffer_id = _pipeline.register_bindless(aabb_buffer->view());
-                _resource_store.insert(_resource_store.end(), {aabb_index, procedural_index});
-
-                // compute alias table
-                primitive_areas.resize(aabbs.size());
-                for (auto i = 0u; i < aabbs.size(); ++i) {
-                    auto diameter = aabbs[i].packed_max[0] - aabbs[i].packed_min[0];
-                    primitive_areas[i] = diameter * diameter;
-                }
-                
-                buffer_id_base = aabbs_buffer_id;
-                geom_resource = (void *)procedural;
-            }
-
-            auto [alias_table, pdf] = create_alias_table(primitive_areas);
-            auto [alias_table_buffer_view, alias_table_index, alias_buffer_id] = _pipeline.bindless_buffer<AliasEntry>(alias_table.size());
-            auto [pdf_buffer_view, pdf_index, pdf_buffer_id] = _pipeline.bindless_buffer<float>(pdf.size());
-            _resource_store.insert(_resource_store.end(), {alias_table_index, pdf_index});
-            command_buffer << alias_table_buffer_view.copy_from(alias_table.data())
-                           << pdf_buffer_view.copy_from(pdf.data())
-                           << compute::commit();
-            return ShapeGeometry{geom_resource, buffer_id_base};
-        }();
-            
-        auto instance_id = static_cast<uint>(_accel.size());
+        if (shape->empty()) return;
+        auto [iter, first_def] = shape_data_ids.emplace(hash, _instances.size());
+        auto data_id = iter->second;
+        auto accel_id = static_cast<uint>(_accel.size());
         auto properties = shape->vertex_properties();
-
-        if (shape->is_mesh()) {
-            properties |= Shape::property_flag_triangle;
-        }
+        auto surface_tag = 0u;
+        auto light_tag = 0u;
+        auto medium_tag = 0u;
+        luisa::vector<float> primitive_areas;
 
         // transform
-        auto [t_node, is_static] = _transform_tree.leaf(shape->transform());
-        InstancedTransform inst_xform{t_node, instance_id};
-        if (!is_static) { _dynamic_transforms.emplace_back(inst_xform); }
-        auto object_to_world = inst_xform.matrix(time);
+        auto [transform_node, transform_static] = _transform_tree.leaf(shape->transform());
+        if (!transform_static) {
+            _dynamic_transforms.emplace_back(transform_node, accel_id);
+        }
+        auto object_to_world = t_node == nullptr ? make_float4x4(1.0f) : transform_node->matrix(time);
 
+        if (surface != nullptr && !surface->is_null()) {
+            surface_tag = _pipeline.register_surface(command_buffer, surface);
+            properties |= Shape::property_flag_has_surface;
+            if (_pipeline.surfaces().impl(surface_tag)->maybe_non_opaque()) {
+                properties |= Shape::property_flag_maybe_non_opaque;
+                _any_non_opaque = true;
+            }
+        }
+        if (light != nullptr && !light->is_null()) {
+            light_tag = _pipeline.register_light(command_buffer, light);
+            properties |= Shape::property_flag_has_light;
+            // _light_instances.emplace_back(Light::Handle{ .instance_id = instance_id, .light_tag = light_tag });
+            _light_instances.emplace_back(instance_id);
+        }
+        if (medium != nullptr && !medium->is_null()) {
+            medium_tag = _pipeline.register_medium(command_buffer, medium);
+            properties |= Shape::property_flag_has_medium;
+        }
+
+        if (shape->is_mesh()) {
+            if (first_def) {
+                _shapes_data.emplace_back(luisa::make_unique<MeshData>());
+            }
+            auto mesh_data = dynamic_cast<MeshData *>(_shapes_data[data_id].get());
+            auto [vertices, triangles] = shape->mesh();
+            if (mesh_data->primitive_count != triangles.size()) {
+                mesh_data->build(_pipeline, vertices.size(), triangles.size(), shape->build_option());
+                if (mesh_data->registered()) {
+                    mesh_data->update_bindless(_pipeline);
+                } else {
+                    mesh_data->register_bindless(_pipeline);
+                }
+            }
+            properties |= Shape::property_flag_triangle;
+            // auto hash = luisa::hash64(
+            //     triangles.data(), triangles.size_bytes(), luisa::hash64(
+            //     vertices.data(), vertices.size_bytes(), luisa::hash64_default_seed
+            // ));
+            // if (auto mesh_iter = _mesh_cache.find(hash);
+            //     mesh_iter != _mesh_cache.end()) {
+            //     return mesh_iter->second;
+            // }
+
+            // create mesh
+            // auto [vertex_buffer, vertex_index] = _pipeline.create_with_index<Buffer<Vertex>>(vertices.size());
+            // auto [triangle_buffer, triangle_index] = _pipeline.create_with_index<Buffer<Triangle>>(triangles.size());
+            // auto [mesh, mesh_index] = _pipeline.create_with_index<Mesh>(
+            //     *vertex_buffer, *triangle_buffer, shape->build_option());
+            command_buffer << mesh_data->vertices.copy_from(vertices.data())
+                           << mesh_data->triangles.copy_from(triangles.data())
+                           << mesh_data->mesh.build()
+                           << compute::commit();
+                // auto vertex_buffer_id = _pipeline.register_bindless(vertex_buffer->view());
+                // auto triangle_buffer_id = _pipeline.register_bindless(triangle_buffer->view());
+                // _resource_store.insert(_resource_store.end(), {vertex_index, triangle_index, mesh_index});
+                // LUISA_ASSERT(triangle_buffer_id - vertex_buffer_id == 1u, "Invalid.");
+
+            // compute alias table
+            primitive_areas.resize(triangles.size());
+            for (auto i = 0u; i < triangles.size(); ++i) {
+                auto t = triangles[i];
+                auto p0 = vertices[t.i0].position();
+                auto p1 = vertices[t.i1].position();
+                auto p2 = vertices[t.i2].position();
+                primitive_areas[i] = std::abs(length(cross(p1 - p0, p2 - p0)));
+            }
+
+            _accel.emplace_back(
+                mesh_data->mesh, object_to_world, visible,
+                (properties & Shape::property_flag_maybe_non_opaque) == 0u, accel_id
+            );
+        } else {
+            if (first_def) {
+                _shapes_data.emplace_back(luisa::make_unique<SpheresData>());
+            }
+            auto spheres_data = dynamic_cast<SpheresData *>(_shapes_data[data_id].get());
+            auto [aabbs] = shape->spheres();
+            if (spheres_data->primitive_count != aabbs.size()) {
+                spheres_data->build(_pipeline, aabbs.size(), shape->build_option());
+                if (spheres_data->registered()) {
+                    spheres_data->update_bindless(_pipeline);
+                } else {
+                    spheres_data->register_bindless(_pipeline);
+                }
+            }
+            // auto [aabb_buffer, aabb_index] = _pipeline.create_with_index<Buffer<AABB>>(aabbs.size());
+            // auto [procedural, procedural_index] = _pipeline.create_with_index<ProceduralPrimitive>(aabb_buffer->view(), shape->build_option());
+            command_buffer << spheres_data->aabbs.copy_from(aabbs.data())
+                           << spheres_data->procedural.build()
+                           << compute::commit();
+            // auto aabbs_buffer_id = _pipeline.register_bindless(aabb_buffer->view());
+            // _resource_store.insert(_resource_store.end(), {aabb_index, procedural_index});
+
+            // compute alias table
+            primitive_areas.resize(aabbs.size());
+            for (auto i = 0u; i < aabbs.size(); ++i) {
+                auto diameter = aabbs[i].packed_max[0] - aabbs[i].packed_min[0];
+                primitive_areas[i] = diameter * diameter;
+            }
+            
+            _accel.emplace_back(spheres_data->procedural, object_to_world, visible, accel_id);
+        }
+
+        auto instance_data = _shapes_data[data_id].get();
+        auto [alias_table, pdf] = create_alias_table(primitive_areas);
+        command_buffer << instance_data->alias_table.copy_from(alias_table.data())
+                       << instance_data->pdf.copy_from(pdf.data())
+                       << compute::commit();
+            
         // TODO: _world_max/min cannot support updating
         // if (shape->is_mesh()) {
         //     auto vertices = shape->mesh().vertices;
@@ -169,48 +224,8 @@ void Geometry::_process_shape(
         //     }
         // }
 
-        // create instance
-        auto surface_tag = 0u;
-        if (surface != nullptr && !surface->is_null()) {
-            surface_tag = _pipeline.register_surface(command_buffer, surface);
-            properties |= Shape::property_flag_has_surface;
-            if (_pipeline.surfaces().impl(surface_tag)->maybe_non_opaque()) {
-                properties |= Shape::property_flag_maybe_non_opaque;
-                _any_non_opaque = true;
-            }
-        }
-
-        auto light_tag = 0u;
-        if (light != nullptr && !light->is_null()) {
-            light_tag = _pipeline.register_light(command_buffer, light);
-            properties |= Shape::property_flag_has_light;
-            _instanced_lights.emplace_back(Light::Handle{
-                .instance_id = instance_id,
-                .light_tag = light_tag
-            });
-        }
-
-        auto medium_tag = 0u;
-        if (medium != nullptr && !medium->is_null()) {
-            medium_tag = _pipeline.register_medium(command_buffer, medium);
-            properties |= Shape::property_flag_has_medium;
-        }
-
-        // emplace instance here since we need to know the opaque property
-        if (shape->is_mesh()) {
-            _accel.emplace_back(
-                *(Mesh *)(shape_geom.resource), object_to_world, visible,
-                (properties & Shape::property_flag_maybe_non_opaque) == 0u, instance_id
-            );
-        } else {
-            _accel.emplace_back(
-                *(ProceduralPrimitive *)(shape_geom.resource), object_to_world,
-                visible, instance_id
-            );
-        }
-
         _instances.emplace_back(Shape::Handle::encode(
-            shape_geom.buffer_id_base, properties,
+            instance_data->buffer_id_base, properties,
             surface_tag, light_tag, medium_tag, primitive_areas.size(),
             shape->has_vertex_normal() ? shape->shadow_terminator_factor() : 0.f,
             shape->intersection_offset_factor(),
@@ -218,9 +233,10 @@ void Geometry::_process_shape(
         ));
 
         LUISA_INFO(
-            "Instance {}: accel: {}, instance_id: {}, num_dyna: {}, matrix: {}, "
+            "Add shape {} to geometry: accel id: {}; size of instances: {} & accel: {}, "
+            "dynamic transform: {}, matrix: {}, "
             "surface: {}, light: {}, medium: {}, properties: {}, prim_count: {}",
-            shape->impl_type(), _accel.size(), instance_id,
+            shape->impl_type(), accel_id, _instances.size(), _accel.size(),
             _dynamic_transforms.size(), object_to_world,
             surface_tag, light_tag, medium_tag, properties, primitive_areas.size()
         );
@@ -440,6 +456,10 @@ luisa::shared_ptr<Interaction> Geometry::interaction(
 
 Shape::Handle Geometry::instance(Expr<uint> inst_id) const noexcept {
     return Shape::Handle::decode(_instance_buffer->read(inst_id));
+}
+
+Uint Geometry::light_instance(Expr<uint> inst_id) const noexcept {
+    return _light_instance_buffer->read(inst_id);
 }
 
 Float4x4 Geometry::instance_to_world(Expr<uint> inst_id) const noexcept {

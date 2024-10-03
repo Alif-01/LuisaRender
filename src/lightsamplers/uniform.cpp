@@ -17,35 +17,31 @@ public:
     UniformLightSampler(Scene *scene, const SceneNodeDesc *desc) noexcept:
         LightSampler{scene, desc},
         _environment_weight{desc->property_float_or_default("environment_weight", 0.5f)} {}
-    [[nodiscard]] luisa::unique_ptr<Instance> build(Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept override;
+    [[nodiscard]] auto environment_weight() const noexcept override { return _environment_weight; }
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
-    [[nodiscard]] auto environment_weight() const noexcept { return _environment_weight; }
+    [[nodiscard]] luisa::unique_ptr<Instance> build(Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept override;
 };
 
 class UniformLightSamplerInstance final : public LightSampler::Instance {
 
-private:
-    uint _light_buffer_id{0u};
-    float _env_prob{0.f};
-
 public:
     UniformLightSamplerInstance(Pipeline &pipeline, CommandBuffer &command_buffer,
                                 const UniformLightSampler *sampler) noexcept:
-        LightSampler::Instance{pipeline, sampler} {
-        if (!pipeline.lights().empty()) {
-            auto [view, _, buffer_id] = pipeline.bindless_buffer<Light::Handle>(pipeline.lights().size());
-            _light_buffer_id = buffer_id;
-            command_buffer << view.copy_from(pipeline.geometry()->light_instances().data())
-                           << compute::commit();
-        }
-        if (auto env = pipeline.environment()) {
-            if (pipeline.lights().empty()) {
-                _env_prob = 1.f;
-            } else {
-                _env_prob = std::clamp(sampler->environment_weight(), 0.01f, 0.99f);
-            }
-        }
-    }
+        LightSampler::Instance{pipeline, sampler} {}
+        // if (!pipeline.lights().empty()) {
+        //     auto [view, buffer_id] = pipeline.bindless_buffer<Light::Handle>(pipeline.lights().size());
+        //     _light_buffer_id = buffer_id;
+        //     command_buffer << view.copy_from(pipeline.geometry()->light_instances().data())
+        //                    << compute::commit();
+        // }
+        // if (auto env = pipeline.environment()) {
+        //     if (pipeline.lights().empty()) {
+        //         _env_prob = 1.f;
+        //     } else {
+        //         _env_prob = std::clamp(sampler->environment_weight(), 0.01f, 0.99f);
+        //     }
+        // }
+    // }
 
     [[nodiscard]] Light::Evaluation evaluate_hit(
         const Interaction &it, Expr<float3> p_from,
@@ -60,18 +56,22 @@ public:
             eval = closure->evaluate(it, p_from);
         });
         auto n = static_cast<float>(pipeline().lights().size());
-        eval.pdf *= (1.f - _env_prob) / n;
+        if (pipeline().environment() == nullptr) {
+            eval.pdf *= 1.f / n;
+        } else {
+            eval.pdf *= (1.f - node()->environment_weight()) / n;
+        }
         return eval;
     }
 
     [[nodiscard]] Light::Evaluation evaluate_miss(
         Expr<float3> wi, const SampledWavelengths &swl, Expr<float> time) const noexcept override {
-        if (_env_prob == 0.f) [[unlikely]] {// no environment
+        if (pipeline().environment() == nullptr) [[unlikely]] {     // no environment
             LUISA_WARNING_WITH_LOCATION("No environment in scene");
             return {.L = SampledSpectrum{swl.dimension()}, .pdf = 0.f};
         }
         auto eval = pipeline().environment()->evaluate(wi, swl, time);
-        eval.pdf *= _env_prob;
+        eval.pdf *= node()->environment_weight();
         return eval;
     }
 
@@ -79,27 +79,38 @@ public:
         const Interaction &it_from, Expr<float> u,
         const SampledWavelengths &swl, Expr<float> time) const noexcept override {
         LUISA_ASSERT(pipeline().has_lighting(), "No lights in scene.");
+        if (pipeline().environment() == nullptr) {
+            return {.tag = cast<uint>(clamp(u * n, 0.f, n - 1.f)), .prob = 1.f / n};
+        }
+        if (pipeline().lights().empty()) {
+            return {.tag = LightSampler::selection_environment, .prob = 1.f};
+        }
         auto n = static_cast<float>(pipeline().lights().size());
-        if (_env_prob == 1.f) { return {.tag = LightSampler::selection_environment, .prob = 1.f}; }
-        if (_env_prob == 0.f) { return {.tag = cast<uint>(clamp(u * n, 0.f, n - 1.f)), .prob = 1.f / n}; }
-        auto uu = (u - _env_prob) / (1.f - _env_prob);
+        auto env_prob = node()->environment_weight();
+        auto uu = (u - env_prob) / (1.f - env_prob);
         auto tag = cast<uint>(clamp(uu * n, 0.f, n - 1.f));
-        auto is_env = u < _env_prob;
+        auto is_env = u < env_prob;
         return {.tag = ite(is_env, LightSampler::selection_environment, tag),
-                .prob = ite(is_env, _env_prob, (1.f - _env_prob) / n)};
+                .prob = ite(is_env, env_prob, (1.f - env_prob) / n)};
     }
     [[nodiscard]] LightSampler::Selection select(
         Expr<float> u,
         const SampledWavelengths &swl, Expr<float> time) const noexcept override {
         LUISA_ASSERT(pipeline().has_lighting(), "No lights in scene.");
+
+        if (pipeline().environment() == nullptr) {
+            return {.tag = cast<uint>(clamp(u * n, 0.f, n - 1.f)), .prob = 1.f / n};
+        }
+        if (pipeline().lights().empty()) {
+            return {.tag = LightSampler::selection_environment, .prob = 1.f};
+        }
         auto n = static_cast<float>(pipeline().lights().size());
-        if (_env_prob == 1.f) { return {.tag = LightSampler::selection_environment, .prob = 1.f}; }
-        if (_env_prob == 0.f) { return {.tag = cast<uint>(clamp(u * n, 0.f, n - 1.f)), .prob = 1.f / n}; }
-        auto uu = (u - _env_prob) / (1.f - _env_prob);
+        auto env_prob = node()->environment_weight();
+        auto uu = (u - env_prob) / (1.f - env_prob);
         auto tag = cast<uint>(clamp(uu * n, 0.f, n - 1.f));
-        auto is_env = u < _env_prob;
+        auto is_env = u < env_prob;
         return {.tag = ite(is_env, LightSampler::selection_environment, tag),
-                .prob = ite(is_env, _env_prob, (1.f - _env_prob) / n)};
+                .prob = ite(is_env, env_prob, (1.f - env_prob) / n)};
     }
 
 
@@ -107,9 +118,9 @@ private:
     [[nodiscard]] auto _sample_area(Expr<float3> p_from,
                                     Expr<uint> tag,
                                     Expr<float2> u_in) const noexcept {
-        auto handle = pipeline().buffer<Light::Handle>(_light_buffer_id).read(tag);
-        auto light_inst = pipeline().geometry()->instance(handle.instance_id);
-        auto light_to_world = pipeline().geometry()->instance_to_world(handle.instance_id);
+        auto light_inst_id = pipeline().geometry()->light_instance(tag);
+        auto light_inst = pipeline().geometry()->instance(light_inst_id);
+        auto light_to_world = pipeline().geometry()->instance_to_world(light_inst_id);
         auto alias_table_buffer_id = light_inst.alias_table_buffer_id();
         auto [prim_id, ux] = sample_alias_table(
             pipeline().buffer<AliasEntry>(alias_table_buffer_id),
@@ -123,7 +134,7 @@ private:
             // auto attrib = pipeline().geometry()->geometry_point(light_inst, triangle, uvw, light_to_world);
         
             it = Interaction(
-                std::move(light_inst), handle.instance_id, prim_id,
+                std::move(light_inst), light_inst_id, prim_id,
                 std::move(attrib), dot(attrib.g.n, p_from - attrib.g.p) < 0.f);
         }
         $else {
@@ -131,7 +142,7 @@ private:
             auto w = sample_uniform_sphere(make_float2(ux, u_in.y));
             auto attrib = pipeline().geometry()->geometry_point(light_inst, aabb, w, light_to_world);
             it = Interaction(
-                std::move(light_inst), handle.instance_id, prim_id,
+                std::move(light_inst), light_inst_id, prim_id,
                 attrib.area, attrib.p, attrib.n, dot(attrib.n, p_from - attrib.p) < 0.f);
         };
         return luisa::make_shared<Interaction>(std::move(it));
@@ -159,17 +170,18 @@ private:
     }
     //sample single light for L_emit.
     [[nodiscard]] LightSampler::Sample _sample_light_le(
-                                              Expr<uint> tag, Expr<float2> u_light, Expr<float2> u_direction,
-                                              const SampledWavelengths &swl,
-                                              Expr<float> time) const noexcept override {
+            Expr<uint> tag, Expr<float2> u_light, Expr<float2> u_direction,
+            const SampledWavelengths &swl,
+            Expr<float> time) const noexcept override {
         LUISA_ASSERT(!pipeline().lights().empty(), "No lights in the scene.");
-        auto handle = pipeline().buffer<Light::Handle>(_light_buffer_id).read(tag);
-        auto light_inst = pipeline().geometry()->instance(handle.instance_id);
-        auto sp=Light::Sample::zero(swl.dimension());
+        // auto handle = pipeline().buffer<Light::Handle>(_light_buffer_id).read(tag);
+        auto light_inst_id = pipeline().geometry()->light_instance(tag);
+        auto light_inst = pipeline().geometry()->instance(light_inst_id);
+        auto sp = Light::Sample::zero(swl.dimension());
         Var<Ray> shadow_ray{};
         pipeline().lights().dispatch(light_inst.light_tag(), [&](auto light) noexcept {
             auto closure = light->closure(swl, time);
-            auto [sp_tp, ray_tp] = closure->sample_le(handle.instance_id, u_light, u_direction);
+            auto [sp_tp, ray_tp] = closure->sample_le(light_inst_id, u_light, u_direction);
             sp = sp_tp;
             shadow_ray = ray_tp;
         });
@@ -179,8 +191,7 @@ private:
 
 unique_ptr<LightSampler::Instance> UniformLightSampler::build(
     Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept {
-    return luisa::make_unique<UniformLightSamplerInstance>(
-        pipeline, command_buffer, this);
+    return luisa::make_unique<UniformLightSamplerInstance>(pipeline, command_buffer, this);
 }
 
 }// namespace luisa::render

@@ -20,8 +20,8 @@ struct SRGBSpectrum final : public Spectrum {
 };
 
 struct SRGBSpectrumInstance final : public Spectrum::Instance {
-    SRGBSpectrumInstance(Pipeline &pipeline, CommandBuffer &cb, const Spectrum *spec) noexcept
-        : Spectrum::Instance{pipeline, cb, spec} {}
+    SRGBSpectrumInstance(Pipeline &pipeline, CommandBuffer &cb, const Spectrum *spec) noexcept:
+        Spectrum::Instance{pipeline, cb, spec} {}
     [[nodiscard]] SampledWavelengths sample(Expr<float>) const noexcept override {
         SampledWavelengths swl{3u};
         auto lambdas = rgb_spectrum_peak_wavelengths;

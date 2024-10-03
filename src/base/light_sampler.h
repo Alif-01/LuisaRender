@@ -101,6 +101,7 @@ public:
 
 public:
     LightSampler(Scene *scene, const SceneNodeDesc *desc) noexcept;
+    [[nodiscard]] virtual float environment_weight() const noexcept = 0;
     [[nodiscard]] virtual luisa::unique_ptr<Instance> build(
         Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept = 0;
 };

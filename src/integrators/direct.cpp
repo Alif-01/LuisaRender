@@ -24,8 +24,8 @@ private:
     ImportanceSampling _importance_sampling{};
 
 public:
-    DirectLighting(Scene *scene, const SceneNodeDesc *desc) noexcept
-        : ProgressiveIntegrator{scene, desc} {
+    DirectLighting(Scene *scene, const SceneNodeDesc *desc) noexcept:
+        ProgressiveIntegrator{scene, desc} {
         auto is = desc->property_string_or_default("importance_sampling", "both");
         for (auto &c : is) { c = static_cast<char>(tolower(c)); }
         if (is == "light") {

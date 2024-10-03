@@ -14,8 +14,8 @@ private:
     luisa::vector<const Shape *> _children;
 
 public:
-    ShapeGroup(Scene *scene, const SceneNodeDesc *desc) noexcept
-        : Shape{scene, desc} {
+    ShapeGroup(Scene *scene, const SceneNodeDesc *desc) noexcept:
+        Shape{scene, desc} {
         auto shapes = desc->property_node_list("shapes");
         _children.reserve(shapes.size());
         for (auto shape : shapes) {

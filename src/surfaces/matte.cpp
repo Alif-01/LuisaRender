@@ -27,6 +27,8 @@ public:
     
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] uint properties() const noexcept override { return property_reflective; }
+    [[nodiscard]] auto kd() const noexcept { return _kd; }
+    [[nodiscard]] auto sigma() const noexcept { return _sigma; }
 
 protected:
     [[nodiscard]] luisa::unique_ptr<Instance> _build(
@@ -40,9 +42,11 @@ private:
     const Texture::Instance *_sigma;
 
 public:
-    MatteInstance(Pipeline &pipeline, const Surface *surface,
-                  const Texture::Instance *Kd, const Texture::Instance *sigma) noexcept:
-        Surface::Instance{pipeline, surface}, _kd{Kd}, _sigma{sigma} {}
+    MatteInstance(Pipeline &pipeline, CommandBuffer &command_buffer,
+                  const MatteSurface *surface) noexcept:
+        Surface::Instance{pipeline, surface},
+        _kd{pipeline.build_texture(command_buffer, surface->kd())},
+        _sigma{pipeline.build_texture(command_buffer, surface->sigma())} {}
 
 public:
     [[nodiscard]] luisa::unique_ptr<Surface::Closure> create_closure(const SampledWavelengths &swl, Expr<float> time) const noexcept override;
@@ -51,9 +55,7 @@ public:
 
 luisa::unique_ptr<Surface::Instance> MatteSurface::_build(
     Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept {
-    auto Kd = pipeline.build_texture(command_buffer, _kd);
-    auto sigma = pipeline.build_texture(command_buffer, _sigma);
-    return luisa::make_unique<MatteInstance>(pipeline, this, Kd, sigma);
+    return luisa::make_unique<MatteInstance>(pipeline, command_buffer, this);
 }
 
 class MatteClosure : public Surface::Closure {

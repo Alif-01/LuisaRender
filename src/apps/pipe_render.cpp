@@ -41,7 +41,6 @@ int main(int argc, char *argv[]) {
     auto device = context.create_device(backend, &config);
     auto stream = device.create_stream(StreamTag::COMPUTE);
     auto denoiser_ext = device.extension<DenoiserExt>();
-    // DenoiserExt::DenoiserMode mode{};
 
     Clock clock;
     auto scene_desc = SceneParser::parse(path, macros);
@@ -54,7 +53,7 @@ int main(int argc, char *argv[]) {
     auto resolution = camera->film()->resolution();
     uint pixel_count = resolution.x * resolution.y;
 
-    auto pipeline = Pipeline::create(device, stream, *scene);
+    auto pipeline = Pipeline::create(device, *scene);
     luisa::vector<float4> buffer;
     auto buffer_p = reinterpret_cast<float *>(buffer.data());
     pipeline->render_to_buffer(stream, camera, buffer);

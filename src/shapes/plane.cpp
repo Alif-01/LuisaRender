@@ -11,11 +11,11 @@ private:
     std::shared_future<PlaneGeometry> _geometry;
 
 public:
-    Plane(Scene *scene, const SceneNodeDesc *desc) noexcept
-        : Shape{scene, desc},
-          _geometry{PlaneGeometry::create(
-              std::min(desc->property_uint_or_default("subdivision", 0u),
-                       PlaneGeometry::max_subdivision_level))} {}
+    Plane(Scene *scene, const SceneNodeDesc *desc) noexcept:
+        Shape{scene, desc},
+        _geometry{PlaneGeometry::create(
+            std::min(desc->property_uint_or_default("subdivision", 0u),
+                     PlaneGeometry::max_subdivision_level))} {}
 
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] bool is_mesh() const noexcept override { return true; }

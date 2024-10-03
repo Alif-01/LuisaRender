@@ -292,7 +292,7 @@ private:
                     $if(lcg(seed) < q) {
                         $break;
                     };
-                    beta /= 1 - q;
+                    beta /= 1.f - q;
                 };
                 $if(ctx.albedo.is_zero()) {
                     z = ite(z == ctx.thickness, 0.f, ctx.thickness);
@@ -424,7 +424,7 @@ private:
                     $if(depth > 3 & rr_beta < 0.25f) {
                         auto q = max(0.f, 1.f - rr_beta);
                         $if(lcg(seed) < q) { $break; };
-                        pdf *= 1 - q;
+                        pdf *= 1.f - q;
                     };
                     $if(w_local.z == 0.f) { $break; };
                     $if(!ctx.albedo.is_zero()) {

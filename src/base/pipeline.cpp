@@ -14,15 +14,10 @@ Pipeline::Pipeline(Device &device, Scene &scene) noexcept:
     _scene{scene},
     _bindless_array{device.create_bindless_array(bindless_array_capacity)},
     _general_buffer_arena{luisa::make_unique<BufferArena>(device, 16_M)},
+    _geometry{luisa::make_unique<Geometry>(*this)},
     _transform_matrices{transform_matrix_buffer_size},
     _transform_matrix_buffer{device.create_buffer<float4x4>(transform_matrix_buffer_size)},
     _time{0.f} {
-
-    // for (auto c : scene.cameras()) {
-    //     if (c->shutter_span().x < pipeline->_initial_time) {
-    //         pipeline->_initial_time = c->shutter_span().x;
-    //     }
-    // }
 }
 
 Pipeline::~Pipeline() noexcept = default;
@@ -113,18 +108,7 @@ void Pipeline::update(Stream &stream) noexcept {
     }
     update_bindless_if_dirty(command_buffer);
 
-    // if (_scene.cameras_updated()) {
-    //     _cameras.clear();
-    //     _cameras.reserve(_scene.cameras().size());
-
-    //     for (auto camera : _scene.cameras()) {
-    //         _cameras.emplace_back(camera->build(*this, command_buffer));
-    //     }
-    //     update_bindless_if_dirty();
-    // }
-
-    _geometry = luisa::make_unique<Geometry>(*this);
-    _geometry->build(command_buffer, _scene.shapes(), _time);
+    _geometry->update(command_buffer, _scene.shapes(), _time);
     update_bindless_if_dirty(command_buffer);
 
     bool environment_updated = false;
@@ -139,9 +123,9 @@ void Pipeline::update(Stream &stream) noexcept {
     }
 
     // TODO: integrator's light sampler reads lights and env, maybe it should be managed like transform.
-    if (environment_updated || _lights_dirty) { 
-        _integrator = _scene.integrator()->build(*this, command_buffer);
-        _lights_dirty = false;
+    if (auto integrator = _scene.integrator(); integrator->dirty()) {
+        _integrator = integrator->build(*this, command_buffer);
+        integrator->clear_dirty();
         update_bindless_if_dirty(command_buffer);
     }
 
@@ -168,7 +152,7 @@ void Pipeline::shutter_update(CommandBuffer &command_buffer, float time_offset) 
     // TODO: support deformable meshes
     _geometry->shutter_update(command_buffer, _time + time_offset);
     if (_any_dynamic_transforms) {
-        for (auto &[transform, tranform_id] : _transform_to_id) {
+        for (auto &[transform, transform_id] : _transform_to_id) {
             if (!transform->is_static()) {
                 _transform_matrices[transform_id] = transform->matrix(_time + time_offset);
             }
@@ -192,7 +176,6 @@ uint Pipeline::register_light(CommandBuffer &command_buffer, const Light *light)
         iter != _light_tags.end()) { return iter->second; }
     auto tag = _lights.emplace(light->build(*this, command_buffer));
     _light_tags.emplace(light, tag);
-    _lights_dirty = true;
     return tag;
 }
 
@@ -211,6 +194,7 @@ void Pipeline::register_transform(Transform *transform) noexcept {
         LUISA_ASSERT(transform_id < transform_matrix_buffer_size, "Transform matrix buffer overflows.");
         _transform_to_id.emplace(transform, transform_id);
         _transforms_dirty = true;
+        if (!transform->is_static()) _any_dynamic_transforms = true;
     }
 }
 

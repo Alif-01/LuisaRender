@@ -62,8 +62,9 @@ private:
 public:
     explicit PinholeCameraInstance(
         Pipeline &ppl, CommandBuffer &command_buffer, const PinholeCamera *camera
-    ) noexcept: Camera::Instance{ppl, command_buffer, camera},
-          _device_data{ppl.create<Buffer<PinholeCameraData>>(1u)->view()} {
+    ) noexcept:
+        Camera::Instance{ppl, command_buffer, camera},
+        _device_data{ppl.create<Buffer<PinholeCameraData>>(1u)->view()} {
         PinholeCameraData host_data{make_float2(camera->film()->resolution()),
                                     tan(camera->fov() * 0.5f)};
         command_buffer << _device_data.copy_from(&host_data) << commit();
