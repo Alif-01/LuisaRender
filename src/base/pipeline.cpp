@@ -93,7 +93,7 @@ void Pipeline::update(Stream &stream) noexcept {
     command_buffer << compute::commit();
 
     LUISA_INFO(
-        "Resource use: Buffer {}, Texture 2D {}, Texture 3D {}, Constant {}, Resources {}.",
+        "Resource use: Buffer={}, Texture2D={}, Texture3D={}, Constant={}, Resources={}.",
         _bindless_buffer_count, _bindless_tex2d_count,
         _bindless_tex3d_count, _constant_count, _resources.size()
     );

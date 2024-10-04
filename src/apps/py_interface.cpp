@@ -130,6 +130,12 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
             py::arg("ks").none(true) = py::none(),
             py::arg("kt").none(true) = py::none(),
             py::arg("eta").none(true) = py::none());
+    py::class_<PyLayered, PySurface>(m, "LayeredSurface")
+        .def(py::init<std::string_view, PySurface*, PySurface*, PyTexture*>(),
+            py::arg("name"),
+            py::arg("top").none(true) = py::none(),
+            py::arg("bottom").none(true) = py::none(),
+            py::arg("thickness").none(true) = py::none());
 
     // Shape
     py::class_<PyShape>(m, "Shape");

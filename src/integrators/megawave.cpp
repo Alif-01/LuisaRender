@@ -337,7 +337,6 @@ void MegakernelWaveFrontInstance::_render_one_camera(
         rem_global[0] = 1u;
         rem_local[0] = 0u;
         sync_block();
-        //pipeline().printer().info("work counter {} of block {}: {}", -1, block_x(), -1);
         auto count_limit = (cast<float>(tot_samples) * 1.2f) / (float)(min(block_count, 50u) * (use_global ? block_size : block_size / KERNEL_COUNT));
         
         $while((rem_global[0] != 0u | rem_local[0] != 0u) & (cast<float>(count) < count_limit)) {
@@ -496,7 +495,6 @@ void MegakernelWaveFrontInstance::_render_one_camera(
                 path_state[path_id].pdf_bsdf = 1e16f;
                 path_state[path_id].pixel_index = pixel_id;
                 path_state[path_id].depth = 0u;
-                //pipeline().printer().info("path id:{}, pixel:{}", path_id, work_id);
                 save_kernel(path_id, INVALID, INTERSECT);
                 workload.atomic(0).fetch_add(1u);
             };
@@ -780,8 +778,11 @@ void MegakernelWaveFrontInstance::_render_one_camera(
             sync_block();
         };
 #ifndef NDEBUG
-        $if(count == count_limit) {
-            device_log("block_id{},thread_id {}, loop not break! local:{}, global:{}",block_x(),thread_x(), rem_local[0], rem_global[0]);
+        $if(count >= count_limit) {
+            device_log(
+                "block_id {}, thread_id {}, loop not break! local: {}, global: {}",
+                block_x(), thread_x(), rem_local[0], rem_global[0]
+            );
             $if(thread_x() < (uint)KERNEL_COUNT){
                 device_log("work rem: id {}, size {}", thread_x(), work_counter[thread_x()]);
             };

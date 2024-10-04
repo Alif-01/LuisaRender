@@ -353,7 +353,7 @@ public:
             $if(cur_n(pixel_id) > 0) {
                 Float gamma = 2.0f / 3.0f;
                 UInt n_new = n_photon(pixel_id) + cur_n(pixel_id);
-                Float r_new = radius(pixel_id) * sqrt(gamma * n_new / (gamma * n_photon(pixel_id) + cur_n(pixel_id)));
+                Float r_new = radius(pixel_id) * sqrt(gamma * cast<float>(n_new) / (gamma * cast<float>(n_photon(pixel_id)) + cast<float>(cur_n(pixel_id))));
                 // indirect.write_tau(pixel_id, (indirect.tau(pixel_id) + indirect.phi(pixel_id)) * (r_new * r_new) / (indirect.radius(pixel_id) * indirect.radius(pixel_id)));
                 update_tau(pixel_id, r_new * r_new / (radius(pixel_id) * radius(pixel_id)));
                 if (!_shared_radius) {
@@ -369,7 +369,7 @@ public:
             $if(cur_n(pixel_id) > 0) {
                 Float gamma = 2.0f / 3.0f;
                 UInt n_new = n_photon(pixel_id) + cur_n(pixel_id);
-                Float r_new = radius(pixel_id) * sqrt(gamma * n_new / (gamma * n_photon(pixel_id) + cur_n(pixel_id)));
+                Float r_new = radius(pixel_id) * sqrt(gamma * cast<float>(n_new) / (gamma * cast<float>(n_photon(pixel_id)) + cast<float>(cur_n(pixel_id))));
                 write_n_photon(pixel_id, n_new);
                 write_cur_n(pixel_id, 0u);
                 write_radius(pixel_id, r_new);
@@ -422,9 +422,7 @@ protected:
             //     photons.write_grid_len(photons.split(-radius));
             // else
             photons.write_grid_len(node<MegakernelPhotonMapping>()->initial_radius());
-            //camera->pipeline().printer().info("grid:{}", photons.grid_len());
             indirect.write_radius(index, photons.grid_len());
-            //camera->pipeline().printer().info("rad:{}", indirect.radius(index));
 
             indirect.write_cur_n(index, 0u);
             indirect.write_n_photon(index, 0u);
@@ -499,13 +497,13 @@ protected:
         auto sample_id = 0u;
         bool initial_flag = false;
         uint runtime_spp = 0u;
-        //TODO: maybe swap the for order for better radius convergence
+        // TODO: maybe swap the for order for better radius convergence
         for (auto s : shutter_samples) {
             pipeline().shutter_update(command_buffer, s.point.time);
             runtime_spp += s.spp;
             for (auto i = 0u; i < s.spp; i++) {
                 //emit phtons then calculate L
-                //TODO: accurate size reset
+                // TODO: accurate size reset
                 command_buffer << photon_reset().dispatch(photons.size());
                 command_buffer << emit(sample_id, s.point.time)
                                       .dispatch(make_uint2(add_x, resolution.y));
@@ -547,7 +545,7 @@ protected:
         auto r = indirect.radius(pixel_id);
         auto tau = indirect.tau(pixel_id);
         Float3 L;
-        L = tau / (tot_photon * pi * r * r);
+        L = tau / (cast<float>(tot_photon) * pi * r * r);
         return L;
     }
 

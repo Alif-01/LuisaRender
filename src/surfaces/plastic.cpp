@@ -146,12 +146,12 @@ private:
     }
 
 public:
-    explicit PlasticClosureImpl(const PlasticContext &ctx) noexcept
-        : _ctx{ctx},
-          _distrib{ctx.roughness},
-          _fresnel{1.f, ctx.eta},
-          _coat{ctx.Ks, &_distrib, &_fresnel},
-          _substrate{ctx.Kd} {}
+    explicit PlasticClosureImpl(const PlasticContext &ctx) noexcept:
+        _ctx{ctx},
+        _distrib{ctx.roughness},
+        _fresnel{1.f, ctx.eta},
+        _coat{ctx.Ks, &_distrib, &_fresnel},
+        _substrate{ctx.Kd} {}
 
     [[nodiscard]] Surface::Evaluation evaluate(Expr<float3> wo,
                                                Expr<float3> wi,

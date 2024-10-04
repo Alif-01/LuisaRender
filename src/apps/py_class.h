@@ -291,6 +291,18 @@ public:
     }
 };
 
+class PyLayered: public PySurface {
+public:
+    PyLayered(
+        std::string_view name,
+        PySurface *top, PySurface *bottom, PyTexture *thickness,
+    ) noexcept: PySurface{name, "layered", nullptr, nullptr, nullptr} {
+        add_property_node("top", top);
+        add_property_node("bottom", bottom);
+        add_property_node("thickness", thickness);
+    }
+};
+
 
 // Shape
 class PyShape: public PyDesc {
