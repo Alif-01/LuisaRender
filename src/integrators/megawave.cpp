@@ -778,7 +778,7 @@ void MegakernelWaveFrontInstance::_render_one_camera(
             sync_block();
         };
 #ifndef NDEBUG
-        $if(count >= count_limit) {
+        $if(cast<float>(count) >= count_limit) {
             device_log(
                 "block_id {}, thread_id {}, loop not break! local: {}, global: {}",
                 block_x(), thread_x(), rem_local[0], rem_global[0]
