@@ -27,31 +27,6 @@
 
 namespace luisa::render {
 
-// const Integrator *Scene::integrator() const noexcept { return _config->integrator; }
-// const Environment *Scene::environment() const noexcept { return _config->environment; }
-// const Medium *Scene::environment_medium() const noexcept { return _config->environment_medium; }
-// const Spectrum *Scene::spectrum() const noexcept { return _config->spectrum; }
-// luisa::span<const Shape *const> Scene::shapes() const noexcept { return _config->shapes; }
-// luisa::span<const Camera *const> Scene::cameras() const noexcept { return _config->cameras; }
-// float Scene::shadow_terminator_factor() const noexcept { return _config->shadow_terminator; }
-// float Scene::intersection_offset_factor() const noexcept { return _config->intersection_offset; }
-// float Scene::clamp_normal_factor() const noexcept { return _config->clamp_normal; }
-
-luisa::string Scene::info() const noexcept {
-    return luisa::format("Scene integrator=[{}] clamp_normal=[{}]",
-        _config->integrator ? _config->integrator->info() : "", _config->clamp_normal);
-}
-// bool Scene::environment_updated() const noexcept { return _config->environment_updated; }
-// bool Scene::shapes_updated() const noexcept { return _config->shapes_updated; }
-// bool Scene::cameras_updated() const noexcept { return _config->cameras_updated; }
-// bool Scene::transforms_updated() const noexcept { return _config->transforms_updated; }
-// void Scene::clear_update() noexcept {
-//     _config->environment_updated = false;
-//     _config->shapes_updated = false;
-//     _config->cameras_updated = false;
-//     _config->transforms_updated = false;
-// }
-
 namespace detail {
 
 [[nodiscard]] static auto &scene_plugin_registry() noexcept {
@@ -82,35 +57,6 @@ namespace detail {
 inline Scene::Scene(const Context &ctx) noexcept:
     _context{ctx}, _config{luisa::make_unique<Scene::Config>()} {}
 
-// template <typename... Args, typename Callable>
-// std::pair<SceneNode*, bool> Scene::load_from_nodes(
-//     luisa::string_view name, Callable &&handle_creater, Args&&... args
-// ) noexcept {
-//     std::scoped_lock lock{_mutex};
-//     if (auto iter = _config->nodes.find(name);
-//         iter != _config->nodes.end()) {
-//         return std::make_pair(iter->second.get(), false);
-//     }
-
-//     NodeHandle new_node = handle_creater(std::forward<Args>(args)...);
-//     auto ptr = new_node.get();
-//     _config->nodes.emplace(name, std::move(new_node));
-//     return std::make_pair(ptr, true);
-// }
-
-// template<typename NodeCreater> 
-// auto Scene::get_handle_creater(
-//     SceneNodeTag tag, luisa::string_view impl_type, luisa::string_view creater_name
-// ) noexcept {
-//     return [=, this]<typename... Args>(Args&&... args) -> NodeHandle {
-//         auto &&plugin = detail::scene_plugin_load(
-//             _context.runtime_directory(), tag, impl_type);
-//         auto create = plugin.function<NodeCreater>(creater_name);
-//         auto destroy = plugin.function<NodeDeleter>("destroy");
-//         return NodeHandle(create(std::forward<Args>(args)...), destroy);
-//     };
-// }
-
 Scene::NodeHandle Scene::get_node_handle(SceneNodeTag tag, const SceneNodeDesc *desc) noexcept {
     auto &&plugin = detail::scene_plugin_load(_context.runtime_directory(), tag, desc->impl_type());
     auto create = plugin.function<NodeCreater>("create");
@@ -118,9 +64,8 @@ Scene::NodeHandle Scene::get_node_handle(SceneNodeTag tag, const SceneNodeDesc *
     return Scene::NodeHandle(create(this, desc), destroy);
 }
 
-// template <typename Callable>
 SceneNode *Scene::load_node(
-    SceneNodeTag tag, const SceneNodeDesc *desc //, Callable &&updated_callback
+    SceneNodeTag tag, const SceneNodeDesc *desc
 ) noexcept {
     if (desc == nullptr) { return nullptr; }
     if (!desc->is_defined()) [[unlikely]] {
@@ -130,7 +75,6 @@ SceneNode *Scene::load_node(
             desc->impl_type());
     }
     
-    // auto handle_creater = get_handle_creater<NodeCreaterDesc>(tag, desc->impl_type(), "create");
     if (desc->is_internal()) {
         std::scoped_lock lock{_mutex};
         return _config->internal_nodes.emplace_back(get_node_handle(tag, desc)).get();
@@ -159,21 +103,6 @@ SceneNode *Scene::load_node(
     }
 
     return _config->nodes.emplace(desc->identifier(), get_node_handle(tag, desc)).first->second.get();
-    // NodeHandle new_node_handle = handle_creater(std::forward<Args>(args)...);
-    // auto ptr = new_node.get();
-    // _config->nodes.emplace(name, std::move(new_node));
-    // return std::make_pair(ptr, true);
-
-
-    // auto [node, first_def] = load_from_nodes(desc->identifier(), handle_creater, this, desc);
-    // bool updated = false;
-    // if (!first_def) {
-        // updated |= node->update(this, desc);
-    // } else {
-        // updated = true;
-    // }
-    // if (updated) updated_callback(node);
-    // return node;
 }
 
 #define LUISA_SCENE_NODE_LOAD_DEFINITION(name, type, tag)               \
@@ -203,35 +132,19 @@ Environment *Scene::update_environment(const SceneNodeDesc *desc) noexcept {
     return _config->environment = load_environment(desc);
 }
 
-// std::pair<Camera *, uint> Scene::update_camera(const SceneNodeDesc *desc, bool first_def) noexcept {
 Camera *Scene::update_camera(const SceneNodeDesc *desc) noexcept {
-    // uint index = 0;
     std::scoped_lock lock{_mutex};
     return *(_config->cameras.emplace(load_camera(desc)).first);
-    // if (first_def) {
-    //     auto &cameras = _config->cameras;
-    //     if (std::find(cameras.begin(), cameras.end(), camera) != cameras.end()) [[unlikely]] {
-    //         LUISA_ERROR_WITH_LOCATION("Camera is not defined the first time.");
-    //     }
-    //     index = cameras.size();
-    //     cameras.emplace_back(camera);
-    // }
 }
 
-// Shape *Scene::update_shape(const SceneNodeDesc *desc, bool first_def) noexcept {
 Shape *Scene::update_shape(const SceneNodeDesc *desc) noexcept {
     std::scoped_lock lock{_mutex};
     return *(_config->shapes.emplace(load_shape(desc)).first);
-    // auto shape = load_shape(desc);
-    // if (first_def) {
-    //     std::scoped_lock lock{_mutex};
-    //     auto &shapes = _config->shapes;
-    //     if (std::find(shapes.begin(), shapes.end(), shape) != shapes.end()) [[unlikely]] {
-    //         LUISA_ERROR_WITH_LOCATION("Shape is not defined the first time.");
-    //     }
-    //     shapes.emplace_back(shape);
-    // }
-    // return shape;
+}
+
+luisa::string Scene::info() const noexcept {
+    return luisa::format("Scene integrator=[{}] clamp_normal=[{}]",
+        _config->integrator ? _config->integrator->info() : "", _config->clamp_normal);
 }
 
 luisa::unique_ptr<Scene> Scene::create(const Context &ctx, const SceneDesc *desc) noexcept {

@@ -2,22 +2,85 @@
 // Created by Mike Smith on 2022/9/14.
 //
 
-#include <util/sampling.h>
 #include <util/thread_pool.h>
 #include <base/geometry.h>
 #include <base/pipeline.h>
 
 namespace luisa::render {
 
+Geometry::ShapeData::ShapeData() noexcept:
+    primitive_count{0u}, buffer_id_base{Pipeline::bindless_array_capacity} {}
+
+void Geometry::ShapeData::build(Pipeline &pipeline, uint prim_count) noexcept {
+    primitive_count = prim_count;
+    alias_table = pipeline.device().create_buffer<AliasEntry>(prim_count);
+    pdf = pipeline.device().create_buffer<float>(prim_count);
+}
+
+void Geometry::ShapeData::register_bindless(Pipeline &pipeline) noexcept {
+    buffer_id_base = pipeline.register_bindless(alias_table.view());
+    auto pdf_id = pipeline.register_bindless(pdf.view());
+    LUISA_ASSERT(pdf_id - buffer_id_base == Shape::Handle::pdf_bindless_offset,
+                 "Invalid pdf bindless buffer id.");
+}
+
+void Geometry::ShapeData::update_bindless(Pipeline &pipeline) noexcept {
+    pipeline.update_bindless(alias_table.view(), buffer_id_base + Shape::Handle::alias_bindless_offset);
+    pipeline.update_bindless(pdf.view(), buffer_id_base + Shape::Handle::pdf_bindless_offset);
+}
+
+bool Geometry::ShapeData::registered() const noexcept {
+    return buffer_id_base < Pipeline::bindless_array_capacity;
+}
+
+void Geometry::MeshData::build(Pipeline &pipeline, uint vertex_count, uint triangle_count, AccelOption build_option) noexcept {
+    ShapeData::build(pipeline, triangle_count);
+    vertices = pipeline.device().create_buffer<Vertex>(vertex_count);
+    triangles = pipeline.device().create_buffer<Triangle>(triangle_count);
+    mesh = pipeline.device().create<Mesh>(vertices.view(), triangles.view(), build_option);
+}
+
+void Geometry::MeshData::register_bindless(Pipeline &pipeline) noexcept {
+    ShapeData::register_bindless(pipeline);
+    auto vertices_id = pipeline.register_bindless(vertices.view());
+    auto triangles_id = pipeline.register_bindless(triangles.view());
+    LUISA_ASSERT(vertices_id - buffer_id_base == Shape::Handle::vertices_bindless_offset,
+                 "Invalid vertices bindless buffer id.");
+    LUISA_ASSERT(triangles_id - buffer_id_base == Shape::Handle::triangles_bindless_offset,
+                 "Invalid triangles bindless buffer id.");
+}
+
+void Geometry::MeshData::update_bindless(Pipeline &pipeline) noexcept {
+    ShapeData::update_bindless(pipeline);
+    pipeline.update_bindless(vertices.view(), buffer_id_base + Shape::Handle::vertices_bindless_offset);
+    pipeline.update_bindless(triangles.view(), buffer_id_base + Shape::Handle::triangles_bindless_offset);
+}
+
+void Geometry::SpheresData::build(Pipeline &pipeline, uint sphere_count, AccelOption build_option) noexcept {
+    ShapeData::build(pipeline, sphere_count);
+    aabbs = pipeline.device().create_buffer<AABB>(sphere_count);
+    procedural = pipeline.device().create<ProceduralPrimitive>(aabbs.view(), build_option);
+}
+
+void Geometry::SpheresData::register_bindless(Pipeline &pipeline) noexcept {
+    ShapeData::register_bindless(pipeline);
+    auto aabbs_id = pipeline.register_bindless(aabbs.view());
+    LUISA_ASSERT(aabbs_id - buffer_id_base == Shape::Handle::aabbs_bindless_offset,
+                 "Invalid aabbs bindless buffer id.");
+}
+
+void Geometry::SpheresData::update_bindless(Pipeline &pipeline) noexcept {
+    ShapeData::update_bindless(pipeline);
+    pipeline.update_bindless(aabbs.view(), buffer_id_base + Shape::Handle::aabbs_bindless_offset);
+}
+
 Geometry::Geometry(Pipeline &pipeline) noexcept:
     _pipeline{pipeline} {}
-
-// Geometry::~Geometry() noexcept {}
 
 void Geometry::update(
     CommandBuffer &command_buffer, const luisa::unordered_set<Shape *> &shapes, float time
 ) noexcept {
-    _accel = pipeline.device().create_accel({});    // TODO: AccelOption
+    _accel = _pipeline.device().create_accel({});    // TODO: AccelOption
     _instances.clear();
     _light_instances.clear();
     _any_non_opaque = false;
@@ -25,13 +88,13 @@ void Geometry::update(
     for (auto shape : shapes) { _process_shape(command_buffer, time, shape); }
 
     if (_instances.size() > 0) {
-        if (_instance_buffer.size() != _instances.size()) {
+        if (!_instance_buffer || _instance_buffer.size() != _instances.size()) {
             _instance_buffer = _pipeline.device().create_buffer<uint4>(_instances.size());
         }
         command_buffer << _instance_buffer.copy_from(_instances.data());
     }
     if (_light_instances.size() > 0) {
-        if (_light_instance_buffer.size() != _light_instances.size()) {
+        if (!_light_instance_buffer || _light_instance_buffer.size() != _light_instances.size()) {
             _light_instance_buffer = _pipeline.device().create_buffer<uint>(_light_instances.size());
         }
         command_buffer << _light_instance_buffer.copy_from(_light_instances.data());
@@ -75,7 +138,7 @@ void Geometry::_process_shape(
     auto light = overridden_light == nullptr ? shape->light() : overridden_light;
     auto medium = overridden_medium == nullptr ? shape->medium() : overridden_medium;
     auto visible = overridden_visible && shape->visible();
-    auto hash = luisa::pointer_hash(shape, parent_hash);
+    auto hash = luisa::pointer_hash<Shape>()(shape, parent_hash);
 
     if (shape->is_mesh() || shape->is_spheres()) {
         if (shape->empty()) return;
@@ -93,7 +156,7 @@ void Geometry::_process_shape(
         if (!transform_static) {
             _dynamic_transforms.emplace_back(transform_node, accel_id);
         }
-        auto object_to_world = t_node == nullptr ? make_float4x4(1.0f) : transform_node->matrix(time);
+        auto object_to_world = transform_node == nullptr ? make_float4x4(1.0f) : transform_node->matrix(time);
 
         if (surface != nullptr && !surface->is_null()) {
             surface_tag = _pipeline.register_surface(command_buffer, surface);
@@ -106,8 +169,7 @@ void Geometry::_process_shape(
         if (light != nullptr && !light->is_null()) {
             light_tag = _pipeline.register_light(command_buffer, light);
             properties |= Shape::property_flag_has_light;
-            // _light_instances.emplace_back(Light::Handle{ .instance_id = instance_id, .light_tag = light_tag });
-            _light_instances.emplace_back(instance_id);
+            _light_instances.emplace_back(accel_id);
         }
         if (medium != nullptr && !medium->is_null()) {
             medium_tag = _pipeline.register_medium(command_buffer, medium);
@@ -139,18 +201,10 @@ void Geometry::_process_shape(
             // }
 
             // create mesh
-            // auto [vertex_buffer, vertex_index] = _pipeline.create_with_index<Buffer<Vertex>>(vertices.size());
-            // auto [triangle_buffer, triangle_index] = _pipeline.create_with_index<Buffer<Triangle>>(triangles.size());
-            // auto [mesh, mesh_index] = _pipeline.create_with_index<Mesh>(
-            //     *vertex_buffer, *triangle_buffer, shape->build_option());
             command_buffer << mesh_data->vertices.copy_from(vertices.data())
                            << mesh_data->triangles.copy_from(triangles.data())
                            << mesh_data->mesh.build()
                            << compute::commit();
-                // auto vertex_buffer_id = _pipeline.register_bindless(vertex_buffer->view());
-                // auto triangle_buffer_id = _pipeline.register_bindless(triangle_buffer->view());
-                // _resource_store.insert(_resource_store.end(), {vertex_index, triangle_index, mesh_index});
-                // LUISA_ASSERT(triangle_buffer_id - vertex_buffer_id == 1u, "Invalid.");
 
             // compute alias table
             primitive_areas.resize(triangles.size());
@@ -180,13 +234,9 @@ void Geometry::_process_shape(
                     spheres_data->register_bindless(_pipeline);
                 }
             }
-            // auto [aabb_buffer, aabb_index] = _pipeline.create_with_index<Buffer<AABB>>(aabbs.size());
-            // auto [procedural, procedural_index] = _pipeline.create_with_index<ProceduralPrimitive>(aabb_buffer->view(), shape->build_option());
             command_buffer << spheres_data->aabbs.copy_from(aabbs.data())
                            << spheres_data->procedural.build()
                            << compute::commit();
-            // auto aabbs_buffer_id = _pipeline.register_bindless(aabb_buffer->view());
-            // _resource_store.insert(_resource_store.end(), {aabb_index, procedural_index});
 
             // compute alias table
             primitive_areas.resize(aabbs.size());
@@ -458,7 +508,7 @@ Shape::Handle Geometry::instance(Expr<uint> inst_id) const noexcept {
     return Shape::Handle::decode(_instance_buffer->read(inst_id));
 }
 
-Uint Geometry::light_instance(Expr<uint> inst_id) const noexcept {
+UInt Geometry::light_instance(Expr<uint> inst_id) const noexcept {
     return _light_instance_buffer->read(inst_id);
 }
 

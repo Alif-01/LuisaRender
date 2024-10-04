@@ -29,24 +29,12 @@ SceneNode::SceneNode(const Scene *scene, const SceneNodeDesc *desc, SceneNodeTag
     }
 }
 
-// SceneNode::SceneNode(const Scene *scene, SceneNodeTag tag) noexcept
-//     : _scene{reinterpret_cast<intptr_t>(scene)}, _tag{tag} {}
-
 void SceneNode::update(Scene *scene, const SceneNodeDesc *desc) noexcept {
     LUISA_NOT_IMPLEMENTED();
 }
 
 luisa::string SceneNode::info() const noexcept {
-    return luisa::format("Node <{}, {}>", scene_node_tag_description(_tag), impl_type()); }
-    
-void SceneNode::Instance::add_resource(uint resource_index) noexcept {
-    _resources_indices.emplace_back(resource_index);
-}
-
-SceneNode::Instance::~Instance() noexcept {
-    for (auto resource_index: _resources_indices) {
-        _pipeline.remove_resource(resource_index);
-    }
+    return luisa::format("Node <{}, {}>", scene_node_tag_description(_tag), impl_type());
 }
 
 }   // luisa::render

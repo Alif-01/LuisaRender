@@ -29,77 +29,19 @@ void Pipeline::update_bindless_if_dirty(CommandBuffer &command_buffer) noexcept 
 };
 
 // TODO: We should split create into Build and Update, and no need to pass scene to pipeline build.
-// luisa::unique_ptr<Pipeline> Pipeline::create(Device &device, Stream &stream, Scene &scene) noexcept {
 luisa::unique_ptr<Pipeline> Pipeline::create(Device &device, Scene &scene) noexcept {
-    // global_thread_pool().synchronize();
-    // auto pipeline = luisa::make_unique<Pipeline>(device, scene);
-    // CommandBuffer command_buffer{&stream};
-    // pipeline->update(command_buffer, pipeline->time());
-    // return std::move(pipeline);
     return luisa::make_unique<Pipeline>(device, scene);
-
-    // CommandBuffer command_buffer{&stream};
-    // pipeline->_spectrum = scene.spectrum()->build(*pipeline, command_buffer);
-    // for (auto camera : scene.cameras()) {
-    //     if (camera->dirty()) {
-    //         pipeline->_cameras.emplace(camera, camera->build(*pipeline, command_buffer));
-    //         camera->clear_dirty();  // TODO: in Build
-    //     }
-    // }
-    // update_bindless_if_dirty();
-
-    // pipeline->_geometry = luisa::make_unique<Geometry>(*pipeline);
-    // pipeline->_geometry->build(command_buffer, scene.shapes(), pipeline->_initial_time);
-    // update_bindless_if_dirty();
-
-    // if (auto env = scene.environment(); env != nullptr && env->dirty()) {
-    //     pipeline->_environment = env->build(*pipeline, command_buffer);
-    //     env->clear_dirty();
-    // }
-    // if (auto environment_medium = scene.environment_medium(); environment_medium != nullptr) {
-    //     pipeline->_environment_medium_tag = pipeline->register_medium(command_buffer, environment_medium);
-    // }
-    // update_bindless_if_dirty();
-
-    // integrator may needs world min/max
-    // pipeline->_integrator = scene.integrator()->build(*pipeline, command_buffer);
-
-    // bool transform_updated = false;
-    // for (auto &transform_id : pipeline->_transform_to_id) {
-    //     auto &transform = transform_id.first;
-    //     if (transform.dirty()) {
-    //         pipeline->_transform_matrices[transform_id.second] = transform->matrix(pipeline->_initial_time);
-    //         transform_updated = true;
-    //         transform.clear_dirty();
-    //     }
-    // }
-    // if (transform_updated || pipeline->_transforms_dirty) {
-    //     command_buffer << pipeline->_transform_matrix_buffer
-    //         .view(0u, pipeline->_transform_to_id.size())
-    //         .copy_from(pipeline->_transform_matrices.data());
-    //     pipeline->_transforms_dirty = false;
-    // }
-
-    // update_bindless_if_dirty();
-    // command_buffer << compute::commit();
-    
-    // LUISA_INFO("Created pipeline with {} camera(s), {} shape instance(s), "
-    //            "{} surface instance(s), and {} light instance(s).",
-    //            pipeline->_cameras.size(),
-    //            pipeline->_geometry->instances().size(),
-    //            pipeline->_surfaces.size(),
-    //            pipeline->_lights.size());
-    // return pipeline;
 }
 
-// bool Pipeline::update(CommandBuffer &command_buffer, float time) noexcept {
 void Pipeline::update(Stream &stream) noexcept {
+    global_thread_pool().synchronize();
     CommandBuffer command_buffer{&stream};
     if (auto spectrum = _scene.spectrum(); spectrum->dirty()) {
         _spectrum = spectrum->build(*this, command_buffer);
         spectrum->clear_dirty();
     }
 
+    // Camera
     for (auto camera : _scene.cameras()) {
         if (camera->dirty()) {
             _cameras[camera] = camera->build(*this, command_buffer);
@@ -108,9 +50,11 @@ void Pipeline::update(Stream &stream) noexcept {
     }
     update_bindless_if_dirty(command_buffer);
 
+    // Geometry
     _geometry->update(command_buffer, _scene.shapes(), _time);
     update_bindless_if_dirty(command_buffer);
 
+    // Environment
     bool environment_updated = false;
     if (auto env = _scene.environment(); env != nullptr && env->dirty()) {
         _environment = env->build(*this, command_buffer);
@@ -122,13 +66,14 @@ void Pipeline::update(Stream &stream) noexcept {
         _environment_medium_tag = register_medium(command_buffer, env_medium);
     }
 
-    // TODO: integrator's light sampler reads lights and env, maybe it should be managed like transform.
+    // Integrator, may needs world min/max
     if (auto integrator = _scene.integrator(); integrator->dirty()) {
         _integrator = integrator->build(*this, command_buffer);
         integrator->clear_dirty();
         update_bindless_if_dirty(command_buffer);
     }
 
+    // Transform
     bool transform_updated = false;
     for (auto &[transform, transform_id] : _transform_to_id) {
         if (transform->dirty()) {
@@ -146,6 +91,13 @@ void Pipeline::update(Stream &stream) noexcept {
     
     update_bindless_if_dirty(command_buffer);
     command_buffer << compute::commit();
+
+    LUISA_INFO(
+        "Resource use: Buffer {}, Texture 2D {}, Texture 3D {}, Constant {}, Resources {}.",
+        _bindless_buffer_count, _bindless_tex2d_count,
+        _bindless_tex3d_count, _constant_count, _resources.size()
+    );
+
 }
 
 void Pipeline::shutter_update(CommandBuffer &command_buffer, float time_offset) noexcept {

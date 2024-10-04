@@ -10,7 +10,6 @@
 #include <cxxopts.hpp>
 
 using namespace luisa;
-// using namespace luisa::compute;
 using namespace luisa::render;
 namespace fs = std::filesystem;
 

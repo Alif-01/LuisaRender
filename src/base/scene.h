@@ -96,33 +96,14 @@ LUISA_SCENE_NODE_LOAD_DECLARE(spectrum, Spectrum)
 LUISA_SCENE_NODE_LOAD_DECLARE(medium, Medium)
 LUISA_SCENE_NODE_LOAD_DECLARE(phase_function, PhaseFunction)
 
-    // template <typename NodeCreater>
-    // [[nodiscard]] auto get_handle_creater(
-    //     SceneNodeTag tag, luisa::string_view impl_type, luisa::string_view creater_name) noexcept;
-    // template <typename... Args, typename Callable>
-    // [[nodiscard]] std::pair<SceneNode*, bool> load_from_nodes(
-    //     luisa::string_view name, Callable &&handle_creater, Args&&... args) noexcept;
-    // template <typename Callable>
-
 public:
     [[nodiscard]] Environment *update_environment(const SceneNodeDesc *desc) noexcept;
-    // [[nodiscard]] Camera *update_camera(const SceneNodeDesc *desc, bool first_def) noexcept;
-    // [[nodiscard]] Shape *update_shape(const SceneNodeDesc *desc, bool first_def) noexcept;
     [[nodiscard]] Camera *update_camera(const SceneNodeDesc *desc) noexcept;
     [[nodiscard]] Shape *update_shape(const SceneNodeDesc *desc) noexcept;
     [[nodiscard]] static luisa::unique_ptr<Scene> create(const Context &ctx, const SceneDesc *desc) noexcept;
 
 public:
-    // [[nodiscard]] const Integrator *integrator() const noexcept;
-    // [[nodiscard]] const Environment *environment() const noexcept;
-    // [[nodiscard]] const Medium *environment_medium() const noexcept;
-    // [[nodiscard]] const Spectrum *spectrum() const noexcept;
-    // [[nodiscard]] luisa::span<const Shape *const> shapes() const noexcept;
-    // [[nodiscard]] luisa::span<const Camera *const> cameras() const noexcept;
-    // [[nodiscard]] float shadow_terminator_factor() const noexcept;
-    // [[nodiscard]] float intersection_offset_factor() const noexcept;
-    // [[nodiscard]] float clamp_normal_factor() const noexcept;
-    
+    [[nodiscard]] luisa::string info() const noexcept;
     [[nodiscard]] Integrator *integrator() const noexcept { return _config->integrator; }
     [[nodiscard]] Environment *environment() const noexcept { return _config->environment; }
     [[nodiscard]] Medium *environment_medium() const noexcept { return _config->environment_medium; }
@@ -132,14 +113,6 @@ public:
     [[nodiscard]] float shadow_terminator_factor() const noexcept { return _config->shadow_terminator; }
     [[nodiscard]] float intersection_offset_factor() const noexcept { return _config->intersection_offset; }
     [[nodiscard]] float clamp_normal_factor() const noexcept { return _config->clamp_normal; }
-
-
-    [[nodiscard]] luisa::string info() const noexcept;
-    // [[nodiscard]] bool shapes_updated() const noexcept;
-    // [[nodiscard]] bool cameras_updated() const noexcept;
-    // [[nodiscard]] bool transforms_updated() const noexcept;
-    // [[nodiscard]] bool environment_updated() const noexcept;
-    // void clear_update() noexcept;
 };
 
 }// namespace luisa::render

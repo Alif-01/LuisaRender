@@ -14,7 +14,6 @@ public:
     Device &_device;
     Context &_context;
     Stream &_stream;
-    // std::mutex _stream_mutex;
 
     luisa::unique_ptr<Pipeline> _pipeline{nullptr};
     luisa::unique_ptr<Scene> _scene{nullptr};
@@ -39,7 +38,6 @@ public:
         LUISA_INFO("Scene created in {} ms.", scene_create_time);
         LUISA_INFO("Create {}: {}", render->node()->identifier(), _scene->info());
 
-        // _pipeline = Pipeline::create(_device, _stream, *_scene);
         _pipeline = Pipeline::create(_device, *_scene);
         auto pipeline_create_time = clock.toc();
         LUISA_INFO("Pipeline created in {} ms.", pipeline_create_time - scene_create_time);
@@ -65,7 +63,6 @@ public:
         shape->define_in_scene(_scene_desc.get());
         auto shape_node = _scene->update_shape(shape->node());
         LUISA_INFO("Update {}: {}", shape->node()->identifier(), shape_node->info());
-        // if (!shape->loaded) shape->loaded = true;
     }
 
     void update_camera(PyCamera *camera, bool denoise) noexcept {
