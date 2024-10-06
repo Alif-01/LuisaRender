@@ -282,9 +282,10 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
         .def("update_camera", &PyScene::update_camera,
             py::arg("camera").none(false),
             py::arg("denoise"))
+        .def("update_scene", &PyScene::update_scene,
+            py::arg("time"))
         .def("render_frame", &PyScene::render_frame,
-            py::arg("camera").none(false),
-            py::arg("time"));
+            py::arg("camera").none(false));
 
     m.def("init", &init,
         py::arg("context_path"),

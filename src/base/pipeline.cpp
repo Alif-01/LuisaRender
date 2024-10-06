@@ -151,12 +151,10 @@ void Pipeline::register_transform(Transform *transform) noexcept {
 }
 
 void Pipeline::render(Stream &stream) noexcept {
-    update(stream);
     _integrator->render(stream);
 }
 
 void Pipeline::render_to_buffer(Stream &stream, Camera *camera, luisa::vector<float4> &buffer) noexcept {
-    update(stream);
     _integrator->render_to_buffer(stream, camera, buffer);
 }
 

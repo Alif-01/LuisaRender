@@ -70,8 +70,8 @@ private:
 public:
     TopOrBottom(const Surface::Closure *top,
                 const Surface::Closure *bottom,
-                Expr<bool> is_top) noexcept
-        : _top{top}, _bottom{bottom}, _is_top{is_top} {}
+                Expr<bool> is_top) noexcept:
+        _top{top}, _bottom{bottom}, _is_top{is_top} {}
 
     [[nodiscard]] auto evaluate(Expr<float3> wo, Expr<float3> wi, TransportMode mode) const noexcept {
         auto eval = Surface::Evaluation::zero(_top->swl().dimension());
@@ -124,19 +124,29 @@ protected:
         Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept override;
 
 public:
-    LayeredSurface(Scene *scene, const SceneNodeDesc *desc) noexcept
-        : Surface{scene, desc},
-          _top{scene->load_surface(desc->property_node("top"))},
-          _bottom{scene->load_surface(desc->property_node("bottom"))},
-          _thickness{scene->load_texture(desc->property_node_or_default("thickness"))},
-          _g{scene->load_texture(desc->property_node_or_default("g"))},
-          _albedo{scene->load_texture(desc->property_node_or_default("albedo"))},
-          _max_depth{desc->property_uint_or_default("max_depth", 10u)},
-          _samples{desc->property_uint_or_default("samples", 1u)} {
+    LayeredSurface(Scene *scene, const SceneNodeDesc *desc) noexcept:
+        Surface{scene, desc},
+        _top{scene->load_surface(desc->property_node("top"))},
+        _bottom{scene->load_surface(desc->property_node("bottom"))},
+        _thickness{scene->load_texture(desc->property_node_or_default("thickness"))},
+        _g{scene->load_texture(desc->property_node_or_default("g"))},
+        _albedo{scene->load_texture(desc->property_node_or_default("albedo"))},
+        _max_depth{desc->property_uint_or_default("max_depth", 10u)},
+        _samples{desc->property_uint_or_default("samples", 1u)} {
         LUISA_ASSERT(_top != nullptr && !_top->is_null() &&
                          _bottom != nullptr && !_bottom->is_null(),
                      "Creating closure for null LayeredSurface.");
     }
+
+    [[nodiscard]] luisa::string info() const noexcept override {
+        return luisa::format(
+            "{} top=[{}] bottom=[{}] thickness=[{}]", Surface::info(),
+            _top ? _top->info() : "",
+            _bottom ? _bottom->info() : "",
+            _thickness ? _thickness->info() : ""
+        );
+    }
+
     [[nodiscard]] auto max_depth() const noexcept { return _max_depth; }
     [[nodiscard]] auto samples() const noexcept { return _samples; }
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
