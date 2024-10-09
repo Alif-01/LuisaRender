@@ -38,12 +38,12 @@ private:
     uint _samples_per_pass;
 
 public:
-    WavefrontPathTracing(Scene *scene, const SceneNodeDesc *desc) noexcept
-        : ProgressiveIntegrator{scene, desc},
-          _max_depth{std::max(desc->property_uint_or_default("depth", 10u), 1u)},
-          _rr_depth{std::max(desc->property_uint_or_default("rr_depth", 0u), 0u)},
-          _rr_threshold{std::max(desc->property_float_or_default("rr_threshold", 0.95f), 0.05f)},
-          _samples_per_pass{std::max(desc->property_uint_or_default("samples_per_pass", 16u), 1u)} {}
+    WavefrontPathTracing(Scene *scene, const SceneNodeDesc *desc) noexcept:
+        ProgressiveIntegrator{scene, desc},
+        _max_depth{std::max(desc->property_uint_or_default("depth", 10u), 1u)},
+        _rr_depth{std::max(desc->property_uint_or_default("rr_depth", 0u), 0u)},
+        _rr_threshold{std::max(desc->property_float_or_default("rr_threshold", 0.95f), 0.05f)},
+        _samples_per_pass{std::max(desc->property_uint_or_default("samples_per_pass", 16u), 1u)} {}
           
     [[nodiscard]] auto max_depth() const noexcept { return _max_depth; }
     [[nodiscard]] auto rr_depth() const noexcept { return _rr_depth; }

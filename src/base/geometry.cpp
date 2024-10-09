@@ -80,6 +80,8 @@ Geometry::Geometry(Pipeline &pipeline) noexcept:
 void Geometry::update(
     CommandBuffer &command_buffer, const luisa::unordered_set<Shape *> &shapes, float time
 ) noexcept {
+    global_thread_pool().synchronize();
+    command_buffer << compute::synchronize();
     _accel = _pipeline.device().create_accel({});    // TODO: AccelOption
     _instances.clear();
     _light_instances.clear();
@@ -449,6 +451,13 @@ Interaction Geometry::triangle_interaction(
 ) const noexcept {
     auto shape = instance(inst_id);
     auto m = instance_to_world(inst_id);
+
+    // $if (inst_id == 1u) {
+    //     compute::device_log("Matrix: m=({}, {}, {}), inst={}, prim={}",
+    //         m[3][0], m[3][1], m[3][2],
+    //         inst_id, prim_id);
+    // };
+
     auto tri = triangle(shape, prim_id);
     auto attrib = shading_point(shape, tri, bary, m);
     return Interaction(
@@ -568,10 +577,9 @@ GeometryAttribute Geometry::geometry_point(
     auto aabb_max = ab->max();
     auto o_local = (aabb_min + aabb_max) * .5f;
     
-    auto p = m * (o_local + w) + t;
-    auto c = m * w;
-    auto radius = length(c);
-    auto ng = normalize(c);
+    auto radius = length(aabb_max - aabb_min) * .5f * inv_sqrt3;
+    auto p = m * (o_local + w * radius) + t;
+    auto ng = normalize(m * w);
     auto area = 4 * pi * radius * radius;
     return {.p = p, .n = ng, .area = area};
 }
