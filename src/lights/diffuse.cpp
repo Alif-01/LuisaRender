@@ -73,8 +73,8 @@ class DiffuseLightClosure final : public Light::Closure {
 public:
     DiffuseLightClosure(const DiffuseLightInstance *light,
                         const SampledWavelengths &swl,
-                        Expr<float> time) noexcept
-        : Light::Closure{light, swl, time} {}
+                        Expr<float> time) noexcept:
+        Light::Closure{light, swl, time} {}
 
 private:
     [[nodiscard]] auto _evaluate(const Interaction &it_light,

@@ -83,17 +83,20 @@ void Geometry::update(
     global_thread_pool().synchronize();
     command_buffer << compute::synchronize();
     _accel = _pipeline.device().create_accel({});    // TODO: AccelOption
-    _instances.clear();
+    _instances_geometry.clear();
+    _instances_property.clear();
     _light_instances.clear();
     _any_non_opaque = false;
 
     for (auto shape : shapes) { _process_shape(command_buffer, time, shape); }
 
-    if (_instances.size() > 0) {
-        if (!_instance_buffer || _instance_buffer.size() != _instances.size()) {
-            _instance_buffer = _pipeline.device().create_buffer<uint4>(_instances.size());
+    if (_instances_geometry.size() > 0) {
+        if (!_instance_buffer || _instance_geometry_buffer.size() != _instances_geometry.size()) {
+            _instance_geometry_buffer = _pipeline.device().create_buffer<uint3>(_instances_geometry.size());
+            _instance_property_buffer = _pipeline.device().create_buffer<uint4>(_instances_property.size());
         }
-        command_buffer << _instance_buffer.copy_from(_instances.data());
+        command_buffer << _instance_geometry_buffer.copy_from(_instances_geometry.data())
+                       << _instance_property_buffer.copy_from(_instances_property.data());
     }
     if (_light_instances.size() > 0) {
         if (!_light_instance_buffer || _light_instance_buffer.size() != _light_instances.size()) {
@@ -133,12 +136,14 @@ void Geometry::_process_shape(
     const Surface *overridden_surface,
     const Light *overridden_light,
     const Medium *overridden_medium,
+    const Subsurface *overridden_subsurface,
     bool overridden_visible,
     uint64_t parent_hash) noexcept {
 
     auto surface = overridden_surface == nullptr ? shape->surface() : overridden_surface;
     auto light = overridden_light == nullptr ? shape->light() : overridden_light;
     auto medium = overridden_medium == nullptr ? shape->medium() : overridden_medium;
+    auto subsurface = overridden_subsurface == nullptr ? shape->subsurface() : overridden_subsurface;
     auto visible = overridden_visible && shape->visible();
     auto hash = luisa::pointer_hash<Shape>()(shape, parent_hash);
 
@@ -151,6 +156,7 @@ void Geometry::_process_shape(
         auto surface_tag = 0u;
         auto light_tag = 0u;
         auto medium_tag = 0u;
+        auto subsurface_tag = 0u;
         luisa::vector<float> primitive_areas;
 
         // transform
@@ -176,6 +182,10 @@ void Geometry::_process_shape(
         if (medium != nullptr && !medium->is_null()) {
             medium_tag = _pipeline.register_medium(command_buffer, medium);
             properties |= Shape::property_flag_has_medium;
+        }
+        if (subsurface != nullptr && !subsurface->is_null()) {
+            subsurface_tag = _pipeline.register_subsurface(command_buffer, subsurface);
+            properties |= Shape::property_flag_has_subsurface;
         }
 
         if (shape->is_mesh()) {
@@ -276,19 +286,21 @@ void Geometry::_process_shape(
         //     }
         // }
 
-        _instances.emplace_back(Shape::Handle::encode(
-            instance_data->buffer_id_base, properties,
-            surface_tag, light_tag, medium_tag, primitive_areas.size(),
+        auto [comp_geom, comp_prop] = Shape::Handle::encode(
+            instance_data->buffer_id_base, properties, primitive_areas.size(),
+            surface_tag, light_tag, medium_tag, subsurface_tag,
             shape->has_vertex_normal() ? shape->shadow_terminator_factor() : 0.f,
             shape->intersection_offset_factor(),
-            radians(shape->clamp_normal_factor())
-        ));
+            radians(shape->clamp_normal_factor()
+        )
+        _instances_geometry.emplace_back(comp_geom);
+        _instances_property.emplace_back(comp_prop);
 
         LUISA_INFO(
             "Add shape {} to geometry: accel id: {}; size of instances: {} & accel: {}, "
             "dynamic transform: {}, matrix: {}, "
             "surface: {}, light: {}, medium: {}, properties: {}, prim_count: {}",
-            shape->impl_type(), accel_id, _instances.size(), _accel.size(),
+            shape->impl_type(), accel_id, _instances_geometry.size(), _accel.size(),
             _dynamic_transforms.size(), object_to_world,
             surface_tag, light_tag, medium_tag, properties, primitive_areas.size()
         );
@@ -343,7 +355,7 @@ Bool Geometry::_alpha_skip(const Var<Ray> &ray, const Var<ProceduralHit> &hit) c
 void Geometry::_procedural_filter(ProceduralCandidate &c) const noexcept {
     Var<ProceduralHit> h = c.hit();
     Var<Ray> ray = c.ray();
-    Var<AABB> ab = aabb(instance(h.inst), h.prim);
+    Var<AABB> ab = aabb(instance_geometry(h.inst), h.prim);
     Float4x4 shape_to_world = instance_to_world(h.inst);
     Float3x3 m = make_float3x3(shape_to_world);
     Float3 t = make_float3(shape_to_world[3]);
@@ -449,7 +461,7 @@ Var<bool> Geometry::trace_any(const Var<Ray> &ray) const noexcept {
 Interaction Geometry::triangle_interaction(
     const Var<Ray> &ray, Expr<uint> inst_id, Expr<uint> prim_id, Expr<float3> bary
 ) const noexcept {
-    auto shape = instance(inst_id);
+    auto shape = instance_geometry(inst_id);
     auto m = instance_to_world(inst_id);
 
     // $if (inst_id == 1u) {
@@ -468,7 +480,7 @@ Interaction Geometry::triangle_interaction(
 Interaction Geometry::aabb_interaction(
     const Var<Ray> &ray, Expr<uint> inst_id, Expr<uint> prim_id
 ) const noexcept {
-    auto shape = instance(inst_id);
+    auto shape = instance_geometry(inst_id);
     auto m = instance_to_world(inst_id);
     auto ab = aabb(shape, prim_id);
     auto attrib = shading_point(shape, ab, ray, m);
@@ -514,8 +526,15 @@ luisa::shared_ptr<Interaction> Geometry::interaction(
 }
 
 Shape::Handle Geometry::instance(Expr<uint> inst_id) const noexcept {
-    return Shape::Handle::decode(_instance_buffer->read(inst_id));
+    return Shape::Handle::decode(
+        _instance_geometry_buffer->read(inst_id),
+        _instance_property_buffer->read(inst_id)
+    );
 }
+
+// Shape::PropertyHandle Geometry::instance_property(Expr<uint> inst_id) const noexcept {
+//     return Shape::PropertyHandle::decode();
+// }
 
 UInt Geometry::light_instance(Expr<uint> inst_id) const noexcept {
     return _light_instance_buffer->read(inst_id);
@@ -525,16 +544,16 @@ Float4x4 Geometry::instance_to_world(Expr<uint> inst_id) const noexcept {
     return _accel->instance_transform(inst_id);
 }
 
-Var<Triangle> Geometry::triangle(const Shape::Handle &instance, Expr<uint> triangle_id) const noexcept {
-    return _pipeline.buffer<Triangle>(instance.triangle_buffer_id()).read(triangle_id);
+Var<Triangle> Geometry::triangle(const Shape::Handle &instance_geom, Expr<uint> triangle_id) const noexcept {
+    return _pipeline.buffer<Triangle>(instance_geom.triangle_buffer_id()).read(triangle_id);
 }
 
-Var<Vertex> Geometry::vertex(const Shape::Handle &instance, Expr<uint> vertex_id) const noexcept {
-    return _pipeline.buffer<Vertex>(instance.vertex_buffer_id()).read(vertex_id);
+Var<Vertex> Geometry::vertex(const Shape::Handle &instance_geom, Expr<uint> vertex_id) const noexcept {
+    return _pipeline.buffer<Vertex>(instance_geom.vertex_buffer_id()).read(vertex_id);
 }
 
-Var<AABB> Geometry::aabb(const Shape::Handle &instance, Expr<uint> aabb_id) const noexcept {
-    return _pipeline.buffer<AABB>(instance.aabb_buffer_id()).read(aabb_id);
+Var<AABB> Geometry::aabb(const Shape::Handle &instance_geom, Expr<uint> aabb_id) const noexcept {
+    return _pipeline.buffer<AABB>(instance_geom.aabb_buffer_id()).read(aabb_id);
 }
 
 template<typename T>
@@ -545,12 +564,12 @@ template<typename T>
 }
 
 GeometryAttribute Geometry::geometry_point(
-    const Shape::Handle &instance, const Var<Triangle> &triangle,
+    const Shape::Handle &instance_geom, const Var<Triangle> &triangle,
     const Var<float3> &bary, const Var<float4x4> &shape_to_world
 ) const noexcept {
-    auto v0 = vertex(instance, triangle.i0);
-    auto v1 = vertex(instance, triangle.i1);
-    auto v2 = vertex(instance, triangle.i2);
+    auto v0 = vertex(instance_geom, triangle.i0);
+    auto v1 = vertex(instance_geom, triangle.i1);
+    auto v2 = vertex(instance_geom, triangle.i2);
     // object space
     auto p0 = v0->position();
     auto p1 = v1->position();
@@ -568,7 +587,7 @@ GeometryAttribute Geometry::geometry_point(
 }
 
 GeometryAttribute Geometry::geometry_point(
-    const Shape::Handle &instance, const Var<AABB> &ab,
+    const Shape::Handle &instance_geom, const Var<AABB> &ab,
     const Var<float3> &w, const Var<float4x4> &shape_to_world
 ) const noexcept {
     auto m = make_float3x3(shape_to_world);
@@ -585,12 +604,12 @@ GeometryAttribute Geometry::geometry_point(
 }
 
 ShadingAttribute Geometry::shading_point(
-    const Shape::Handle &instance, const Var<Triangle> &triangle,
+    const Shape::Handle &instance_geom, const Var<Triangle> &triangle,
     const Var<float3> &bary, const Var<float4x4> &shape_to_world
 ) const noexcept {
-    auto v0 = vertex(instance, triangle.i0);
-    auto v1 = vertex(instance, triangle.i1);
-    auto v2 = vertex(instance, triangle.i2);
+    auto v0 = vertex(instance_geom, triangle.i0);
+    auto v1 = vertex(instance_geom, triangle.i1);
+    auto v2 = vertex(instance_geom, triangle.i2);
 
     // object space
     auto p0_local = v0->position();
@@ -612,7 +631,7 @@ ShadingAttribute Geometry::shading_point(
 
     // world space
     // clamp normal
-    auto clamp_angle = instance.clamp_normal_factor();
+    auto clamp_angle = instance_geom.clamp_normal_factor();
     auto m = make_float3x3(shape_to_world);
     auto t = make_float3(shape_to_world[3]);
     auto ng_local = normalize(cross(dp0_local, dp1_local));
@@ -628,8 +647,8 @@ ShadingAttribute Geometry::shading_point(
     auto fallback_frame = Frame::make(ng);
     auto dpdu = ite(det == 0.f, fallback_frame.s(), m * dpdu_local);
     auto dpdv = ite(det == 0.f, fallback_frame.t(), m * dpdv_local);
-    auto ns = ite(instance.has_vertex_normal(), normalize(m * ns_local), ng);
-    auto uv = ite(instance.has_vertex_uv(), tri_interpolate(bary, uv0, uv1, uv2), bary.yz());
+    auto ns = ite(instance_geom.has_vertex_normal(), normalize(m * ns_local), ng);
+    auto uv = ite(instance_geom.has_vertex_uv(), tri_interpolate(bary, uv0, uv1, uv2), bary.yz());
     return {.g = {.p = p,
                   .n = ng,
                   .area = area},
@@ -641,7 +660,7 @@ ShadingAttribute Geometry::shading_point(
 }
 
 ShadingAttribute Geometry::shading_point(
-    const Shape::Handle &instance, const Var<AABB> &ab,
+    const Shape::Handle &instance_geom, const Var<AABB> &ab,
     const Var<Ray> &ray, const Var<float4x4> &shape_to_world
 ) const noexcept {
     auto m = make_float3x3(shape_to_world);

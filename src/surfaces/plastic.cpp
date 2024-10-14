@@ -51,15 +51,15 @@ private:
     bool _remap_roughness;
 
 public:
-    PlasticSurface(Scene *scene, const SceneNodeDesc *desc) noexcept
-        : Surface{scene, desc},
-          _kd{scene->load_texture(desc->property_node_or_default("Kd"))},
-          _ks{scene->load_texture(desc->property_node_or_default("Ks"))},
-          _roughness{scene->load_texture(desc->property_node_or_default("roughness"))},
-          _sigma_a{scene->load_texture(desc->property_node_or_default("sigma_a"))},
-          _eta{scene->load_texture(desc->property_node_or_default("eta"))},
-          _thickness{scene->load_texture(desc->property_node_or_default("thickness"))},
-          _remap_roughness{desc->property_bool_or_default("remap_roughness", true)} {}
+    PlasticSurface(Scene *scene, const SceneNodeDesc *desc) noexcept:
+        Surface{scene, desc},
+        _kd{scene->load_texture(desc->property_node_or_default("Kd"))},
+        _ks{scene->load_texture(desc->property_node_or_default("Ks"))},
+        _roughness{scene->load_texture(desc->property_node_or_default("roughness"))},
+        _sigma_a{scene->load_texture(desc->property_node_or_default("sigma_a"))},
+        _eta{scene->load_texture(desc->property_node_or_default("eta"))},
+        _thickness{scene->load_texture(desc->property_node_or_default("thickness"))},
+        _remap_roughness{desc->property_bool_or_default("remap_roughness", true)} {}
 
     [[nodiscard]] luisa::string info() const noexcept override {
         return luisa::format(

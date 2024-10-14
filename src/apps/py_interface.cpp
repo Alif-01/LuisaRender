@@ -102,9 +102,16 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
             py::arg("two_sided") = false,
             py::arg("beam_angle") = 180.0f);
 
+    // Subsurface
+    py::class_<PySubsurface>(m, "Subsurface");
+    py::class_<PyUniformSubsurface, PySubsurface>(m, "UniformSubsurface")
+        .def(py::init<std::string_view, PyTexture*>(),
+            py::arg("name"),
+            py::arg("thickness").none(true) = py::none());
+
     // Surface
     py::class_<PySurface>(m, "Surface");
-    py::class_<PyMetal, PySurface>(m, "MetalSurface")
+    py::class_<PyMetalSurface, PySurface>(m, "MetalSurface")
         .def(py::init<std::string_view, PyTexture*, PyTexture*, PyTexture*, PyTexture*, std::string_view>(),
             py::arg("name"),
             py::arg("roughness").none(true) = py::none(),
@@ -112,7 +119,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
             py::arg("normal_map").none(true) = py::none(),
             py::arg("kd").none(true) = py::none(),
             py::arg("eta").none(true) = py::none());
-    py::class_<PyPlastic, PySurface>(m, "PlasticSurface")
+    py::class_<PyPlasticSurface, PySurface>(m, "PlasticSurface")
         .def(py::init<std::string_view, PyTexture*, PyTexture*, PyTexture*, PyTexture*, PyTexture*, PyTexture*>(),
             py::arg("name"),
             py::arg("roughness").none(true) = py::none(),
@@ -121,7 +128,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
             py::arg("kd").none(true) = py::none(),
             py::arg("ks").none(true) = py::none(),
             py::arg("eta").none(true) = py::none());
-    py::class_<PyGlass, PySurface>(m, "GlassSurface")
+    py::class_<PyGlassSurface, PySurface>(m, "GlassSurface")
         .def(py::init<std::string_view, PyTexture*, PyTexture*, PyTexture*, PyTexture*, PyTexture*, PyTexture*>(),
             py::arg("name"),
             py::arg("roughness").none(true) = py::none(),
@@ -130,7 +137,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
             py::arg("ks").none(true) = py::none(),
             py::arg("kt").none(true) = py::none(),
             py::arg("eta").none(true) = py::none());
-    py::class_<PyLayered, PySurface>(m, "LayeredSurface")
+    py::class_<PyLayeredSurface, PySurface>(m, "LayeredSurface")
         .def(py::init<std::string_view, PySurface*, PySurface*, PyTexture*>(),
             py::arg("name"),
             py::arg("top").none(true) = py::none(),

@@ -96,8 +96,10 @@ private:
     luisa::vector<InstancedTransform> _dynamic_transforms;
 
     Accel _accel;
-    luisa::vector<uint4> _instances;
-    Buffer<uint4> _instance_buffer;
+    luisa::vector<uint3> _instances_geometry;
+    Buffer<uint3> _instance_geometry_buffer;
+    luisa::vector<uint4> _instances_property;
+    Buffer<uint4> _instance_property_buffer;
 
     luisa::vector<uint> _light_instances;
     Buffer<uint> _light_instance_buffer;
@@ -139,20 +141,20 @@ public:
     [[nodiscard]] Shape::Handle instance(Expr<uint> inst_id) const noexcept;
     [[nodiscard]] UInt light_instance(Expr<uint> inst_id) const noexcept;
     [[nodiscard]] Float4x4 instance_to_world(Expr<uint> inst_id) const noexcept;
-    [[nodiscard]] Var<Triangle> triangle(const Shape::Handle &instance, Expr<uint> triangle_id) const noexcept;
-    [[nodiscard]] Var<Vertex> vertex(const Shape::Handle &instance, Expr<uint> vertex_id) const noexcept;
-    [[nodiscard]] Var<AABB> aabb(const Shape::Handle &instance, Expr<uint> aabb_id) const noexcept;
+    [[nodiscard]] Var<Triangle> triangle(const Shape::Handle &instance_geom, Expr<uint> triangle_id) const noexcept;
+    [[nodiscard]] Var<Vertex> vertex(const Shape::Handle &instance_geom, Expr<uint> vertex_id) const noexcept;
+    [[nodiscard]] Var<AABB> aabb(const Shape::Handle &instance_geom, Expr<uint> aabb_id) const noexcept;
     [[nodiscard]] GeometryAttribute geometry_point(
-        const Shape::Handle &instance, const Var<Triangle> &triangle,
+        const Shape::Handle &instance_geom, const Var<Triangle> &triangle,
         const Var<float3> &bary, const Var<float4x4> &shape_to_world) const noexcept;
     [[nodiscard]] GeometryAttribute geometry_point(
-        const Shape::Handle &instance, const Var<AABB> &ab,
+        const Shape::Handle &instance_geom, const Var<AABB> &ab,
         const Var<float3> &w, const Var<float4x4> &shape_to_world) const noexcept;
     [[nodiscard]] ShadingAttribute shading_point(
-        const Shape::Handle &instance, const Var<Triangle> &triangle,
+        const Shape::Handle &instance_geom, const Var<Triangle> &triangle,
         const Var<float3> &bary, const Var<float4x4> &shape_to_world) const noexcept;
     [[nodiscard]] ShadingAttribute shading_point(
-        const Shape::Handle &instance, const Var<AABB> &ab,
+        const Shape::Handle &instance_geom, const Var<AABB> &ab,
         const Var<Ray> &ray, const Var<float4x4> &shape_to_world) const noexcept;
     [[nodiscard]] auto intersect(const Var<Ray> &ray) const noexcept { return interaction(ray, trace_closest(ray)); }
     [[nodiscard]] auto intersect_any(const Var<Ray> &ray) const noexcept { return trace_any(ray); }

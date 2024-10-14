@@ -434,6 +434,28 @@ void WavefrontPathTracingInstance::_render_one_camera(
                     $case(Surface::event_enter) { eta_scale = sqr(eta); };
                     $case(Surface::event_exit) { eta_scale = 1.f / sqr(eta); };
                 };
+
+                $if(surface_sample.event == Surface::event_enter) {
+                    $if(it->shape().has_subsurface()) {
+                        auto subsurface_tag = it->shape().subsurface_tag();
+                        auto u_lobe = sampler()->generate_1d();
+                        auto u_bssrdf = sampler()->generate_2d();
+                        
+                        PolymorphicCall<Subsurface::Closure> sub_call;
+                        pipeline().subsurfaces().dispatch(subsurface_tag,
+                            [&](auto subsurface) noexcept {
+                                subsurface->closure(sub_call, *it, swl, wo, 1.f, time);
+                            });
+                        sub_call.execute([&](const Subsurface::Closure *closure) noexcept {
+                            auto sub_sample = closure->sample(wo, u_lobe, u_bssrdf);
+                            auto w = ite(sub_sample.eval.pdf > 0.0f,
+                                         1.f / sub_sample.eval.pdf, 0.f);
+                            beta *= w * sub_sample.eval.f;
+                            ray = make_ray(sub_sample.it.p() - sub_sample.it.ng() * sub_sample.dist,
+                                           sub_sample.it.ng());
+                        });
+                    };
+                };
             });
 
             // prepare for next bounce

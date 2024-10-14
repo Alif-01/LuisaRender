@@ -13,11 +13,25 @@
 
 namespace luisa::render {
 
+uint encode_fixed_point(float x, uint mask) noexcept {
+    // constexpr auto fixed_point_mask = (1u << fixed_point_bits) - 1u;
+    // constexpr auto fixed_point_scale = 1.f / static_cast<float>(1u << fixed_point_bits);
+    return static_cast<uint>(round(std::clamp(x, 0.f, 1.f) * static_cast<float>(mask)));
+};
+
+Expr<float> decode_fixed_point(Expr<uint> x, uint mask) noexcept {
+    // constexpr auto fixed_point_bits = 16u;
+    // constexpr auto fixed_point_mask = (1u << fixed_point_bits) - 1u;
+    // constexpr auto fixed_point_scale = 1.0f / static_cast<float>(1u << fixed_point_bits);
+    return cast<float>(x) / static_cast<float>(mask);
+};
+
 Shape::Shape(Scene *scene, const SceneNodeDesc *desc) noexcept :
     SceneNode{scene, desc, SceneNodeTag::SHAPE},
     _surface{scene->load_surface(desc->property_node_or_default("surface"))},
     _light{scene->load_light(desc->property_node_or_default("light"))},
     _medium{scene->load_medium(desc->property_node_or_default("medium"))},
+    _subsurface{scene->load_subsurface(desc->property_node_or_default("subsurface"))},
     _transform{scene->load_transform(desc->property_node_or_default("transform"))} {}
 
 void Shape::update(Scene *scene, const SceneNodeDesc *desc) noexcept {
@@ -28,10 +42,11 @@ void Shape::update(Scene *scene, const SceneNodeDesc *desc) noexcept {
 
 luisa::string Shape::info() const noexcept {
     return luisa::format(
-        "{} surface=[{}] light=[{}] medium=[{}] transform=[{}]", SceneNode::info(),
+        "{} surface=[{}] light=[{}] medium=[{}] subsurface=[{}] transform=[{}]", SceneNode::info(),
         _surface ? _surface->info() : "",
         _light ? _light->info() : "",
         _medium ? _medium->info(): "",
+        _subsurface ? _subsurface->info(): "",
         _transform ? _transform->info() : "");
 }
 
@@ -40,6 +55,7 @@ bool Shape::visible() const noexcept { return true; }
 const Surface *Shape::surface() const noexcept { return _surface; }
 const Light *Shape::light() const noexcept { return _light; }
 const Medium *Shape::medium() const noexcept { return _medium; }
+const Subsurface *Shape::subsurface() const noexcept { return _subsurface; }
 const Transform *Shape::transform() const noexcept { return _transform; }
 float Shape::shadow_terminator_factor() const noexcept { return 0.f; }
 float Shape::intersection_offset_factor() const noexcept { return 0.f; }
@@ -60,51 +76,29 @@ SpheresView Shape::spheres() const noexcept { return {}; }
 luisa::span<const Shape *const> Shape::children() const noexcept { return {}; }
 AccelOption Shape::build_option() const noexcept { return {}; }
 
-uint Shape::Handle::encode_fixed_point(float x, uint mask) noexcept {
-    // constexpr auto fixed_point_mask = (1u << fixed_point_bits) - 1u;
-    // constexpr auto fixed_point_scale = 1.f / static_cast<float>(1u << fixed_point_bits);
-    return static_cast<uint>(round(std::clamp(x, 0.f, 1.f) * static_cast<float>(mask)));
-};
 
-Expr<float> Shape::Handle::decode_fixed_point(Expr<uint> x, uint mask) noexcept {
-    // constexpr auto fixed_point_bits = 16u;
-    // constexpr auto fixed_point_mask = (1u << fixed_point_bits) - 1u;
-    // constexpr auto fixed_point_scale = 1.0f / static_cast<float>(1u << fixed_point_bits);
-    return cast<float>(x) / static_cast<float>(mask);
-};
-
-uint4 Shape::Handle::encode(
-    uint buffer_base, uint flags,
-    uint surface_tag, uint light_tag, uint medium_tag, uint primitive_count,
-    float shadow_terminator, float intersection_offset, float clamp_normal) noexcept {
+uint3 Shape::Handle::encode(
+    uint buffer_base, uint flags, uint primitive_count,
+    uint surface_tag, uint light_tag, uint medium_tag, uint subsurface_tag,
+    float shadow_terminator, float intersection_offset, float clamp_normal
+) noexcept {
     LUISA_ASSERT(buffer_base <= buffer_base_max, "Invalid geometry buffer base: {}.", buffer_base);
     LUISA_ASSERT(flags <= property_flag_mask, "Invalid property flags: {:016x}.", flags);
-    LUISA_ASSERT(surface_tag <= surface_tag_max, "Invalid surface tag: {}.", surface_tag);
-    LUISA_ASSERT(light_tag <= light_tag_max, "Invalid light tag: {}.", light_tag);
-    LUISA_ASSERT(medium_tag <= medium_tag_max, "Invalid medium tag: {}.", medium_tag);
     auto buffer_base_and_properties = (buffer_base << property_flag_bits) | flags;
-    auto tags =
-        (surface_tag << surface_tag_offset) |
-        (light_tag << light_tag_offset) |
-        (medium_tag << medium_tag_offset);
     auto shadow_inter_clamp =
         (encode_fixed_point(shadow_terminator, shadow_term_mask) << shadow_term_offset) |
         (encode_fixed_point(intersection_offset, inter_offset_mask) << inter_offset_offset) |
         (encode_fixed_point(clamp_normal * inv_pi, clamp_normal_mask) << clamp_normal_offset);
-    return make_uint4(buffer_base_and_properties, tags, primitive_count, shadow_inter_clamp);
+    return make_uint3(buffer_base_and_properties, primitive_count, shadow_inter_clamp);
 }
 
-Shape::Handle Shape::Handle::decode(Expr<uint4> compressed) noexcept {
-    auto buffer_base_and_properties = compressed.x;
-    auto tags = compressed.y;
-    auto triangle_buffer_size = compressed.z;
-    auto shadow_intersect_clamp = compressed.w;
+Shape::Handle Shape::Handle::decode(Expr<uint3> comp_geom, Expr<uint4> comp_prop) noexcept {
+    auto buffer_base_and_properties = comp_geom.x;
+    auto triangle_buffer_size = comp_geom.y;
+    auto shadow_intersect_clamp = comp_geom.z;
 
     auto buffer_base = buffer_base_and_properties >> property_flag_bits;
     auto flags = buffer_base_and_properties & property_flag_mask;
-    auto surface_tag = (tags >> surface_tag_offset) & surface_tag_max;
-    auto light_tag = (tags >> light_tag_offset) & light_tag_max;
-    auto medium_tag = (tags >> medium_tag_offset) & medium_tag_max;
 
     auto shadow_terminator = decode_fixed_point(
         (shadow_intersect_clamp >> shadow_term_offset) & shadow_term_mask, shadow_term_mask);
@@ -114,9 +108,20 @@ Shape::Handle Shape::Handle::decode(Expr<uint4> compressed) noexcept {
         (shadow_intersect_clamp >> clamp_normal_offset) & clamp_normal_mask, clamp_normal_mask) * pi;
 
     // TODO: Why *255?
-    return {buffer_base, flags, surface_tag, light_tag, medium_tag, triangle_buffer_size,
-            shadow_terminator, clamp(intersection_offset * 255.f + 1.f, 1.f, 256.f), clamp_normal};
-            // shadow_terminator, intersection_offset, clamp_normal};
+    return {
+        buffer_base, flags, triangle_buffer_size,
+        comp_prop.x, comp_prop.y, comp_prop.z, comp_prop.w,
+        shadow_terminator, clamp(intersection_offset * 255.f + 1.f, 1.f, 256.f), clamp_normal};
+        // shadow_terminator, intersection_offset, clamp_normal};
 }
+
+// uint4 Shape::PropertyHandle::encode(
+// ) noexcept {
+//     return make_uint4(surface_tag, light_tag, medium_tag, subsurface_tag);
+// }
+
+// Shape::PropertyHandle Shape::PropertyHandle::decode(Expr<uint4> compressed) noexcept {
+//     return {compressed.x, compressed.y, compressed.z, compressed.w};
+// }
 
 }// namespace luisa::render

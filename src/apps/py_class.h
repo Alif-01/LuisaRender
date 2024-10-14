@@ -240,6 +240,24 @@ public:
 };
 
 
+// Subsurface
+class PySubsurface: public PyDesc {
+public:
+    PySubsurface(
+        std::string_view name, std::string_view impl_type,
+    ) noexcept: PyDesc{name, SceneNodeTag::SUBSURFACE, impl_type} { }
+};
+
+class PyUniformSubsurface: public PySubsurface {
+public:
+    PyUniformSubsurface(
+        std::string_view name, PyTexture *thickness
+    ) noexcept: PySubsurface{name, "uniform"} {
+        add_property_node("thickness", thickness);
+    }
+};
+
+
 // Surface
 class PySurface: public PyDesc {
 public:
@@ -253,9 +271,9 @@ public:
     }
 };
 
-class PyMetal: public PySurface {
+class PyMetalSurface : public PySurface {
 public:
-    PyMetal(
+    PyMetalSurface(
         std::string_view name,
         PyTexture *roughness, PyTexture *opacity, PyTexture *normal_map,
         PyTexture *kd, std::string_view eta
@@ -265,9 +283,9 @@ public:
     }
 };
 
-class PyPlastic: public PySurface {
+class PyPlasticSurface : public PySurface {
 public:
-    PyPlastic(
+    PyPlasticSurface(
         std::string_view name,
         PyTexture *roughness, PyTexture *opacity, PyTexture *normal_map,
         PyTexture *kd, PyTexture *ks, PyTexture *eta
@@ -278,9 +296,9 @@ public:
     }
 };
 
-class PyGlass: public PySurface {
+class PyGlassSurface : public PySurface {
 public:
-    PyGlass(
+    PyGlassSurface(
         std::string_view name,
         PyTexture *roughness, PyTexture *opacity, PyTexture *normal_map,
         PyTexture *ks, PyTexture *kt, PyTexture *eta
@@ -291,9 +309,9 @@ public:
     }
 };
 
-class PyLayered: public PySurface {
+class PyLayeredSurface : public PySurface {
 public:
-    PyLayered(
+    PyLayeredSurface(
         std::string_view name,
         PySurface *top, PySurface *bottom, PyTexture *thickness
     ) noexcept: PySurface{name, "layered", nullptr, nullptr, nullptr} {

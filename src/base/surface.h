@@ -83,9 +83,8 @@ public:
     public:
         Closure(const Pipeline &pipeline,
                 const SampledWavelengths &swl,
-                Expr<float> time) noexcept
-            : _pipeline{pipeline},
-              _swl{swl}, _time{time} {}
+                Expr<float> time) noexcept:
+            _pipeline{pipeline}, _swl{swl}, _time{time} {}
         [[nodiscard]] auto &pipeline() const noexcept { return _pipeline; }
         [[nodiscard]] auto &swl() const noexcept { return _swl; }
         [[nodiscard]] auto time() const noexcept { return _time; }

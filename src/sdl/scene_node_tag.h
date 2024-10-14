@@ -28,6 +28,7 @@ enum struct SceneNodeTag : uint32_t {
     SPECTRUM,
     MEDIUM,
     PHASE_FUNCTION,
+    SUBSURFACE,
 };
 
 constexpr std::string_view scene_node_tag_description(SceneNodeTag tag) noexcept {
@@ -52,6 +53,7 @@ constexpr std::string_view scene_node_tag_description(SceneNodeTag tag) noexcept
         case SceneNodeTag::SPECTRUM: return "Spectrum"sv;
         case SceneNodeTag::MEDIUM: return "Medium"sv;
         case SceneNodeTag::PHASE_FUNCTION: return "PhaseFunction"sv;
+        case SceneNodeTag::SUBSURFACE: return "Subsurface"sv;
         default: break;
     }
     return "__invalid__"sv;
