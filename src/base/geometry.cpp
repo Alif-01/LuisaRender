@@ -91,7 +91,7 @@ void Geometry::update(
     for (auto shape : shapes) { _process_shape(command_buffer, time, shape); }
 
     if (_instances_geometry.size() > 0) {
-        if (!_instance_buffer || _instance_geometry_buffer.size() != _instances_geometry.size()) {
+        if (!_instance_geometry_buffer || _instance_geometry_buffer.size() != _instances_geometry.size()) {
             _instance_geometry_buffer = _pipeline.device().create_buffer<uint3>(_instances_geometry.size());
             _instance_property_buffer = _pipeline.device().create_buffer<uint4>(_instances_property.size());
         }
@@ -149,7 +149,7 @@ void Geometry::_process_shape(
 
     if (shape->is_mesh() || shape->is_spheres()) {
         if (shape->empty()) return;
-        auto [iter, first_def] = shape_data_ids.emplace(hash, _instances.size());
+        auto [iter, first_def] = shape_data_ids.emplace(hash, _instances_geometry.size());
         auto data_id = iter->second;
         auto accel_id = static_cast<uint>(_accel.size());
         auto properties = shape->vertex_properties();
@@ -291,8 +291,8 @@ void Geometry::_process_shape(
             surface_tag, light_tag, medium_tag, subsurface_tag,
             shape->has_vertex_normal() ? shape->shadow_terminator_factor() : 0.f,
             shape->intersection_offset_factor(),
-            radians(shape->clamp_normal_factor()
-        )
+            radians(shape->clamp_normal_factor())
+        );
         _instances_geometry.emplace_back(comp_geom);
         _instances_property.emplace_back(comp_prop);
 
@@ -308,7 +308,7 @@ void Geometry::_process_shape(
     } else {
         _transform_tree.push(shape->transform());
         for (auto child : shape->children()) {
-            _process_shape(command_buffer, time, child, surface, light, medium, visible);
+            _process_shape(command_buffer, time, child, surface, light, medium, subsurface, visible);
         }
         _transform_tree.pop(shape->transform());
     }
@@ -355,7 +355,7 @@ Bool Geometry::_alpha_skip(const Var<Ray> &ray, const Var<ProceduralHit> &hit) c
 void Geometry::_procedural_filter(ProceduralCandidate &c) const noexcept {
     Var<ProceduralHit> h = c.hit();
     Var<Ray> ray = c.ray();
-    Var<AABB> ab = aabb(instance_geometry(h.inst), h.prim);
+    Var<AABB> ab = aabb(instance(h.inst), h.prim);
     Float4x4 shape_to_world = instance_to_world(h.inst);
     Float3x3 m = make_float3x3(shape_to_world);
     Float3 t = make_float3(shape_to_world[3]);
@@ -461,7 +461,7 @@ Var<bool> Geometry::trace_any(const Var<Ray> &ray) const noexcept {
 Interaction Geometry::triangle_interaction(
     const Var<Ray> &ray, Expr<uint> inst_id, Expr<uint> prim_id, Expr<float3> bary
 ) const noexcept {
-    auto shape = instance_geometry(inst_id);
+    auto shape = instance(inst_id);
     auto m = instance_to_world(inst_id);
 
     // $if (inst_id == 1u) {
@@ -480,7 +480,7 @@ Interaction Geometry::triangle_interaction(
 Interaction Geometry::aabb_interaction(
     const Var<Ray> &ray, Expr<uint> inst_id, Expr<uint> prim_id
 ) const noexcept {
-    auto shape = instance_geometry(inst_id);
+    auto shape = instance(inst_id);
     auto m = instance_to_world(inst_id);
     auto ab = aabb(shape, prim_id);
     auto attrib = shading_point(shape, ab, ray, m);

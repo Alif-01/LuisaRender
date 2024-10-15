@@ -21,6 +21,8 @@ using compute::Expr;
 using compute::Float3;
 using compute::Local;
 using compute::Var;
+using compute::ArrayFloat;
+using compute::ArrayVar;
 
 class Shape;
 class Frame;
@@ -62,6 +64,9 @@ public:
         const SampledWavelengths &_swl;
         Float _time;
 
+    private:
+        friend class Subsurface;
+
     public:
         Closure(const Pipeline &pipeline,
                 const SampledWavelengths &swl,
@@ -72,16 +77,16 @@ public:
         [[nodiscard]] auto time() const noexcept { return _time; }
         [[nodiscard]] virtual const Interaction &it() const noexcept = 0;
 
-        [[nodiscard]] virtual Evaluation evaluate(
-            const Interaction &pi, TransportMode mode = TransportMode::RADIANCE
+        [[nodiscard]] Evaluation evaluate(
+            const Interaction &it_i, TransportMode mode = TransportMode::RADIANCE
         ) const noexcept;
-        [[nodiscard]] virtual Sample sample(
+        [[nodiscard]] Sample sample(
             Expr<float> u_lobe, Expr<float2> u,
             TransportMode mode = TransportMode::RADIANCE
         ) const noexcept;
-        [[nodiscard]] SampledSpectrum sr(Expr<float> r) const noexcept = 0;
-        [[nodiscard]] Float pdf_sr(Expr<float> r) const noexcept = 0;
-        [[nodiscard]] Float sample_r(Expr<float> u) const noexcept = 0;
+        [[nodiscard]] virtual SampledSpectrum sr(Expr<float> r) const noexcept = 0;
+        [[nodiscard]] virtual Float pdf_sr(Expr<float> r) const noexcept = 0;
+        [[nodiscard]] virtual Float sample_r(Expr<float> u) const noexcept = 0;
     };
 
     class Instance : public SceneNode::Instance {
@@ -101,6 +106,7 @@ public:
             requires std::is_base_of_v<Subsurface, T>
         [[nodiscard]] auto node() const noexcept { return static_cast<const T *>(_subsurface); }
 
+        [[nodiscard]] virtual luisa::string closure_identifier() const noexcept;
         void closure(PolymorphicCall<Closure> &call, const Interaction &it,
                      const SampledWavelengths &swl, Expr<float> time) const noexcept;
         virtual void populate_closure(

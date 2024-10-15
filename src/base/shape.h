@@ -200,15 +200,16 @@ public:
     [[nodiscard]] auto aabb_buffer_id() const noexcept { return geometry_buffer_base() + Shape::Handle::aabbs_bindless_offset; }
     [[nodiscard]] auto alias_table_buffer_id() const noexcept { return geometry_buffer_base() + Shape::Handle::alias_bindless_offset; }
     [[nodiscard]] auto pdf_buffer_id() const noexcept { return geometry_buffer_base() + Shape::Handle::pdf_bindless_offset; }
+    [[nodiscard]] auto property_flags() const noexcept { return _properties; }
     [[nodiscard]] auto test_property_flag(uint flag) const noexcept { return (property_flags() & flag) != 0u; }
     [[nodiscard]] auto has_vertex_normal() const noexcept { return test_property_flag(Shape::property_flag_has_vertex_normal); }
     [[nodiscard]] auto has_vertex_uv() const noexcept { return test_property_flag(Shape::property_flag_has_vertex_uv); }
     [[nodiscard]] auto has_light() const noexcept { return test_property_flag(Shape::property_flag_has_light); }
     [[nodiscard]] auto has_surface() const noexcept { return test_property_flag(Shape::property_flag_has_surface); }
     [[nodiscard]] auto has_medium() const noexcept { return test_property_flag(Shape::property_flag_has_medium); }
+    [[nodiscard]] auto has_subsurface() const noexcept { return test_property_flag(Shape::property_flag_has_subsurface); }
     [[nodiscard]] auto maybe_non_opaque() const noexcept { return test_property_flag(Shape::property_flag_maybe_non_opaque); }
     [[nodiscard]] auto is_triangle() const noexcept { return test_property_flag(Shape::property_flag_triangle); }
-    [[nodiscard]] auto property_flags() const noexcept { return _properties; }
     [[nodiscard]] auto primitive_count() const noexcept { return _primitive_count; }
     [[nodiscard]] auto surface_tag() const noexcept { return _surface_tag; }
     [[nodiscard]] auto light_tag() const noexcept { return _light_tag; }

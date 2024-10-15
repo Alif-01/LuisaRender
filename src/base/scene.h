@@ -37,6 +37,7 @@ class TextureMapping;
 class Spectrum;
 class Medium;
 class PhaseFunction;
+class Subsurface;
 
 class Scene {
 
@@ -95,6 +96,7 @@ LUISA_SCENE_NODE_LOAD_DECLARE(texture_mapping, TextureMapping)
 LUISA_SCENE_NODE_LOAD_DECLARE(spectrum, Spectrum)
 LUISA_SCENE_NODE_LOAD_DECLARE(medium, Medium)
 LUISA_SCENE_NODE_LOAD_DECLARE(phase_function, PhaseFunction)
+LUISA_SCENE_NODE_LOAD_DECLARE(subsurface, Subsurface)
 
 public:
     [[nodiscard]] Environment *update_environment(const SceneNodeDesc *desc) noexcept;

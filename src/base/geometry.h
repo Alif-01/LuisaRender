@@ -114,6 +114,7 @@ private:
         const Surface *overridden_surface = nullptr,
         const Light *overridden_light = nullptr,
         const Medium *overridden_medium = nullptr,
+        const Subsurface *overridden_subsurface = nullptr,
         bool overridden_visible = true,
         uint64_t parent_hash = luisa::hash64_default_seed) noexcept;
 
@@ -127,8 +128,8 @@ public:
     ~Geometry() noexcept = default;
     void update(CommandBuffer &command_buffer, const luisa::unordered_set<Shape *> &shapes, float time) noexcept;
     void shutter_update(CommandBuffer &command_buffer, float time) noexcept;
-    [[nodiscard]] auto instances() const noexcept { return luisa::span{_instances}; }
-    [[nodiscard]] auto light_instances() const noexcept { return luisa::span{_light_instances}; }
+    // [[nodiscard]] auto instances() const noexcept { return luisa::span{_instances}; }
+    // [[nodiscard]] auto light_instances() const noexcept { return luisa::span{_light_instances}; }
     [[nodiscard]] Var<CommittedHit> trace_closest(const Var<Ray> &ray) const noexcept;
     [[nodiscard]] Var<bool> trace_any(const Var<Ray> &ray) const noexcept;
     [[nodiscard]] luisa::shared_ptr<Interaction> interaction(const Var<Ray> &ray, const Var<CommittedHit> &hit) const noexcept;

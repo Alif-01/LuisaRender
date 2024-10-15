@@ -3,6 +3,8 @@
 //
 
 #include <base/subsurface.h>
+#include <base/scene.h>
+#include <base/pipeline.h>
 
 namespace luisa::render {
 
@@ -55,7 +57,7 @@ public:
     [[nodiscard]] const Interaction &it() const noexcept override { return context<Context>().it; }
     [[nodiscard]] SampledSpectrum sr(Expr<float> r) const noexcept override;
     [[nodiscard]] Float pdf_sr(Expr<float> r) const noexcept override;
-    [[nodiscard]] Float sample_r(Expr<float2> u) const noexcept override;
+    [[nodiscard]] Float sample_r(Expr<float> u) const noexcept override;
 };
 
 luisa::unique_ptr<Subsurface::Instance> UniformSubsurface::_build(
@@ -74,7 +76,7 @@ void UniformInstance::populate_closure(
     Subsurface::Closure *closure, const Interaction &it
 ) const noexcept {
     auto time = closure->time();
-    auto thickness = _thickness ? _thickness->evaluate(it, time) : 0.f;
+    auto thickness = _thickness ? _thickness->evaluate(it, time).x : 0.f;
     UniformClosure::Context context{
         .it = it,
         .thickness = thickness
@@ -87,12 +89,13 @@ SampledSpectrum UniformClosure::sr(Expr<float> r) const noexcept {
     return SampledSpectrum(swl().dimension(), 1.f / (2.f * pi * r));
 }
 
-Float UniformClosure::sample_r(Expr<float2> u) const noexcept {
+Float UniformClosure::sample_r(Expr<float> u) const noexcept {
     auto &&ctx = context<Context>();
     return ctx.thickness * u;
 }
 
 Float UniformClosure::pdf_sr(Expr<float> r) const noexcept {
+    auto &&ctx = context<Context>();
     return 1.f / ctx.thickness;
 }
 

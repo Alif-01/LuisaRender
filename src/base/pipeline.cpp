@@ -139,6 +139,14 @@ uint Pipeline::register_medium(CommandBuffer &command_buffer, const Medium *medi
     return tag;
 }
 
+uint Pipeline::register_subsurface(CommandBuffer &command_buffer, const Subsurface *subsurface) noexcept {
+    if (auto iter = _subsurface_tags.find(subsurface);
+        iter != _subsurface_tags.end()) { return iter->second; }
+    auto tag = _subsurfaces.emplace(subsurface->build(*this, command_buffer));
+    _subsurface_tags.emplace(subsurface, tag);
+    return tag;
+}
+
 void Pipeline::register_transform(Transform *transform) noexcept {
     if (transform == nullptr) { return; }
     if (!_transform_to_id.contains(transform)) {

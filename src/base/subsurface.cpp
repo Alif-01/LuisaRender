@@ -31,6 +31,10 @@ void Subsurface::Instance::closure(
     populate_closure(cls, it);
 }
 
+luisa::string Subsurface::Instance::closure_identifier() const noexcept {
+    return luisa::string{node()->impl_type()};
+}
+
 Subsurface::Evaluation Subsurface::Closure::evaluate(
     const Interaction &it_i, TransportMode mode
 ) const noexcept {
@@ -40,9 +44,9 @@ Subsurface::Evaluation Subsurface::Closure::evaluate(
     // Float ft = fresnel_dielectric(cos_theta(wo_local), 1, ctx.eta);
     // SampledSpectrum f = (1 - Ft) * sp(it_i) * sw(wi);
     // return {.f = f * abs_cos_theta(wi_local), .pdf = pdf};
-    auto &it = it();
-    auto d = it.p() - it_i.p();
-    auto d_local = it.shading().world_to_local(d);
+    auto &it_o = it();
+    auto d = it_o.p() - it_i.p();
+    auto d_local = it_o.shading().world_to_local(d);
     ArrayFloat<3> r_project = {
         sqrt(d_local.y * d_local.y + d_local.z * d_local.z),
         sqrt(d_local.z * d_local.z + d_local.x * d_local.x),
@@ -54,10 +58,7 @@ Subsurface::Evaluation Subsurface::Closure::evaluate(
     for (int axis = 0; axis < 3; ++axis)
         pdf += pdf_sr(r_project[axis]) * axis_prob[axis];
 
-    return {
-        .f = sr(distance(it().p(), pi.p())),
-        .pdf = pdf;
-    };
+    return {.f = sr(length(d)), .pdf = pdf};
 }
 
 Subsurface::Sample Subsurface::Closure::sample(
@@ -69,27 +70,28 @@ Subsurface::Sample Subsurface::Closure::sample(
     auto phi = 2 * pi * u.y;
     
     auto l = sqrt(r_max * r_max - r * r);
-    auto &it = it();
-    auto &fr = it.shading();
-    auto test_origin = make_float3(0.f);
-    auto test_dir = make_float3(0.f);
+    auto &it_o = it();
+    auto &fr = it_o.shading();
+    auto test_origin = def(make_float3(0.f));
+    auto test_dir = def(make_float3(0.f));
     auto test_tmin = def(0.f);
     auto test_tmax = l * 2.f;
+    auto u_sel = def(0.f);
 
     $if (u_lobe < .5f) {
-        test_origin = it.p() + (fr.s() * cos(phi) + fr.t() * sin(phi)) * r - fr.n() * l;
+        test_origin = it_o.p() + (fr.s() * cos(phi) + fr.t() * sin(phi)) * r - fr.n() * l;
         test_dir = fr.n();
-        u_lobe *= 2;
+        u_sel = u_lobe * 2.f;
     }
     $elif (u_lobe < .75f) {
-        test_origin = it.p() + (fr.t() * cos(phi) + fr.n() * sin(phi)) * r - fr.s() * l;
+        test_origin = it_o.p() + (fr.t() * cos(phi) + fr.n() * sin(phi)) * r - fr.s() * l;
         test_dir = fr.s();
-        u_lobe = (u_lobe - .5f) * 4.f;
+        u_sel = (u_lobe - .5f) * 4.f;
     }
     $else {
-        test_origin = it.p() + (fr.n() * cos(phi) + fr.s() * sin(phi)) * r - fr.t() * l;
+        test_origin = it_o.p() + (fr.n() * cos(phi) + fr.s() * sin(phi)) * r - fr.t() * l;
         test_dir = fr.t();
-        u_lobe = (u_lobe - .75f) * 4.f;
+        u_sel = (u_lobe - .75f) * 4.f;
     };
     // auto test_target = test_origin + test_dir * test_tmax;
 
@@ -100,28 +102,28 @@ Subsurface::Sample Subsurface::Closure::sample(
     ArrayVar<CommittedHit, sample_capacity> sample_hit;
     auto n_found = def(0u);
     $loop {
-        test_min += min((test_max - test_min) * 0.001f, 1e-6f);
-        $if (test_min > test_max) { $break; };
+        test_tmin += min((test_tmax - test_tmin) * 0.001f, 1e-6f);
+        $if (test_tmin > test_tmax) { $break; };
         auto test_ray = make_ray(test_origin, test_dir, test_tmin, test_tmax);
-        auto test_hit = pipeline().geometry().trace_closest(test_ray);
+        auto test_hit = pipeline().geometry()->trace_closest(test_ray);
         $if (test_hit->miss()) { $break; };
-        auto test_inst = pipeline().geometry().instance(test_hit.inst);
+        auto test_inst = pipeline().geometry()->instance(test_hit.inst);
 
         $if (test_inst.has_subsurface() &
-             test_inst.subsurface_tag() == it.shape().subsurface_tag()) {
+             test_inst.subsurface_tag() == it_o.shape().subsurface_tag()) {
             sample_hit[n_found] = test_hit;
-            test_min = test_hit->distance();
+            test_tmin = test_hit->distance();
             n_found += 1;
         };
     };
 
-    auto select = cast<uint>(clamp(u_lobe * cast<float>(n_found), 0.f, cast<float>(n_found) - 1.f));
+    auto select = cast<uint>(clamp(u_sel * cast<float>(n_found), 0.f, cast<float>(n_found) - 1.f));
     auto sample = Subsurface::Sample::zero(swl().dimension());
     $if (r >= 0.f & r < r_max & n_found > 0) {
         auto test_sel_tmin = ite(select == 0u, 0.f,
             (sample_hit[select - 1]->distance() + sample_hit[select - 1]->distance()) * 0.5f);
         auto test_ray = make_ray(test_origin, test_dir, test_sel_tmin, test_tmax);
-        sample.it = pipeline().geometry().interaction(test_ray, sample_hit[select]);
+        sample.it = std::move(*(pipeline().geometry()->interaction(test_ray, sample_hit[select])));
         $if (sample.it.back_facing()) {
             sample.dist = ite(select == 0u, sample_hit[select]->distance(),
                 (sample_hit[select]->distance() - sample_hit[select - 1]->distance()) * 0.5f

@@ -444,10 +444,10 @@ void WavefrontPathTracingInstance::_render_one_camera(
                         PolymorphicCall<Subsurface::Closure> sub_call;
                         pipeline().subsurfaces().dispatch(subsurface_tag,
                             [&](auto subsurface) noexcept {
-                                subsurface->closure(sub_call, *it, swl, wo, 1.f, time);
+                                subsurface->closure(sub_call, *it, swl, time);
                             });
                         sub_call.execute([&](const Subsurface::Closure *closure) noexcept {
-                            auto sub_sample = closure->sample(wo, u_lobe, u_bssrdf);
+                            auto sub_sample = closure->sample(u_lobe, u_bssrdf);
                             auto w = ite(sub_sample.eval.pdf > 0.0f,
                                          1.f / sub_sample.eval.pdf, 0.f);
                             beta *= w * sub_sample.eval.f;

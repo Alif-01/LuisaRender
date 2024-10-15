@@ -1,4 +1,5 @@
 set(LUISA_RENDER_BASE_SOURCES
+        subsurface.cpp subsurface.h
         scene.cpp scene.h
         transform.cpp transform.h
         camera.cpp camera.h
@@ -20,7 +21,8 @@ set(LUISA_RENDER_BASE_SOURCES
         geometry.cpp geometry.h
         spd.cpp spd.h
         medium.cpp medium.h
-        phase_function.cpp phase_function.h)
+        phase_function.cpp phase_function.h
+        )
 
 add_library(luisa-render-base SHARED ${LUISA_RENDER_BASE_SOURCES})
 target_link_libraries(luisa-render-base PUBLIC

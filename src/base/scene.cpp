@@ -24,6 +24,7 @@
 #include <base/scene.h>
 #include <base/medium.h>
 #include <base/phase_function.h>
+#include <base/subsurface.h>
 
 namespace luisa::render {
 
@@ -126,7 +127,7 @@ LUISA_SCENE_NODE_LOAD_DEFINITION(texture_mapping, TextureMapping, TEXTURE_MAPPIN
 LUISA_SCENE_NODE_LOAD_DEFINITION(spectrum, Spectrum, SPECTRUM)
 LUISA_SCENE_NODE_LOAD_DEFINITION(medium, Medium, MEDIUM)
 LUISA_SCENE_NODE_LOAD_DEFINITION(phase_function, PhaseFunction, PHASE_FUNCTION)
-
+LUISA_SCENE_NODE_LOAD_DEFINITION(subsurface, Subsurface, SUBSURFACE)
 
 Environment *Scene::update_environment(const SceneNodeDesc *desc) noexcept {
     return _config->environment = load_environment(desc);

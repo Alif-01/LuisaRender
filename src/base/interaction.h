@@ -81,7 +81,7 @@ public:
                 Expr<uint> inst_id, Expr<uint> prim_id,
                 Expr<float> prim_area, Expr<float3> p,
                 Expr<float3> ng, Expr<bool> back_facing) noexcept
-        : _shape{std::move(shape)}, _shape_property{std::move(shape_property)},
+        : _shape{std::move(shape)},
           _pg{p}, _ng{ng}, _shading{Frame::make(_ng)}, _ps{p},
           _inst_id{inst_id}, _prim_id{prim_id}, _prim_area{prim_area}, _back_facing{back_facing} {}
 
@@ -89,14 +89,14 @@ public:
                 Expr<uint> inst_id, Expr<uint> prim_id,
                 Expr<float> prim_area, Expr<float3> pg, Expr<float3> ng, Expr<float2> uv,
                 Expr<float3> ps, Expr<float3> ns, Expr<float3> tangent, Expr<bool> back_facing) noexcept
-        : _shape{std::move(shape)}, _shape_property{std::move(shape_property)},
+        : _shape{std::move(shape)},
           _pg{pg}, _ng{ng}, _uv{uv}, _ps{ps}, _shading{Frame::make(ns, tangent)},
           _inst_id{inst_id}, _prim_id{prim_id}, _prim_area{prim_area}, _back_facing{back_facing} {}
 
     Interaction(Shape::Handle shape,
                 Expr<uint> inst_id, Expr<uint> prim_id,
                 const ShadingAttribute &attrib, Expr<bool> back_facing) noexcept
-        : Interaction{std::move(shape), std::move(shape_property), inst_id, prim_id, attrib.g.area, attrib.g.p, attrib.g.n,
+        : Interaction{std::move(shape), inst_id, prim_id, attrib.g.area, attrib.g.p, attrib.g.n,
                       attrib.uv, attrib.ps, attrib.ns, attrib.dpdu, back_facing} {}
 
     [[nodiscard]] auto p() const noexcept { return _pg; }
@@ -110,7 +110,6 @@ public:
     [[nodiscard]] auto &shading() noexcept { return _shading; }
     [[nodiscard]] const auto &shading() const noexcept { return _shading; }
     [[nodiscard]] auto &shape() const noexcept { return _shape; }
-    [[nodiscard]] auto &shape_property() const noexcept { return _shape_property; }
     [[nodiscard]] auto shared_shape() const noexcept { return _shape; }
     [[nodiscard]] auto back_facing() const noexcept { return _back_facing; }
     [[nodiscard]] Bool same_sided(Expr<float3> wo, Expr<float3> wi) const noexcept;

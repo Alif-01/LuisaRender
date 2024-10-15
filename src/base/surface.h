@@ -271,9 +271,7 @@ private:
 public:
     NormalMapWrapper(Scene *scene, const SceneNodeDesc *desc) noexcept:
         BaseSurface{scene, desc},
-        _normal_map{[](auto scene, auto desc) noexcept {
-            return scene->load_texture(desc->property_node_or_default("normal_map"));
-        }(scene, desc)},
+        _normal_map{scene->load_texture(desc->property_node_or_default("normal_map"))},
         _strength{desc->property_float_or_default("normal_map_strength", 1.f)} {}
 
     [[nodiscard]] virtual luisa::string info() const noexcept override {

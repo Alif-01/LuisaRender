@@ -7,6 +7,7 @@
 #include <base/surface.h>
 #include <base/light.h>
 #include <base/medium.h>
+#include <base/subsurface.h>
 #include <base/transform.h>
 #include <base/scene.h>
 #include <base/shape.h>
@@ -77,7 +78,7 @@ luisa::span<const Shape *const> Shape::children() const noexcept { return {}; }
 AccelOption Shape::build_option() const noexcept { return {}; }
 
 
-uint3 Shape::Handle::encode(
+std::pair<uint3, uint4> Shape::Handle::encode(
     uint buffer_base, uint flags, uint primitive_count,
     uint surface_tag, uint light_tag, uint medium_tag, uint subsurface_tag,
     float shadow_terminator, float intersection_offset, float clamp_normal
@@ -89,7 +90,10 @@ uint3 Shape::Handle::encode(
         (encode_fixed_point(shadow_terminator, shadow_term_mask) << shadow_term_offset) |
         (encode_fixed_point(intersection_offset, inter_offset_mask) << inter_offset_offset) |
         (encode_fixed_point(clamp_normal * inv_pi, clamp_normal_mask) << clamp_normal_offset);
-    return make_uint3(buffer_base_and_properties, primitive_count, shadow_inter_clamp);
+    return std::make_pair(
+        make_uint3(buffer_base_and_properties, primitive_count, shadow_inter_clamp),
+        make_uint4(surface_tag, light_tag, medium_tag, subsurface_tag)
+    );
 }
 
 Shape::Handle Shape::Handle::decode(Expr<uint3> comp_geom, Expr<uint4> comp_prop) noexcept {

@@ -244,7 +244,7 @@ public:
 class PySubsurface: public PyDesc {
 public:
     PySubsurface(
-        std::string_view name, std::string_view impl_type,
+        std::string_view name, std::string_view impl_type
     ) noexcept: PyDesc{name, SceneNodeTag::SUBSURFACE, impl_type} { }
 };
 

@@ -27,6 +27,7 @@
 #include <base/geometry.h>
 #include <base/medium.h>
 #include <base/phase_function.h>
+#include <base/subsurface.h>
 
 namespace luisa::render {
 
@@ -53,7 +54,7 @@ class Scene;
 class Pipeline {
 
 public:
-    static constexpr auto bindless_array_capacity = 500'000u;// limitation of Metal
+    static constexpr auto bindless_array_capacity = 500'000u;   // limitation of Metal
     static constexpr auto transform_matrix_buffer_size = 65536u;
     static constexpr auto constant_buffer_size = 256u * 1024u;
     using ResourceHandle = luisa::unique_ptr<Resource>;
@@ -74,9 +75,11 @@ private:
     luisa::unordered_map<const Surface *, uint> _surface_tags;
     luisa::unordered_map<const Light *, uint> _light_tags;
     luisa::unordered_map<const Medium *, uint> _medium_tags;
+    luisa::unordered_map<const Subsurface *, uint> _subsurface_tags;
     Polymorphic<Surface::Instance> _surfaces;
     Polymorphic<Light::Instance> _lights;
     Polymorphic<Medium::Instance> _media;
+    Polymorphic<Subsurface::Instance> _subsurfaces;
 
     luisa::unordered_map<Transform *, uint> _transform_to_id;
     luisa::vector<float4x4> _transform_matrices;
@@ -151,6 +154,7 @@ public:
     [[nodiscard]] uint register_surface(CommandBuffer &command_buffer, const Surface *surface) noexcept;
     [[nodiscard]] uint register_light(CommandBuffer &command_buffer, const Light *light) noexcept;
     [[nodiscard]] uint register_medium(CommandBuffer &command_buffer, const Medium *medium) noexcept;
+    [[nodiscard]] uint register_subsurface(CommandBuffer &command_buffer, const Subsurface *subsurface) noexcept;
 
     template<typename Create>
     uint register_named_id(luisa::string_view identifier, Create &&create_id) noexcept {
@@ -214,6 +218,7 @@ public:
     [[nodiscard]] auto &surfaces() const noexcept { return _surfaces; }
     [[nodiscard]] auto &lights() const noexcept { return _lights; }
     [[nodiscard]] auto &media() const noexcept { return _media; }
+    [[nodiscard]] auto &subsurfaces() const noexcept { return _subsurfaces; }
     [[nodiscard]] auto environment() const noexcept { return _environment.get(); }
     [[nodiscard]] auto environment_medium_tag() const noexcept { return _environment_medium_tag; }
     [[nodiscard]] auto integrator() const noexcept { return _integrator.get(); }
