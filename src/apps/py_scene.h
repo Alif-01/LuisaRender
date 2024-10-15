@@ -55,12 +55,12 @@ public:
         light->define_in_scene(_scene_desc.get());
     }
 
-    void update_surface(PySurface *surface) noexcept {
-        surface->define_in_scene(_scene_desc.get());
-    }
-
     void update_subsurface(PySubsurface *subsurface) noexcept {
         subsurface->define_in_scene(_scene_desc.get());
+    }
+
+    void update_surface(PySurface *surface) noexcept {
+        surface->define_in_scene(_scene_desc.get());
     }
 
     void update_shape(PyShape *shape) noexcept {

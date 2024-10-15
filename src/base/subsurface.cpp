@@ -38,6 +38,7 @@ luisa::string Subsurface::Instance::closure_identifier() const noexcept {
 Subsurface::Evaluation Subsurface::Closure::evaluate(
     const Interaction &it_i, TransportMode mode
 ) const noexcept {
+    static const float axis_prob[3] = {.25f, .25f, .5f};
     // auto &&ctx = context<Context>();
     // auto wo_local = ctx.it.shading().world_to_local(wo);
     // auto wi_local = pi.shading().world_to_local(wi);
@@ -52,7 +53,6 @@ Subsurface::Evaluation Subsurface::Closure::evaluate(
         sqrt(d_local.z * d_local.z + d_local.x * d_local.x),
         sqrt(d_local.x * d_local.x + d_local.y * d_local.y)
     };
-    static const ArrayFloat<3> axis_prob = {.25f, .25f, .5f};
 
     auto pdf = def(0.f);
     for (int axis = 0; axis < 3; ++axis)
@@ -114,6 +114,10 @@ Subsurface::Sample Subsurface::Closure::sample(
             sample_hit[n_found] = test_hit;
             test_tmin = test_hit->distance();
             n_found += 1;
+        };
+        
+        $if (n_found >= 32u) {
+            compute::device_log("{}, {}, {}", test_tmin, test_tmax, n_found);
         };
     };
 

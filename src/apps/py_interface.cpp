@@ -285,6 +285,8 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
             py::arg("environment").none(false))
         .def("update_emission", &PyScene::update_emission,
             py::arg("light").none(false))
+        .def("update_subsurface", &PyScene::update_subsurface,
+            py::arg("subsurface").none(false))
         .def("update_surface", &PyScene::update_surface,
             py::arg("surface").none(false))
         .def("update_shape", &PyScene::update_shape,
