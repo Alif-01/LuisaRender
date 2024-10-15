@@ -59,6 +59,10 @@ public:
         surface->define_in_scene(_scene_desc.get());
     }
 
+    void update_subsurface(PySubsurface *subsurface) noexcept {
+        subsurface->define_in_scene(_scene_desc.get());
+    }
+
     void update_shape(PyShape *shape) noexcept {
         shape->define_in_scene(_scene_desc.get());
         auto shape_node = _scene->update_shape(shape->node());

@@ -327,10 +327,12 @@ class PyShape: public PyDesc {
 public:
     PyShape(
         std::string_view name, std::string_view impl_type,
-        PySurface *surface, PyLight *emission, float clamp_normal
+        PySurface *surface, PyLight *emission, PySubsurface *subsurface,
+        float clamp_normal
     ) noexcept: PyDesc{name, SceneNodeTag::SHAPE, impl_type} {
         add_property_node("surface", surface);
         add_property_node("light", emission);
+        add_property_node("subsurface", subsurface);
         _node->add_property("clamp_normal", clamp_normal);
     }
 };
@@ -343,8 +345,9 @@ public:
         const PyDoubleArr &vertices, const PyUIntArr &triangles,
         const PyDoubleArr &normals, const PyDoubleArr &uvs,
         PyTransform *transform,
-        PySurface *surface, PyLight *emission, float clamp_normal
-    ) noexcept: PyShape(name, "mesh", surface, emission, clamp_normal) {
+        PySurface *surface, PyLight *emission, PySubsurface *subsurface,
+        float clamp_normal
+    ) noexcept: PyShape(name, "mesh", surface, emission, subsurface, clamp_normal) {
         if (!obj_path.size() == 0 && vertices.size() == 0 && triangles.size() == 0) {   // file
             _node->add_property("file", luisa::string(obj_path));
         } else if (obj_path.size() == 0 && !vertices.size() == 0 && !triangles.size() == 0) {   // inline
@@ -370,8 +373,9 @@ public:
         std::string_view name,
         const PyDoubleArr &vertices, const PyUIntArr &triangles,
         const PyDoubleArr &normals, const PyDoubleArr &uvs,
-        PySurface *surface, PyLight *emission, float clamp_normal
-    ) noexcept: PyShape(name, "deformablemesh", surface, emission, clamp_normal) {
+        PySurface *surface, PyLight *emission, PySubsurface *subsurface,
+        float clamp_normal
+    ) noexcept: PyShape(name, "deformablemesh", surface, emission, subsurface, clamp_normal) {
         _node->add_property("positions", pyarray_to_vector<double>(vertices));
         _node->add_property("indices", pyarray_to_vector<uint, double>(triangles));
         _node->add_property("normals", pyarray_to_vector<double>(normals));
@@ -393,8 +397,9 @@ public:
     PyParticles(
         std::string_view name,
         const PyDoubleArr &centers, const PyDoubleArr &radii, uint subdivision,
-        PySurface *surface, PyLight *emission, float clamp_normal
-    ) noexcept: PyShape(name, "spheregroup", surface, emission, clamp_normal) {
+        PySurface *surface, PyLight *emission, PySubsurface *subsurface,
+        float clamp_normal
+    ) noexcept: PyShape(name, "spheregroup", surface, emission, subsurface, clamp_normal) {
         _node->add_property("centers", pyarray_to_vector<double>(centers));
         _node->add_property("radii", pyarray_to_vector<double>(radii));
         _node->add_property("subdivision", double(subdivision));

@@ -149,7 +149,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
     py::class_<PyRigid, PyShape>(m, "RigidShape")
         .def(py::init<std::string_view, std::string_view,
             const PyDoubleArr&, const PyUIntArr&, const PyDoubleArr&, const PyDoubleArr&,
-            PyTransform*, PySurface*, PyLight*, float>(),
+            PyTransform*, PySurface*, PyLight*, PySubsurface*, float>(),
             py::arg("name"),
             py::arg("obj_path") = "",
             py::arg("vertices") = PyDoubleArr(),
@@ -159,13 +159,14 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
             py::arg("transform").none(true) = py::none(),
             py::arg("surface").none(true) = py::none(),
             py::arg("emission").none(true) = py::none(),
+            py::arg("subsurface").none(true) = py::none(),
             py::arg("clamp_normal") = 180.f)
         .def("update", &PyRigid::update,
             py::arg("transform").none(false) = py::none());
     py::class_<PyDeformable, PyShape>(m, "DeformableShape")
         .def(py::init<std::string_view,
             const PyDoubleArr&, const PyUIntArr&, const PyDoubleArr&, const PyDoubleArr&,
-            PySurface*, PyLight*, float>(),
+            PySurface*, PyLight*, PySubsurface*, float>(),
             py::arg("name"),
             py::arg("vertices") = PyDoubleArr(),
             py::arg("triangles") = PyUIntArr(),
@@ -173,6 +174,7 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
             py::arg("uvs") = PyDoubleArr(),
             py::arg("surface").none(true) = py::none(),
             py::arg("emission").none(true) = py::none(),
+            py::arg("subsurface").none(true) = py::none(),
             py::arg("clamp_normal") = 180.f)
         .def("update", &PyDeformable::update,
             py::arg("vertices"),
@@ -182,13 +184,14 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
     py::class_<PyParticles, PyShape>(m, "ParticlesShape")
         .def(py::init<std::string_view,
             const PyDoubleArr&, const PyDoubleArr&, uint,
-            PySurface*, PyLight*, float>(),
+            PySurface*, PyLight*, PySubsurface*, float>(),
             py::arg("name"),
             py::arg("centers") = PyDoubleArr(),
             py::arg("radii") = PyDoubleArr(),
             py::arg("subdivision") = 0u,
             py::arg("surface").none(true) = py::none(),
             py::arg("emission").none(true) = py::none(),
+            py::arg("subsurface").none(true) = py::none(),
             py::arg("clamp_normal") = 180.f)
         .def("update", &PyParticles::update,
             py::arg("centers") = PyDoubleArr(),

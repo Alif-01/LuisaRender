@@ -17,6 +17,15 @@ public:
     UniformSubsurface(Scene *scene, const SceneNodeDesc *desc) noexcept:
         Subsurface{scene, desc},
         _thickness{scene->load_texture(desc->property_node_or_default("thickness"))} {}
+
+    [[nodiscard]] luisa::string info() const noexcept override {
+        return luisa::format(
+            "{} thickness=[{}]", Subsurface::info(),
+            _thickness ? _thickness->info() : ""
+        );
+    }
+
+    [[nodiscard]] bool is_null() const noexcept override { return !_thickness || _thickness->is_black(); }
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] auto thickness() const noexcept { return _thickness; }
 

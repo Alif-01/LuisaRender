@@ -119,7 +119,7 @@ Subsurface::Sample Subsurface::Closure::sample(
 
     auto select = cast<uint>(clamp(u_sel * cast<float>(n_found), 0.f, cast<float>(n_found) - 1.f));
     auto sample = Subsurface::Sample::zero(swl().dimension());
-    $if (r >= 0.f & r < r_max & n_found > 0) {
+    $if (r > 0.f & r < r_max & n_found > 0) {
         auto test_sel_tmin = ite(select == 0u, 0.f,
             (sample_hit[select - 1]->distance() + sample_hit[select - 1]->distance()) * 0.5f);
         auto test_ray = make_ray(test_origin, test_dir, test_sel_tmin, test_tmax);
