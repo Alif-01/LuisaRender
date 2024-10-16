@@ -126,7 +126,7 @@ UInt4 pcg4d(Expr<uint4> v) noexcept {
 }
 
 Float uniform_uint_to_float(Expr<uint> u) noexcept {
-    return min(one_minus_epsilon, u * 0x1p-32f);
+    return min(one_minus_epsilon, cast<float>(u) * 0x1p-32f);
 }
 
 Float lcg(UInt &state) noexcept {

@@ -449,11 +449,17 @@ void WavefrontPathTracingInstance::_render_one_camera(
                                 });
                             sub_call.execute([&](const Subsurface::Closure *closure) noexcept {
                                 auto sub_sample = closure->sample(u_lobe, u_bssrdf);
+                                $while(sub_sample.eval.pdf == 0.0f) {
+                                    u_lobe = sampler()->generate_1d();
+                                    u_bssrdf = sampler()->generate_2d();
+                                    sub_sample = closure->sample(u_lobe, u_bssrdf);
+                                };
                                 auto w = ite(sub_sample.eval.pdf > 0.0f,
-                                            1.f / sub_sample.eval.pdf, 0.f);
+                                             1.f / sub_sample.eval.pdf, 0.f);
                                 beta *= w * sub_sample.eval.f;
+                                // compute::device_log("{}, {}, {}", sub_sample.eval.pdf, sub_sample.eval.f[0u], (w * sub_sample.eval.f)[0u]);
                                 ray = make_ray(sub_sample.it.p() - sub_sample.it.ng() * sub_sample.dist,
-                                            sub_sample.it.ng());
+                                               sub_sample.it.ng());
                             });
                         };
                     };
@@ -552,22 +558,22 @@ void WavefrontPathTracingInstance::_render_one_camera(
                 auto out_path_count = out_path_queue.prepare_counter_buffer(command_buffer);
                 command_buffer << intersect_shader.get()(path_count, rays, hits, surface_indices, surface_count,
                                                          light_indices, light_count, miss_indices, miss_count)
-                                      .dispatch(launch_state_count);
+                                                  .dispatch(launch_state_count);
                 if (pipeline().environment()) {
                     command_buffer << evaluate_miss_shader.get()(path_indices, rays, miss_indices, miss_count, time)
-                                          .dispatch(launch_state_count);
+                                                          .dispatch(launch_state_count);
                 }
                 if (!pipeline().lights().empty()) {
                     command_buffer << evaluate_light_shader.get()(path_indices, rays, hits,
                                                                   light_indices, light_count, time)
-                                          .dispatch(launch_state_count);
+                                                           .dispatch(launch_state_count);
                 }
                 command_buffer << sample_light_shader.get()(path_indices, rays, hits, surface_indices, surface_count, time)
-                                      .dispatch(launch_state_count)
+                                                     .dispatch(launch_state_count)
                                << evaluate_surface_shader.get()(path_indices, depth, surface_indices,
                                                                 surface_count, rays, hits, out_rays,
                                                                 out_path_indices, out_path_count, time)
-                                      .dispatch(launch_state_count);
+                                                         .dispatch(launch_state_count);
                 path_indices = out_path_indices;
                 path_count = out_path_count;
                 std::swap(rays, out_rays);

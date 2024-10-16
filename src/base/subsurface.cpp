@@ -64,7 +64,6 @@ Subsurface::Evaluation Subsurface::Closure::evaluate(
 Subsurface::Sample Subsurface::Closure::sample(
     Expr<float> u_lobe, Expr<float2> u, TransportMode mode
 ) const noexcept {
-    // auto &&ctx = context<Context>();
     auto r = sample_r(u.x);
     auto r_max = sample_r(1.f);
     auto phi = 2 * pi * u.y;
@@ -111,14 +110,19 @@ Subsurface::Sample Subsurface::Closure::sample(
 
         $if (test_inst.has_subsurface() &
              test_inst.subsurface_tag() == it_o.shape().subsurface_tag()) {
+            $if (n_found >= sample_capacity) {
+                // compute::device_log("{}", n_found);
+                // auto ti = def(0u);
+                // $while(ti < sample_capacity) {
+                //     compute::device_log("{}, {}", sample_hit[ti]->distance(), sample_hit[ti].inst);
+                //     ti += 1u;
+                // };
+                $break;
+            };
             sample_hit[n_found] = test_hit;
-            test_tmin = test_hit->distance();
-            n_found += 1;
+            n_found += 1u;
         };
-        
-        $if (n_found >= 32u) {
-            compute::device_log("{}, {}, {}", test_tmin, test_tmax, n_found);
-        };
+        test_tmin = test_hit->distance();
     };
 
     auto select = cast<uint>(clamp(u_sel * cast<float>(n_found), 0.f, cast<float>(n_found) - 1.f));

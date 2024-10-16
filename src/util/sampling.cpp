@@ -122,7 +122,7 @@ Float uniform_cone_pdf(Expr<float> cos_theta_max) noexcept {
 
 Float3 sample_uniform_cone(Expr<float2> u, Expr<float> cos_theta_max) noexcept {
     static Callable impl = [](Float2 u, Float cos_theta_max) noexcept {
-        auto cosTheta = (1 - u.x) + u.x * cos_theta_max;
+        auto cosTheta = (1.f - u.x) + u.x * cos_theta_max;
         auto sinTheta = sqrt(max(1.f - cosTheta * cosTheta, 0.f));
         auto phi = 2.f * pi * u.y;
         return spherical_direction(sinTheta, cosTheta, phi);
@@ -132,7 +132,7 @@ Float3 sample_uniform_cone(Expr<float2> u, Expr<float> cos_theta_max) noexcept {
 
 Float balance_heuristic(Expr<uint> nf, Expr<float> fPdf, Expr<uint> ng, Expr<float> gPdf) noexcept {
     static Callable impl = [](UInt nf, Float fPdf, UInt ng, Float gPdf) noexcept {
-        auto sum_f = nf * fPdf;
+        auto sum_f = cast<float>(nf) * fPdf;
         auto sum = sum_f + ng * gPdf;
         return ite(sum == 0.0f, 0.0f, sum_f / sum);
     };
