@@ -189,7 +189,8 @@ public:
 class PyImage: public PyTexture {
 public:
     PyImage(
-        std::string_view file, const PyDoubleArr &image_data, const PyDoubleArr &scale
+        std::string_view file, const PyDoubleArr &image_data,
+        const PyDoubleArr &scale, std::string_view encoding
     ) noexcept: PyTexture{"image"} {
         if (file.empty() && !image_data.size() == 0) {
             uint channel;
@@ -202,15 +203,15 @@ public:
             });
             _node->add_property("channel", double(channel));
             _node->add_property("image_data", pyarray_to_vector<double>(image_data));
-            _node->add_property("scale", pyarray_to_vector<double>(scale));
         } else if (!file.empty() && image_data.size() == 0) {
             _node->add_property("file", luisa::string(file));
-            _node->add_property("scale", pyarray_to_vector<double>(scale));
         } else [[unlikely]] if (file.empty() && image_data.size() == 0)  {
             LUISA_ERROR_WITH_LOCATION("Cannot set both file image and inline image empty.");
         } else {
             LUISA_ERROR_WITH_LOCATION("Cannot set both file image and inline image.");
         }
+        _node->add_property("scale", pyarray_to_vector<double>(scale));
+        _node->add_property("encoding", luisa::string(encoding));
     }
 };
 

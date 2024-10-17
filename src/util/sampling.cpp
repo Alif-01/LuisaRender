@@ -133,7 +133,7 @@ Float3 sample_uniform_cone(Expr<float2> u, Expr<float> cos_theta_max) noexcept {
 Float balance_heuristic(Expr<uint> nf, Expr<float> fPdf, Expr<uint> ng, Expr<float> gPdf) noexcept {
     static Callable impl = [](UInt nf, Float fPdf, UInt ng, Float gPdf) noexcept {
         auto sum_f = cast<float>(nf) * fPdf;
-        auto sum = sum_f + ng * gPdf;
+        auto sum = sum_f + cast<float>(ng) * gPdf;
         return ite(sum == 0.0f, 0.0f, sum_f / sum);
     };
     return impl(nf, fPdf, ng, gPdf);
@@ -141,7 +141,7 @@ Float balance_heuristic(Expr<uint> nf, Expr<float> fPdf, Expr<uint> ng, Expr<flo
 
 Float power_heuristic(Expr<uint> nf, Expr<float> fPdf, Expr<uint> ng, Expr<float> gPdf) noexcept {
     static Callable impl = [](UInt nf, Float fPdf, UInt ng, Float gPdf) noexcept {
-        Float f = nf * fPdf, g = ng * gPdf;
+        Float f = cast<float>(nf) * fPdf, g = cast<float>(ng) * gPdf;
         auto ff = f * f;
         auto gg = g * g;
         auto sum = ff + gg;

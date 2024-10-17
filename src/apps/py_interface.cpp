@@ -83,10 +83,11 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
         .def(py::init<const PyDoubleArr&>(),
             py::arg("color"));
     py::class_<PyImage, PyTexture>(m, "ImageTexture")
-        .def(py::init<std::string_view, const PyDoubleArr&, const PyDoubleArr&>(),
+        .def(py::init<std::string_view, const PyDoubleArr&, const PyDoubleArr&, std::string_view>(),
             py::arg("file") = "",
             py::arg("image_data") = PyDoubleArr(),
-            py::arg("scale") = PyDoubleArr());
+            py::arg("scale") = PyDoubleArr(),
+            py::arg("encoding").none(true) = py::none());
     py::class_<PyChecker, PyTexture>(m, "CheckerTexture")
         .def(py::init<PyTexture*, PyTexture*, float>(),
             py::arg("on").none(true) = py::none(),
