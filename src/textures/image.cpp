@@ -137,12 +137,6 @@ public:
         }
     }
     
-    [[nodiscard]] luisa::string info() const noexcept override {
-        return luisa::format(
-            "{} resolution=[{}] channel=[{}] encoding=[{}]",
-            Texture::info(), resolution(), channels(), encoding());
-    }
-
     [[nodiscard]] luisa::string_view impl_type() const noexcept override { return LUISA_RENDER_PLUGIN_NAME; }
     [[nodiscard]] auto &image() const noexcept { return _image.get(); }
     [[nodiscard]] bool is_black() const noexcept override { return all(_scale == 0.f); }
@@ -158,6 +152,12 @@ public:
     [[nodiscard]] auto mipmaps() const noexcept { return _mipmaps; }
     [[nodiscard]] luisa::unique_ptr<Instance> build(
         Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept override;
+    
+    [[nodiscard]] luisa::string info() const noexcept override {
+        return luisa::format(
+            "{} resolution=[{}] channel=[{}] encoding=[{}]",
+            Texture::info(), resolution(), channels(), uint(encoding()));
+    }
 };
 
 class ImageTextureInstance final : public Texture::Instance {
