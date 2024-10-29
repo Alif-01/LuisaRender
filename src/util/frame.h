@@ -71,7 +71,7 @@ using compute::sqrt;
 [[nodiscard]] inline auto same_hemisphere(Expr<float3> w, Expr<float3> wp) noexcept { return w.z * wp.z > 0.0f; }
 
 // clamp the shading normal `ns` so that `w` and its reflection will go to the same hemisphere w.r.t. `ng`
-[[nodiscard]] Float3 clamp_shading_normal(Expr<float3> ns, Expr<float3> ng, Expr<float3> w) noexcept;
+[[nodiscard]] Float3 clamp_shading_normal(Expr<float3> ns, Expr<float3> ng, Expr<float3> wo) noexcept;
 
 }// namespace luisa::render
 

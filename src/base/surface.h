@@ -245,22 +245,23 @@ public:
     public:
         void populate_closure(Surface::Closure *closure, const Interaction &it,
                               Expr<float3> wo, Expr<float> eta_i) const noexcept override {
-            if (_map == nullptr) {
-                BaseInstance::populate_closure(closure, it, wo, eta_i);
-                return;
-            }
-
-            auto &swl = closure->swl();
-            auto time = closure->time();
-
-            auto normal_local = 2.f * _map->evaluate(it, time).xyz() - 1.f;
-            if (_strength != 1.f) { normal_local *= make_float3(_strength, _strength, 1.f); }
             auto mapped_it = it;
-            auto normal = it.shading().local_to_world(normal_local);
-            mapped_it.set_shading(Frame::make(clamp_shading_normal(normal, it.ng(), wo),
-                                              it.shading().s()));
+            if (_map == nullptr) {
+                mapped_it.set_shading(
+                    Frame::make(clamp_shading_normal(it.shading().n(), it.ng(), wo), it.shading().s()));
+                BaseInstance::populate_closure(closure, mapped_it, wo, eta_i);
+            } else {
+                auto &swl = closure->swl();
+                auto time = closure->time();
 
-            BaseInstance::populate_closure(closure, mapped_it, wo, eta_i);
+                auto normal_local = 2.f * _map->evaluate(it, time).xyz() - 1.f;
+                if (_strength != 1.f) { normal_local *= make_float3(_strength, _strength, 1.f); }
+                auto normal = it.shading().local_to_world(normal_local);
+                mapped_it.set_shading(
+                    Frame::make(clamp_shading_normal(normal, it.ng(), wo), it.shading().s()));
+
+                BaseInstance::populate_closure(closure, mapped_it, wo, eta_i);
+            }
         }
     };
 
