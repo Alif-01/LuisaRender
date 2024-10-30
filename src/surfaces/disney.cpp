@@ -59,7 +59,7 @@ public:
     }
     [[nodiscard]] luisa::string info() const noexcept override {
         return luisa::format(
-            "{} color=[{}] metallic=[{}] roughness=[{}] eta=[{}] specular_tint=[{}] specular_trans=[{}] diffuse_trans=[{}]",
+            "{} color=[{}] metallic=[{}] roughness=[{}] eta=[{}] specular_tint=[{}] specular_trans=[{}] diffuse_trans=[{}] thin=[{}]",
             Surface::info(),
             _color ? _color->info() : "",
             _metallic ? _metallic->info() : "",
@@ -67,7 +67,8 @@ public:
             _eta ? _eta->info() : "",
             _specular_tint ? _specular_tint->info() : "",
             _specular_trans ? _specular_trans->info() : "",
-            _diffuse_trans ? _diffuse_trans->info() : ""
+            _diffuse_trans ? _diffuse_trans->info() : "",
+            _thin
         );
     }
     [[nodiscard]] luisa::string_view impl_type() const noexcept override {
