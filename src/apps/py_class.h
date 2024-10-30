@@ -310,6 +310,27 @@ public:
     }
 };
 
+class PyDisneySurface : public PySurface {
+public:
+    PyDisneySurface(
+        std::string_view name,
+        PyTexture *roughness, PyTexture *opacity, PyTexture *normal_map,
+        PyTexture *kd, PyTexture *eta,
+        PyTexture *metallic, PyTexture *specular_tint,
+        PyTexture *specular_trans, PyTexture *diffuse_trans
+    ) noexcept: PySurface{name, "disney", roughness, opacity, normal_map} {
+        add_property_node("Kd", kd);
+        add_property_node("eta", eta);
+        add_property_node("metallic", metallic);
+        add_property_node("specular_tint", specular_tint);
+        add_property_node("specular_trans", specular_trans);
+        add_property_node("diffuse_trans", diffuse_trans);
+        if (diffuse_trans) {
+            _node->add_property("thin", true);
+        }
+    }
+};
+
 class PyLayeredSurface : public PySurface {
 public:
     PyLayeredSurface(

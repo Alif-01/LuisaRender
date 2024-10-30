@@ -139,6 +139,19 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
             py::arg("ks").none(true) = py::none(),
             py::arg("kt").none(true) = py::none(),
             py::arg("eta").none(true) = py::none());
+    py::class_<PyDisneySurface, PySurface>(m, "DisneySurface")
+        .def(py::init<std::string_view, PyTexture*, PyTexture*, PyTexture*,
+                     PyTexture*, PyTexture*, PyTexture*, PyTexture*, PyTexture*, PyTexture*>(),
+            py::arg("name"),
+            py::arg("roughness").none(true) = py::none(),
+            py::arg("opacity").none(true) = py::none(),
+            py::arg("normal_map").none(true) = py::none(),
+            py::arg("kd").none(true) = py::none(),
+            py::arg("eta").none(true) = py::none(),
+            py::arg("metallic").none(true) = py::none(),
+            py::arg("specular_tint").none(true) = py::none(),
+            py::arg("specular_trans").none(true) = py::none(),
+            py::arg("diffuse_trans").none(true) = py::none());
     py::class_<PyLayeredSurface, PySurface>(m, "LayeredSurface")
         .def(py::init<std::string_view, PySurface*, PySurface*, PyTexture*>(),
             py::arg("name"),
