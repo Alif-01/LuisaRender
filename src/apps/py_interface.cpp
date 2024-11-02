@@ -21,7 +21,8 @@ py::array_t<T> get_default_array(const luisa::vector<T> &a) {
 }
 
 void init(
-    std::string_view context_path, uint cuda_device, LogLevel log_level
+    std::string_view context_path, std::string_view context_id,
+    uint cuda_device, LogLevel log_level
 ) noexcept {
     /* add device */
     switch (log_level) {
@@ -29,8 +30,8 @@ void init(
         case INFO: log_level_info(); break;
         case WARNING: log_level_warning(); break;
     }
-    context_ptr = luisa::make_unique<Context>(luisa::string(context_path));
-    LUISA_INFO("hardware concurrency: {}", std::thread::hardware_concurrency());
+    context_ptr = luisa::make_unique<Context>(luisa::string(context_path), context_id);
+    LUISA_INFO("Hardware concurrency: {}", std::thread::hardware_concurrency());
     luisa::string backend = "CUDA";
     compute::DeviceConfig config;
     config.device_index = cuda_device;      // Please ensure that cuda:cuda_device has enough space
@@ -41,7 +42,17 @@ void init(
 PyScene *create_scene() noexcept {
     std::scoped_lock lock{mutex};
     scenes.emplace_back(*device_ptr, *context_ptr, *stream_ptr);
+    LUISA_INFO("Luisa Scene created: {}", scenes.size());
     return &scenes.back();
+}
+
+void destroy() noexcept {
+    std::scoped_lock lock{mutex};
+    scenes.clear();
+    stream_ptr = nullptr;
+    device_ptr = nullptr;
+    context_ptr = nullptr;
+    LUISA_INFO("Luisa environment destroyed.");
 }
 
 PYBIND11_MODULE(LuisaRenderPy, m) {
@@ -316,8 +327,10 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
 
     m.def("init", &init,
         py::arg("context_path"),
+        py::arg("context_id") = "",
         py::arg("cuda_device") = 0u,
         py::arg("log_level") = LogLevel::WARNING
     );
     m.def("create_scene", &create_scene, py::return_value_policy::reference);
+    m.def("destroy", &destroy);
 }
