@@ -133,6 +133,8 @@ void apply_gamma(float *buffer, uint2 resolution) noexcept {
     for (int i = 0; i < pixel_count * 4; ++i) {
         if ((i & 3) != 3) {
             buffer[i] = std::clamp(std::pow(buffer[i], 1.0f / gamma_factor), 0.0f, 1.0f);
+        } else {
+            buffer[i] = 1.0f;
         }
     }
 }

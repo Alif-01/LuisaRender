@@ -55,8 +55,11 @@ int main(int argc, char *argv[]) {
 
     auto pipeline = Pipeline::create(device, *scene);
     luisa::vector<float4> buffer;
-    auto buffer_p = reinterpret_cast<float *>(buffer.data());
+    
+    pipeline->set_time(0);
+    pipeline->update(stream);
     pipeline->render_to_buffer(stream, camera, buffer);
+    auto buffer_p = reinterpret_cast<float *>(buffer.data());
 
     auto color_buffer = device.create_buffer<float4>(pixel_count);
     auto output_buffer = device.create_buffer<float4>(pixel_count);
