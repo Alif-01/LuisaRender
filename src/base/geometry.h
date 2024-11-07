@@ -37,6 +37,7 @@ public:
     class ShapeData {
     public:
         ShapeData() noexcept;
+        virtual ~ShapeData() noexcept = default;
         void build(Pipeline &pipeline, uint prim_count) noexcept;
         virtual void register_bindless(Pipeline &pipeline) noexcept;
         virtual void update_bindless(Pipeline &pipeline) noexcept;
@@ -51,6 +52,7 @@ public:
 
     class MeshData : public ShapeData {
     public:
+        ~MeshData() noexcept = default;
         void build(Pipeline &pipeline, uint vertex_count, uint triangle_count, AccelOption build_option) noexcept;
         void register_bindless(Pipeline &pipeline) noexcept override;
         void update_bindless(Pipeline &pipeline) noexcept override;
@@ -62,6 +64,7 @@ public:
     
     class SpheresData : public ShapeData {
     public:
+        ~SpheresData() noexcept = default;
         void build(Pipeline &pipeline, uint sphere_count, AccelOption build_option) noexcept;
         void register_bindless(Pipeline &pipeline) noexcept override;
         void update_bindless(Pipeline &pipeline) noexcept override;

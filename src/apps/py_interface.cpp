@@ -48,8 +48,8 @@ PyScene *create_scene() noexcept {
 
 void destroy() noexcept {
     std::scoped_lock lock{mutex};
-    scenes.clear();
     stream_ptr->synchronize();
+    scenes.clear();
     stream_ptr = nullptr;
     device_ptr = nullptr;
     context_ptr = nullptr;
