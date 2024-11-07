@@ -62,6 +62,7 @@ public:
         _define_cache.emplace_back(name, tag, impl_type);
         _node = _define_cache.back().node.get();
     }
+    virtual ~PyDesc() = default;
     
     [[nodiscard]] auto node() const noexcept { return _node; }
     void clear_cache() noexcept { _define_cache.clear(); }
@@ -127,20 +128,22 @@ class PyTransform: public PyDesc {
 public:
     PyTransform(std::string_view impl_type) noexcept:
         PyDesc{"", SceneNodeTag::TRANSFORM, impl_type} { }
+    virtual ~PyTransform() = default;
 };
 
-class PyMatrix: public PyTransform {
+class PyMatrix final: public PyTransform {
 public:
     PyMatrix(const PyDoubleArr &matrix) noexcept:
         PyTransform{"matrix"} {
         _node->add_property("m", pyarray_to_vector<double>(matrix));
     }
+    ~PyMatrix() = default;
     void update(const PyDoubleArr &matrix) noexcept {
         _node->add_property("m", pyarray_to_vector<double>(matrix));
     }
 };
 
-class PySRT: public PyTransform {
+class PySRT final: public PyTransform {
 public:
     PySRT(const PyDoubleArr &translate, const PyDoubleArr &rotate, const PyDoubleArr &scale) noexcept:
         PyTransform{"srt"} {
@@ -148,6 +151,7 @@ public:
         _node->add_property("rotate", pyarray_to_vector<double>(rotate));
         _node->add_property("scale", pyarray_to_vector<double>(scale));
     }
+    ~PySRT() = default;
     void update(const PyDoubleArr &translate, const PyDoubleArr &rotate, const PyDoubleArr &scale) noexcept {
         _node->add_property("translate", pyarray_to_vector<double>(translate));
         _node->add_property("rotate", pyarray_to_vector<double>(rotate));
@@ -155,7 +159,7 @@ public:
     }
 };
 
-class PyView: public PyTransform {
+class PyView final: public PyTransform {
 public:
     PyView(const PyDoubleArr &position, const PyDoubleArr &front, const PyDoubleArr &up) noexcept:
         PyTransform{"view"} {
@@ -163,6 +167,7 @@ public:
         _node->add_property("front", pyarray_to_vector<double>(front));
         _node->add_property("up", pyarray_to_vector<double>(up));
     }
+    ~PyView() = default;
     void update(const PyDoubleArr &position, const PyDoubleArr &front, const PyDoubleArr &up) noexcept {
         _node->add_property("origin", pyarray_to_vector<double>(position));
         _node->add_property("front", pyarray_to_vector<double>(front));
@@ -176,17 +181,19 @@ class PyTexture: public PyDesc {
 public:
     PyTexture(std::string_view impl_type) noexcept:
         PyDesc{"", SceneNodeTag::TEXTURE, impl_type} { }
+    virtual ~PyTexture() = default;
 };
 
-class PyColor: public PyTexture {
+class PyColor final: public PyTexture {
 public:
     PyColor(const PyDoubleArr &color) noexcept:
         PyTexture("constant") {
         _node->add_property("v", pyarray_to_vector<double>(color));
     }
+    ~PyColor() = default;
 };
 
-class PyImage: public PyTexture {
+class PyImage final: public PyTexture {
 public:
     PyImage(
         std::string_view file, const PyDoubleArr &image_data,
@@ -213,9 +220,10 @@ public:
         _node->add_property("scale", pyarray_to_vector<double>(scale));
         _node->add_property("encoding", luisa::string(encoding));
     }
+    ~PyImage() = default;
 };
 
-class PyChecker: public PyTexture {
+class PyChecker final: public PyTexture {
 public:
     PyChecker(PyTexture *on, PyTexture *off, float scale) noexcept:
         PyTexture{"checkerboard"} {
@@ -223,6 +231,7 @@ public:
         add_property_node("off", off);
         _node->add_property("scale", scale);
     }
+    ~PyChecker() = default;
 };
 
 
@@ -238,6 +247,7 @@ public:
         _node->add_property("two_sided", two_sided);
         _node->add_property("angle", beam_angle);
     }
+    virtual ~PyLight() = default;
 };
 
 
@@ -247,15 +257,17 @@ public:
     PySubsurface(
         std::string_view name, std::string_view impl_type
     ) noexcept: PyDesc{name, SceneNodeTag::SUBSURFACE, impl_type} { }
+    virtual ~PySubsurface() = default;
 };
 
-class PyUniformSubsurface: public PySubsurface {
+class PyUniformSubsurface final: public PySubsurface {
 public:
     PyUniformSubsurface(
         std::string_view name, PyTexture *thickness
     ) noexcept: PySubsurface{name, "uniform"} {
         add_property_node("thickness", thickness);
     }
+    ~PyUniformSubsurface() = default;
 };
 
 
@@ -270,9 +282,10 @@ public:
         add_property_node("opacity", opacity);
         add_property_node("normal_map", normal_map);
     }
+    virtual ~PySurface() = default;
 };
 
-class PyMetalSurface : public PySurface {
+class PyMetalSurface final: public PySurface {
 public:
     PyMetalSurface(
         std::string_view name,
@@ -282,9 +295,10 @@ public:
         add_property_node("Kd", kd);
         _node->add_property("eta", luisa::string(eta));
     }
+    ~PyMetalSurface() = default;
 };
 
-class PyPlasticSurface : public PySurface {
+class PyPlasticSurface final: public PySurface {
 public:
     PyPlasticSurface(
         std::string_view name,
@@ -295,9 +309,10 @@ public:
         add_property_node("Ks", ks);
         add_property_node("eta", eta);
     }
+    ~PyPlasticSurface() = default;
 };
 
-class PyGlassSurface : public PySurface {
+class PyGlassSurface final: public PySurface {
 public:
     PyGlassSurface(
         std::string_view name,
@@ -308,9 +323,10 @@ public:
         add_property_node("Kt", kt);
         add_property_node("eta", eta);
     }
+    ~PyGlassSurface() = default;
 };
 
-class PyDisneySurface : public PySurface {
+class PyDisneySurface final: public PySurface {
 public:
     PyDisneySurface(
         std::string_view name,
@@ -329,9 +345,10 @@ public:
             _node->add_property("thin", true);
         }
     }
+    ~PyDisneySurface() = default;
 };
 
-class PyLayeredSurface : public PySurface {
+class PyLayeredSurface final: public PySurface {
 public:
     PyLayeredSurface(
         std::string_view name,
@@ -341,6 +358,7 @@ public:
         add_property_node("bottom", bottom);
         add_property_node("thickness", thickness);
     }
+    ~PyLayeredSurface() = default;
 };
 
 
@@ -357,9 +375,10 @@ public:
         add_property_node("subsurface", subsurface);
         _node->add_property("clamp_normal", clamp_normal);
     }
+    virtual ~PyShape() = default;
 };
 
-class PyRigid: public PyShape {
+class PyRigid final: public PyShape {
 public:
     PyRigid(
         std::string_view name,
@@ -384,12 +403,13 @@ public:
         }
         add_property_node("transform", transform);
     }
+    ~PyRigid() = default;
     void update(PyTransform *transform) noexcept {
         add_property_node("transform", transform);
     }
 };
 
-class PyDeformable: public PyShape {
+class PyDeformable final: public PyShape {
 public:
     PyDeformable(
         std::string_view name,
@@ -403,6 +423,7 @@ public:
         _node->add_property("normals", pyarray_to_vector<double>(normals));
         _node->add_property("uvs", pyarray_to_vector<double>(uvs));
     }
+    ~PyDeformable() = default;
     void update(
         const PyDoubleArr &vertices, const PyUIntArr &triangles,
         const PyDoubleArr &normals, const PyDoubleArr &uvs
@@ -414,7 +435,7 @@ public:
     }
 };
 
-class PyParticles: public PyShape {
+class PyParticles final: public PyShape {
 public:
     PyParticles(
         std::string_view name,
@@ -426,6 +447,7 @@ public:
         _node->add_property("radii", pyarray_to_vector<double>(radii));
         _node->add_property("subdivision", double(subdivision));
     }
+    ~PyParticles() = default;
     void update(const PyDoubleArr &centers, const PyDoubleArr &radii) noexcept {
         _node->add_property("centers", pyarray_to_vector<double>(centers));
         _node->add_property("radii", pyarray_to_vector<double>(radii));
@@ -440,6 +462,7 @@ public:
         PyDesc{"", SceneNodeTag::FILM, "color"} {
         _node->add_property("resolution", pyarray_to_vector<uint, double>(resolution));
     }
+    virtual ~PyFilm() = default;
 };
 
 
@@ -450,6 +473,7 @@ public:
         PyDesc{"", SceneNodeTag::FILTER, "gaussian"} {
         _node->add_property("radius", radius);
     }
+    virtual ~PyFilter() = default;
     void update(float radius) noexcept {
         _node->add_property("radius", radius);
     }
@@ -468,6 +492,7 @@ public:
         add_property_node("filter", filter);
         _node->add_property("spp", double(spp));
     }
+    virtual ~PyCamera() = default;
     void update(PyTransform *pose) noexcept {
         add_property_node("transform", pose);
     }
@@ -478,7 +503,7 @@ public:
     luisa::shared_ptr<DenoiserExt::Denoiser> denoiser = nullptr;
 };
 
-class PyPinhole: public PyCamera {
+class PyPinhole final: public PyCamera {
 public:
     PyPinhole(    
         std::string_view name,
@@ -487,13 +512,14 @@ public:
     ) noexcept: PyCamera{name, "pinhole", pose, film, filter, spp} {
         _node->add_property("fov", fov);
     }
+    ~PyPinhole() = default;
     void update(PyTransform *pose, float fov) noexcept {
         PyCamera::update(pose);
         _node->add_property("fov", fov);
     }
 };
 
-class PyThinLens: public PyCamera {
+class PyThinLens final: public PyCamera {
 public:
     PyThinLens(
         std::string_view name,
@@ -504,6 +530,7 @@ public:
         _node->add_property("focal_length", focal_length);
         _node->add_property("focus_distance", focus_distance);
     }
+    ~PyThinLens() = default;
     void update(
         PyTransform *pose,
         float aperture, float focal_length, float focus_distance
@@ -526,6 +553,7 @@ public:
         add_property_node("emission", emission);
         add_property_node("transform", transform);
     }    
+    virtual ~PyEnvironment() = default;
 };
 
 
@@ -534,6 +562,7 @@ class PyLightSampler: public PyDesc {
 public:
     PyLightSampler() noexcept:
         PyDesc{"", SceneNodeTag::LIGHT_SAMPLER, "uniform"} { }
+    virtual ~PyLightSampler() = default;
 };
 
 
@@ -542,16 +571,19 @@ class PySampler: public PyDesc {
 public:
     PySampler(std::string_view impl_type) noexcept:
         PyDesc{"", SceneNodeTag::SAMPLER, impl_type} { }
+    virtual ~PySampler() = default;
 };
 
-class PyIndependent: public PySampler {
+class PyIndependent final: public PySampler {
 public:
     PyIndependent() noexcept: PySampler{"independent"} { }
+    ~PyIndependent() = default;
 };
 
-class PyPMJ02BN: public PySampler {
+class PyPMJ02BN final: public PySampler {
 public:
     PyPMJ02BN() noexcept: PySampler{"pmj02bn"} { }
+    ~PyPMJ02BN() = default;
 };
 
 
@@ -566,20 +598,23 @@ public:
         _node->add_property("rr_depth", double(rr_depth));
         _node->add_property("rr_threshold", rr_threshold);
     }
+    virtual ~PyIntegrator() = default;
 };
 
-class PyWavePath: public PyIntegrator {
+class PyWavePath final: public PyIntegrator {
 public:
     PyWavePath(LogLevel log_level, uint max_depth, uint rr_depth, float rr_threshold) noexcept:
         PyIntegrator{"wavepath", log_level, max_depth, rr_depth, rr_threshold} { }
+    ~PyWavePath() = default;
 };
 
-class PyWavePathV2: public PyIntegrator {
+class PyWavePathV2 final: public PyIntegrator {
 public:
     PyWavePathV2(LogLevel log_level, uint max_depth, uint rr_depth, float rr_threshold, uint state_limit) noexcept:
         PyIntegrator{"wavepath_v2", log_level, max_depth, rr_depth, rr_threshold} {
         _node->add_property("state_limit", double(state_limit));
     }
+    ~PyWavePathV2() = default;
 };
 
 
@@ -588,24 +623,27 @@ class PySpectrum: public PyDesc {
 public:
     PySpectrum(std::string_view impl_type) noexcept:
         PyDesc{"", SceneNodeTag::SPECTRUM, impl_type} { }
+    virtual ~PySpectrum() = default;
 };
 
-class PyHero: public PySpectrum {
+class PyHero final: public PySpectrum {
 public:
     PyHero(uint dimension) noexcept:
         PySpectrum{"hero"} {
         _node->add_property("dimension", double(dimension));
     }
+    ~PyHero() = default;
 };
 
-class PySRGB: public PySpectrum {
+class PySRGB final: public PySpectrum {
 public:
     PySRGB() noexcept: PySpectrum{"srgb"} { }
+    ~PySRGB() = default;
 };
 
 
 // Root
-class PyRender: public PyDesc {
+class PyRender final: public PyDesc {
 public:
     PyRender(
         std::string_view name,
@@ -615,4 +653,5 @@ public:
         add_property_node("integrator", integrator);
         _node->add_property("clamp_normal", clamp_normal);
     }
+    ~PyRender() = default;
 };
