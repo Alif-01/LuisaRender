@@ -44,6 +44,7 @@ public:
 private:
     const Sampler *_sampler;
     const LightSampler *_light_sampler;
+    bool _enable_cache;
     bool _use_progress;
 
 public:
@@ -53,6 +54,7 @@ public:
     [[nodiscard]] auto light_sampler() const noexcept { return _light_sampler; }
     [[nodiscard]] virtual luisa::unique_ptr<Instance> build(
         Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept = 0;
+    [[nodiscard]] bool enable_cache() const noexcept { return _enable_cache; }
     [[nodiscard]] bool use_progress() const noexcept { return _use_progress; }
 };
 

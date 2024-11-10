@@ -16,7 +16,8 @@ Integrator::Integrator(Scene *scene, const SceneNodeDesc *desc) noexcept:
         "sampler", SceneNodeDesc::shared_default_sampler("independent")))},
     _light_sampler{scene->load_light_sampler(desc->property_node_or_default(
         "light_sampler", SceneNodeDesc::shared_default_light_sampler("uniform")))},
-    _use_progress{desc->property_bool_or_default("use_progress", true)} { }
+    _use_progress{desc->property_bool_or_default("use_progress", true)},
+    _enable_cache{desc->property_bool_or_default("enable_cache", true)} { }
 
 luisa::string Integrator::info() const noexcept {
     return luisa::format(

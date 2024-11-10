@@ -591,9 +591,13 @@ public:
 class PyIntegrator: public PyDesc {
 public:
     // rr: Russian Roulette, a technique to control the average depth of ray tracing.
-    PyIntegrator(std::string_view impl_type, LogLevel log_level, uint max_depth, uint rr_depth, float rr_threshold) noexcept:
+    PyIntegrator(
+        std::string_view impl_type, LogLevel log_level, bool enable_cache,
+        uint max_depth, uint rr_depth, float rr_threshold
+    ) noexcept:
         PyDesc{"", SceneNodeTag::INTEGRATOR, impl_type} {
         _node->add_property("use_progress", log_level != LogLevel::WARNING);
+        _node->add_property("enable_cache", enable_cache);
         _node->add_property("depth", double(max_depth));
         _node->add_property("rr_depth", double(rr_depth));
         _node->add_property("rr_threshold", rr_threshold);
@@ -603,14 +607,20 @@ public:
 
 class PyWavePath final: public PyIntegrator {
 public:
-    PyWavePath(LogLevel log_level, uint max_depth, uint rr_depth, float rr_threshold) noexcept:
+    PyWavePath(
+        LogLevel log_level, bool enable_cache,
+        uint max_depth, uint rr_depth, float rr_threshold
+    ) noexcept:
         PyIntegrator{"wavepath", log_level, max_depth, rr_depth, rr_threshold} { }
     ~PyWavePath() = default;
 };
 
 class PyWavePathV2 final: public PyIntegrator {
 public:
-    PyWavePathV2(LogLevel log_level, uint max_depth, uint rr_depth, float rr_threshold, uint state_limit) noexcept:
+    PyWavePathV2(
+        LogLevel log_level, bool enable_cache,
+        uint max_depth, uint rr_depth, float rr_threshold, uint state_limit
+    ) noexcept:
         PyIntegrator{"wavepath_v2", log_level, max_depth, rr_depth, rr_threshold} {
         _node->add_property("state_limit", double(state_limit));
     }

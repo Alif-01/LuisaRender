@@ -14,7 +14,7 @@ namespace luisa::render {
 using namespace compute;
 
 template<uint dim, typename F>
-[[nodiscard]] auto compile_async(Device &device, F &&f) noexcept {
+[[nodiscard]] auto compile_async(Device &device, F &&f, bool enable_cache) noexcept {
     auto kernel = [&] {
         if constexpr (dim == 1u) {
             return Kernel1D{f};
@@ -26,7 +26,12 @@ template<uint dim, typename F>
             static_assert(always_false_v<F>, "Invalid dimension.");
         }
     }();
-    return global_thread_pool().async([&device, kernel] { return device.compile(kernel); });
+
+    ShaderOption o{};
+    o.enable_cache = enable_cache;
+    return global_thread_pool().async([&device, o, kernel] {
+        return device.compile(kernel, o); 
+    });
 }
 
 class WavefrontPathTracing final : public ProgressiveIntegrator {
@@ -251,6 +256,7 @@ void WavefrontPathTracingInstance::_render_one_camera(
 
     LUISA_INFO("Compiling ray generation kernel.");
     Clock clock_compile;
+    bool enable_shader_cache = enable_cache();
     auto generate_rays_shader = compile_async<1>(device, [&](BufferUInt path_indices, BufferRay rays,
                                                              UInt base_sample_id, Float time) noexcept {
         auto state_id = dispatch_x();
@@ -270,7 +276,7 @@ void WavefrontPathTracingInstance::_render_one_camera(
         path_states.write_radiance(state_id, SampledSpectrum{spectrum->node()->dimension()});
         path_states.write_pdf_bsdf(state_id, 1e16f);
         path_indices.write(state_id, state_id);
-    });
+    }, enable_shader_cache);
 
     LUISA_INFO("Compiling intersection kernel.");
     auto intersect_shader = compile_async<1>(device, [&](BufferUInt ray_count, BufferRay rays, BufferHit hits,
@@ -300,7 +306,7 @@ void WavefrontPathTracingInstance::_render_one_camera(
                 }
             };
         };
-    });
+    }, enable_shader_cache);
 
     LUISA_INFO("Compiling environment evaluation kernel.");
     auto evaluate_miss_shader = compile_async<1>(device, [&](BufferUInt path_indices, BufferRay rays,
@@ -321,7 +327,7 @@ void WavefrontPathTracingInstance::_render_one_camera(
                 path_states.write_radiance(path_id, Li);
             };
         }
-    });
+    }, enable_shader_cache);
 
     LUISA_INFO("Compiling light evaluation kernel.");
     auto evaluate_light_shader = compile_async<1>(device, [&](BufferUInt path_indices, BufferRay rays, BufferHit hits,
@@ -344,7 +350,7 @@ void WavefrontPathTracingInstance::_render_one_camera(
                 path_states.write_radiance(path_id, Li);
             };
         }
-    });
+    }, enable_shader_cache);
 
     LUISA_INFO("Compiling light sampling kernel.");
     auto sample_light_shader = compile_async<1>(device, [&](BufferUInt path_indices, BufferRay rays, BufferHit hits,
@@ -369,7 +375,7 @@ void WavefrontPathTracingInstance::_render_one_camera(
             light_samples.write_wi_and_pdf(queue_id, light_sample.shadow_ray->direction(),
                                            ite(occluded, 0.f, light_sample.eval.pdf));
         };
-    });
+    }, enable_shader_cache);
 
     LUISA_INFO("Compiling surface evaluation kernel.");
     auto evaluate_surface_shader = compile_async<1>(device, [&](BufferUInt path_indices, UInt trace_depth, BufferUInt queue, BufferUInt queue_size,
@@ -488,7 +494,7 @@ void WavefrontPathTracingInstance::_render_one_camera(
                 path_states.write_beta(path_id, beta);
             };
         };
-    });
+    }, enable_shader_cache);
 
     LUISA_INFO("Compiling accumulation kernel.");
     auto accumulate_shader = compile_async<1>(device, [&](Float shutter_weight) noexcept {
@@ -498,7 +504,7 @@ void WavefrontPathTracingInstance::_render_one_camera(
         auto [u_wl, swl] = path_states.read_swl(state_id);
         auto Li = path_states.read_radiance(state_id);
         camera->film()->accumulate(pixel_coord, spectrum->srgb(swl, Li * shutter_weight));
-    });
+    }, enable_shader_cache);
 
     // wait for the compilation of all shaders
     generate_rays_shader.get().set_name("generate_rays");
