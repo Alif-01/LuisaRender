@@ -36,6 +36,7 @@ public:
         [[nodiscard]] auto sampler() const noexcept { return _sampler.get(); }
         [[nodiscard]] auto light_sampler() noexcept { return _light_sampler.get(); }
         [[nodiscard]] auto light_sampler() const noexcept { return _light_sampler.get(); }
+        [[nodiscard]] bool enable_cache() const noexcept { return _integrator->enable_cache(); }
         [[nodiscard]] bool use_progress() const noexcept { return _integrator->use_progress(); }
         virtual void render(Stream &stream) noexcept = 0;
         virtual void render_to_buffer(Stream &stream, Camera *camera, luisa::vector<float4> &buffer) noexcept = 0;

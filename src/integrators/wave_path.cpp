@@ -14,7 +14,7 @@ namespace luisa::render {
 using namespace compute;
 
 template<uint dim, typename F>
-[[nodiscard]] auto compile_async(Device &device, F &&f, bool enable_cache) noexcept {
+[[nodiscard]] auto compile_async(Device &device, F &&f, bool enable_cache = true) noexcept {
     auto kernel = [&] {
         if constexpr (dim == 1u) {
             return Kernel1D{f};
@@ -277,6 +277,7 @@ void WavefrontPathTracingInstance::_render_one_camera(
         path_states.write_pdf_bsdf(state_id, 1e16f);
         path_indices.write(state_id, state_id);
     }, enable_shader_cache);
+    // generate_rays_shader.wait();
 
     LUISA_INFO("Compiling intersection kernel.");
     auto intersect_shader = compile_async<1>(device, [&](BufferUInt ray_count, BufferRay rays, BufferHit hits,
@@ -307,6 +308,7 @@ void WavefrontPathTracingInstance::_render_one_camera(
             };
         };
     }, enable_shader_cache);
+    // intersect_shader.wait();
 
     LUISA_INFO("Compiling environment evaluation kernel.");
     auto evaluate_miss_shader = compile_async<1>(device, [&](BufferUInt path_indices, BufferRay rays,
@@ -328,6 +330,7 @@ void WavefrontPathTracingInstance::_render_one_camera(
             };
         }
     }, enable_shader_cache);
+    // evaluate_miss_shader.wait();
 
     LUISA_INFO("Compiling light evaluation kernel.");
     auto evaluate_light_shader = compile_async<1>(device, [&](BufferUInt path_indices, BufferRay rays, BufferHit hits,
@@ -351,6 +354,7 @@ void WavefrontPathTracingInstance::_render_one_camera(
             };
         }
     }, enable_shader_cache);
+    // evaluate_light_shader.wait();
 
     LUISA_INFO("Compiling light sampling kernel.");
     auto sample_light_shader = compile_async<1>(device, [&](BufferUInt path_indices, BufferRay rays, BufferHit hits,
@@ -376,6 +380,7 @@ void WavefrontPathTracingInstance::_render_one_camera(
                                            ite(occluded, 0.f, light_sample.eval.pdf));
         };
     }, enable_shader_cache);
+    // sample_light_shader.wait();
 
     LUISA_INFO("Compiling surface evaluation kernel.");
     auto evaluate_surface_shader = compile_async<1>(device, [&](BufferUInt path_indices, UInt trace_depth, BufferUInt queue, BufferUInt queue_size,
@@ -495,6 +500,7 @@ void WavefrontPathTracingInstance::_render_one_camera(
             };
         };
     }, enable_shader_cache);
+    // evaluate_surface_shader.wait();
 
     LUISA_INFO("Compiling accumulation kernel.");
     auto accumulate_shader = compile_async<1>(device, [&](Float shutter_weight) noexcept {
@@ -505,6 +511,7 @@ void WavefrontPathTracingInstance::_render_one_camera(
         auto Li = path_states.read_radiance(state_id);
         camera->film()->accumulate(pixel_coord, spectrum->srgb(swl, Li * shutter_weight));
     }, enable_shader_cache);
+    // accumulate_shader.wait();
 
     // wait for the compilation of all shaders
     generate_rays_shader.get().set_name("generate_rays");

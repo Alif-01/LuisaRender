@@ -611,7 +611,7 @@ public:
         LogLevel log_level, bool enable_cache,
         uint max_depth, uint rr_depth, float rr_threshold
     ) noexcept:
-        PyIntegrator{"wavepath", log_level, max_depth, rr_depth, rr_threshold} { }
+        PyIntegrator{"wavepath", log_level, enable_cache, max_depth, rr_depth, rr_threshold} { }
     ~PyWavePath() = default;
 };
 
@@ -621,7 +621,7 @@ public:
         LogLevel log_level, bool enable_cache,
         uint max_depth, uint rr_depth, float rr_threshold, uint state_limit
     ) noexcept:
-        PyIntegrator{"wavepath_v2", log_level, max_depth, rr_depth, rr_threshold} {
+        PyIntegrator{"wavepath_v2", log_level, enable_cache, max_depth, rr_depth, rr_threshold} {
         _node->add_property("state_limit", double(state_limit));
     }
     ~PyWavePathV2() = default;
