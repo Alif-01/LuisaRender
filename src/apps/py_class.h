@@ -11,7 +11,6 @@
 #include <pybind11/embed.h>
 #include <pybind11/numpy.h>
 
-
 using namespace luisa;
 using namespace luisa::compute;
 using namespace luisa::render;
@@ -196,23 +195,22 @@ public:
 class PyImage final: public PyTexture {
 public:
     PyImage(
-        std::string_view file, const PyDoubleArr &image_data,
+        std::string_view file,
+        std::string_view image_data, uint width, uint height, uint channel, 
         const PyDoubleArr &scale, std::string_view encoding
     ) noexcept: PyTexture{"image"} {
-        if (file.empty() && !image_data.size() == 0) {
-            uint channel;
-            if (image_data.ndim() == 2) channel = 1;
-            else if (image_data.ndim() == 3) channel = image_data.shape(2);
-            else LUISA_ERROR_WITH_LOCATION("Invalid image dim!");
+        if (file.empty() && !image_data.empty()) {
+            // if (image_data.ndim() == 2) channel = 1;
+            // else if (image_data.ndim() == 3) channel = image_data.shape(2);
+            // else LUISA_ERROR_WITH_LOCATION("Invalid image dim!");
             _node->add_property("resolution", luisa::vector<double>{
-                static_cast<double>(image_data.shape(1)),
-                static_cast<double>(image_data.shape(0))
+                static_cast<double>(width), static_cast<double>(height)
             });
             _node->add_property("channel", double(channel));
-            _node->add_property("image_data", pyarray_to_vector<double>(image_data));
-        } else if (!file.empty() && image_data.size() == 0) {
+            _node->add_property("image_data", luisa::string(image_data));
+        } else if (!file.empty() && image_data.empty()) {
             _node->add_property("file", luisa::string(file));
-        } else [[unlikely]] if (file.empty() && image_data.size() == 0)  {
+        } else [[unlikely]] if (file.empty() && image_data.empty())  {
             LUISA_ERROR_WITH_LOCATION("Cannot set both file image and inline image empty.");
         } else {
             LUISA_ERROR_WITH_LOCATION("Cannot set both file image and inline image.");

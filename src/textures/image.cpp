@@ -39,11 +39,13 @@ private:
     }
     
     void _load_image(
-        luisa::vector<float> image_data, uint2 resolution, uint channel
+        luisa::string image_data, uint2 resolution, uint channel
     ) noexcept {
         _image = global_thread_pool().async(
             [image_data = std::move(image_data), resolution = std::move(resolution), channel = channel] {
-                return LoadedImage::load(image_data, resolution, channel);
+                return LoadedImage::load(
+                    reinterpret_cast<const unsigned char *>(image_data.c_str()),
+                    resolution, channel);
         });
     }
 
@@ -128,7 +130,7 @@ public:
         if (filter_mode == TextureSampler::Filter::POINT) { _mipmaps = 1u; }
         if (path.string().empty()) {
             _load_image(
-                desc->property_float_list("image_data"),
+                desc->property_string("image_data"),
                 desc->property_uint2("resolution"),
                 desc->property_uint("channel")
             );
