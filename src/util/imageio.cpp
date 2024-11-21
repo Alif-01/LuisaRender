@@ -411,9 +411,7 @@ LoadedImage::storage_type LoadedImage::parse_storage(const std::filesystem::path
     return storage;
 }
 
-// LoadedImage LoadedImage::load(const luisa::vector<float> &image_data, uint2 resolution, uint channel) noexcept {
 LoadedImage LoadedImage::load(const uint8_t *image_data, uint2 resolution, uint channel) noexcept {
-    // auto storage = storage_type::FLOAT4;
     auto storage = storage_type::BYTE4;
     auto expected_channels = 4u;
     switch (channel) {
@@ -421,27 +419,7 @@ LoadedImage LoadedImage::load(const uint8_t *image_data, uint2 resolution, uint 
         case 2u: storage = storage_type::BYTE2; expected_channels = 2u; break;
     }
     auto value_count = resolution[0] * resolution[1] * expected_channels;
-    // auto pixels = luisa::allocate_with_allocator<float>(value_count);
     auto pixels = luisa::allocate_with_allocator<uint8_t>(value_count);
-
-    // stbi_load_from_memory
-    // if (storage != storage_type::BYTE1 &&
-    //     storage != storage_type::BYTE2 &&
-    //     storage != storage_type::BYTE4) [[unlikely]] {
-    //     LUISA_ERROR_WITH_LOCATION(
-    //         "Invalid pixel storage 0x{:02x} for BYTE image '{}'.",
-    //         luisa::to_underlying(storage), filename);
-    // }
-    // int w, h, nc;
-    // auto expected_channels = compute::pixel_storage_channel_count(storage);
-    // auto pixels = stbi_load(filename.c_str(), &w, &h, &nc, static_cast<int>(expected_channels));
-    // if (pixels == nullptr) [[unlikely]] {
-    //     LUISA_ERROR_WITH_LOCATION(
-    //         "Failed to load BYTE image '{}': {}.",
-    //         filename, stbi_failure_reason());
-    // }
-    // return {pixels, storage, make_uint2(w, h), stbi_image_free};
-
 
     if (channel == expected_channels) {
         std::memcpy(pixels, image_data, value_count * sizeof(uint8_t));
@@ -458,7 +436,6 @@ LoadedImage LoadedImage::load(const uint8_t *image_data, uint2 resolution, uint 
         }
     }
     auto deleter = luisa::function<void(void *)>{[](void *p) noexcept {
-        // luisa::deallocate_with_allocator(static_cast<float *>(p));
         luisa::deallocate_with_allocator(static_cast<uint8_t *>(p));
     }};
 

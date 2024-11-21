@@ -105,7 +105,7 @@ public:
         _pipeline->update(_stream);
     }
 
-    PyFloatArr render_frame(PyCamera *camera) noexcept {
+    std::string render_frame(PyCamera *camera) noexcept {
         auto camera_node = (Camera *)(camera->camera);
         const auto &resolution = camera_node->film()->resolution();
         luisa::vector<float4> buffer;
@@ -124,8 +124,12 @@ public:
         }
 
         apply_gamma(buffer_p, resolution);
-        auto array_buffer = PyFloatArr(resolution.x * resolution.y * 4);
-        std::memcpy(array_buffer.mutable_data(), buffer_p, array_buffer.size() * sizeof(float));
-        return array_buffer;
+
+        luisa::vector<uint8_t> byte_buffer;
+        byte_buffer.resize(resolution.x * resolution.y * 4);
+        auto byte_buffer_p = reinterpret_cast<uint8_t *>(byte_buffer.data());
+        convert_uint8(byte_buffer_p, buffer_p, resolution);
+
+        return std::string(byte_buffer.begin(), byte_buffer.end());
     }
 };

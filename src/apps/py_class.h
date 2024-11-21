@@ -200,9 +200,6 @@ public:
         const PyDoubleArr &scale, std::string_view encoding
     ) noexcept: PyTexture{"image"} {
         if (file.empty() && !image_data.empty()) {
-            // if (image_data.ndim() == 2) channel = 1;
-            // else if (image_data.ndim() == 3) channel = image_data.shape(2);
-            // else LUISA_ERROR_WITH_LOCATION("Invalid image dim!");
             _node->add_property("resolution", luisa::vector<double>{
                 static_cast<double>(width), static_cast<double>(height)
             });

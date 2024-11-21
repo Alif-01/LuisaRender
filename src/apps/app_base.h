@@ -139,6 +139,13 @@ void apply_gamma(float *buffer, uint2 resolution) noexcept {
     }
 }
 
+void convert_uint8(uint8_t *uint_image, float *float_image, uint2 resolution) noexcept {
+    auto pixel_count = resolution.x * resolution.y;
+    for (int i = 0; i < pixel_count * 4; ++i) {
+        uint_image[i] = static_cast<uint8_t>(std::clamp(float_image[i] * 255.0f, 0.0f, 255.0f));
+    }
+}
+
 [[nodiscard]] luisa::unique_ptr<luisa::vector<uint8_t>> convert_to_int_pixel(
     const float *buffer, uint2 resolution
 ) noexcept {
