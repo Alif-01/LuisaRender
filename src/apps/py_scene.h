@@ -105,8 +105,8 @@ public:
         _pipeline->update(_stream);
     }
 
-    std::string render_frame(PyCamera *camera) noexcept {
-        auto camera_node = (Camera *)(camera->camera);
+    py::bytes render_frame(PyCamera *camera) noexcept {
+        auto camera_node = static_cast<Camera *>(camera->camera);
         const auto &resolution = camera_node->film()->resolution();
         luisa::vector<float4> buffer;
         _pipeline->render_to_buffer(_stream, camera_node, buffer);
@@ -130,6 +130,6 @@ public:
         auto byte_buffer_p = reinterpret_cast<uint8_t *>(byte_buffer.data());
         convert_uint8(byte_buffer_p, buffer_p, resolution);
 
-        return std::string(byte_buffer.begin(), byte_buffer.end());
+        return py::bytes(reinterpret_cast<const char *>(byte_buffer.data()), byte_buffer.size());
     }
 };

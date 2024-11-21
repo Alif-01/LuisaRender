@@ -212,7 +212,9 @@ public:
         } else {
             LUISA_ERROR_WITH_LOCATION("Cannot set both file image and inline image.");
         }
-        _node->add_property("scale", pyarray_to_vector<double>(scale));
+        auto scale_array = pyarray_to_vector<double>(scale);
+        while (scale_array.size() < 3) scale_array.push_back(0.0f);
+        _node->add_property("scale", scale_array);
         _node->add_property("encoding", luisa::string(encoding));
     }
     ~PyImage() = default;
