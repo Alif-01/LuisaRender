@@ -8,7 +8,6 @@
 #include <luisa/runtime/buffer_arena.h>
 #include <luisa/runtime/image.h>
 #include <luisa/runtime/bindless_array.h>
-#include <luisa/runtime/rtx/mesh.h>
 #include <luisa/runtime/rtx/accel.h>
 
 #include <util/spec.h>

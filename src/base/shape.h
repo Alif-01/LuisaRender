@@ -5,6 +5,7 @@
 #pragma once
 
 #include <runtime/rtx/mesh.h>
+#include <runtime/rtx/procedural_primitive.h>
 #include <runtime/rtx/aabb.h>
 #include <util/vertex.h>
 #include <base/scene_node.h>
