@@ -303,7 +303,7 @@ public:
                     .hdr = d->hdr(),
                     .back_buffers = d->back_buffers()});
             _framebuffer = device.create_image<float>(_window->swapchain().backend_storage(), size);
-            _background = reinterpret_cast<ImTextureID>(_window->register_texture(_framebuffer, TextureSampler::linear_point_zero()));
+            _background = _window->register_texture(_framebuffer, TextureSampler::linear_point_zero());
             _blit = device.compile<2>([base = _base.get(), &framebuffer = _framebuffer](Int tonemapping, Bool ldr, Float3 scale, Float3 white_balance) noexcept {
                 auto p = dispatch_id().xy();
                 auto color = base->read(p).average * scale;

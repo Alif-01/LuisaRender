@@ -2,6 +2,7 @@
 // Created by Mike Smith on 2022/1/10.
 //
 
+#include <gui/framerate.h>
 #include <util/imageio.h>
 #include <util/medium_tracker.h>
 #include <util/progress_bar.h>
