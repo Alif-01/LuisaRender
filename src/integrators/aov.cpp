@@ -296,6 +296,8 @@ void AuxiliaryBufferPathTracingInstance::_render_one_camera(
         auto normal = def(make_float3());
         auto roughness = def(make_float2());
 
+        auto front = normalize(make_float3x3(camera->camera_to_world()) * make_float3(0.f, 0.f, -1.f));
+
         $for (depth, node<AuxiliaryBufferPathTracing>()->max_depth()) {
 
             // trace
@@ -305,7 +307,7 @@ void AuxiliaryBufferPathTracingInstance::_render_one_camera(
             $if (depth == 0 & it->valid()) {
                 aux_buffers.at("mask")->accumulate(dispatch_id().xy(), make_float4(1.f));
                 auto p_ndc = make_float3((camera_sample.pixel / make_float2(resolution) * 2.f - 1.f) * make_float2(1.f, -1.f),
-                                         cast<float>(depth) / (ray->t_max() - ray->t_min()));
+                                         dot(it->p() - ray->origin(), front) / (ray->t_max() - ray->t_min()));
                 aux_buffers.at("ndc")->accumulate(dispatch_id().xy(), make_float4(p_ndc, 1.f));
                 normal = it->shading().n();
                 auto distance = length(it->p() - ray->origin());

@@ -405,7 +405,7 @@ Var<CommittedHit> Geometry::trace_closest(const Var<Ray> &ray_in) const noexcept
             .trace();
     }
     // TODO: DirectX has bug with ray query, so we manually march the ray here
-//     if (_pipeline.device().backend_name() == "dx") {
+//     if (_pipeline.device().backend_name() == "dx" || _pipeline.device().backend_name() == "fallback") {
 //         auto ray = ray_in;
 //         auto hit = _accel->intersect(ray, {});
 //         constexpr auto max_iterations = 100u;
@@ -434,16 +434,16 @@ Var<CommittedHit> Geometry::trace_closest(const Var<Ray> &ray_in) const noexcept
     // return impl(ray_in);
 }
 
-Var<bool> Geometry::trace_any(const Var<Ray> &ray) const noexcept {
+Var<bool> Geometry::trace_any(const Var<Ray> &ray_in) const noexcept {
     if (!_any_non_opaque) {
         // happy path
-        return !_accel->traverse_any(ray, {})
+        return !_accel->traverse_any(ray_in, {})
             .on_procedural_candidate([&](ProceduralCandidate &c) noexcept {
                 this->_procedural_filter(c);
             })
             .trace()->miss();
     } else {
-        return !_accel->traverse_any(ray, {})
+        return !_accel->traverse_any(ray_in, {})
             .on_surface_candidate([&](SurfaceCandidate &c) noexcept {
                 $if (!this->_alpha_skip(c.ray(), c.hit())) {
                     c.commit();
@@ -456,6 +456,7 @@ Var<bool> Geometry::trace_any(const Var<Ray> &ray) const noexcept {
             })
             .trace()->miss();
     }
+    //  (_pipeline.device().backend_name() == "fallback")
 }
 
 Interaction Geometry::triangle_interaction(

@@ -58,7 +58,7 @@ namespace fs = std::filesystem;
     
     if (print_macro) {
         for (auto &&[k, v] : macros) {
-            LUISA_INFO("Found CLI Macro: {} = {}", k, v);
+            LUISA_INFO("Found Macro: {} = {}", k, v);
         }
     }
     return macros;
@@ -66,16 +66,13 @@ namespace fs = std::filesystem;
 
 void add_render_options(cxxopts::Options &parser) noexcept {
     parser.add_option("", "o", "output_dir", "Path to output image directory", cxxopts::value<fs::path>()->default_value(""), "<dir>");
-    parser.add_option("", "b", "backend", "Compute backend name", cxxopts::value<luisa::string>(), "<backend>");
-    parser.add_option("", "d", "device", "Compute device index", cxxopts::value<uint32_t>()->default_value("0"), "<index>");
     parser.add_option("", "m", "mark", "Identifier of the scene", cxxopts::value<luisa::string>()->default_value(""), "<mark>");
     parser.add_option("", "l", "log_level", "Logging level of renderer", cxxopts::value<luisa::string>()->default_value("info"), "<logging-level>");
     parser.add_option("", "r", "render_png", "Whether to render png", cxxopts::value<bool>(), "<render>");
 }
 
 void add_cli_options(cxxopts::Options &parser) noexcept {
-    parser.add_option("", "b", "backend", "Compute backend name", cxxopts::value<luisa::string>(), "<backend>");
-    parser.add_option("", "d", "device", "Compute device index", cxxopts::value<uint32_t>()->default_value("0"), "<index>");
+    parser.add_option("", "v", "verbose", "Enable verbose logging", cxxopts::value<bool>()->default_value("false"), "");
 }
 
 [[nodiscard]] auto parse_options(
@@ -91,6 +88,8 @@ void add_cli_options(cxxopts::Options &parser) noexcept {
         add_cli_options(parser);
     }
 
+    parser.add_option("", "b", "backend", "Compute backend name", cxxopts::value<luisa::string>(), "<backend>");
+    parser.add_option("", "d", "device", "Compute device index", cxxopts::value<uint32_t>()->default_value("0"), "<index>");
     parser.add_option("", "", "scene", "Path to scene description file", cxxopts::value<std::filesystem::path>(), "<file>");
     parser.add_option("", "D", "define", "Parameter definitions to override scene description macros.",
         cxxopts::value<std::vector<luisa::string>>()->default_value("<none>"), "<key>=<value>");

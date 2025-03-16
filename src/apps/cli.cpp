@@ -67,13 +67,18 @@ int main(int argc, char *argv[]) {
     luisa::compute::Context context{exe_path};
     auto macros = parse_macros(argc, argv);
     auto options = parse_options(argc, argv, "cli");
-    log_level_info();
+    if (options["verbose"].as<bool>()) {
+        log_level_verbose();
+    } else {
+        log_level_info();
+    }
     auto backend = options["backend"].as<luisa::string>();
-    auto index = options["device"].as<int32_t>();
+    auto index = options["device"].as<std::size_t>();
     auto path = options["scene"].as<std::filesystem::path>();
-    compute::DeviceConfig config;
-    config.device_index = index;
-    config.inqueue_buffer_limit = false;// Do not limit the number of in-queue buffers --- we are doing offline rendering!
+    compute::DeviceConfig config {
+        .device_index = index,
+        .inqueue_buffer_limit = false // Do not limit the number of in-queue buffers --- we are doing offline rendering!    
+    };
     auto device = context.create_device(backend, &config);
 
     Clock clock;

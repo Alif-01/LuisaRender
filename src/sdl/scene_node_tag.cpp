@@ -11,7 +11,7 @@ SceneNodeTag parse_scene_node_tag(luisa::string_view tag_desc) noexcept {
     luisa::string tag{tag_desc};
     for (auto &c : tag) { c = static_cast<char>(std::tolower(c)); }
     using namespace std::string_view_literals;
-    static constexpr auto desc_to_tag_count = 28u;
+    static constexpr auto desc_to_tag_count = 30u;
     static const luisa::fixed_map<std::string_view, SceneNodeTag, desc_to_tag_count> desc_to_tag{
         {"camera"sv, SceneNodeTag::CAMERA},
         {"cam"sv, SceneNodeTag::CAMERA},
