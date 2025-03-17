@@ -32,7 +32,7 @@ void init(
     }
     context_ptr = luisa::make_unique<Context>(luisa::string(context_path), context_id);
     LUISA_INFO("Hardware concurrency: {}", std::thread::hardware_concurrency());
-    luisa::string backend = "CUDA";
+    luisa::string backend = "cuda";
     compute::DeviceConfig config;
     config.device_index = cuda_device;      // Please ensure that cuda:cuda_device has enough space
     device_ptr = luisa::make_unique<Device>(context_ptr->create_device(backend, &config));
