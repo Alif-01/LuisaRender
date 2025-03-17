@@ -46,7 +46,7 @@ create_alias_table(luisa::span<const float> values) noexcept {
     } else [[likely]] {
         auto inv_sum = 1.0 / sum;
         std::transform(
-            values.cbegin(), values.cend(), pdf.begin(),
+            values.begin(), values.end(), pdf.begin(),
             [inv_sum](auto v) noexcept {
                 return static_cast<float>(std::abs(v) * inv_sum);
             });

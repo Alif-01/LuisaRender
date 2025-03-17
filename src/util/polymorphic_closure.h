@@ -68,7 +68,7 @@ public:
         const ClosureCreator &f = [] { return luisa::make_unique<Closure>(); }) noexcept {
 
         auto [iter, first] = _closure_tags.try_emplace(
-            identifier, static_cast<uint>(_closures.size()));
+            luisa::string{identifier}, static_cast<uint>(_closures.size()));
         if (first) { _closures.emplace_back(f()); }
         _tag = iter->second;
         auto closure = dynamic_cast<T *>(_closures[iter->second].get());

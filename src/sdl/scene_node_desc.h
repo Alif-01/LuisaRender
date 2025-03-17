@@ -17,14 +17,28 @@ namespace luisa::render {
 class SceneDesc;
 class SceneNodeDesc;
 
+struct JustBool {
+    bool value;
+    JustBool(bool value) noexcept : value{value} {}
+    operator bool() const noexcept { return value; }
+};
+
 namespace detail {
 
 template<typename T>
-struct scene_node_raw_property : public scene_node_raw_property<std::remove_cvref<T>> {};
+struct scene_node_raw_property
+    : public scene_node_raw_property<std::remove_cvref<T>> {};
+
+// use JustBool to represent bool to avoid vector<bool> specialization
+template<>
+struct scene_node_raw_property<JustBool> {
+    using type = JustBool;
+    static constexpr luisa::string_view value = "bool";
+};
 
 template<>
 struct scene_node_raw_property<bool> {
-    using type = bool;
+    using type = JustBool;
     static constexpr luisa::string_view value = "bool";
 };
 
@@ -81,7 +95,7 @@ constexpr auto is_property_list_v<luisa::vector<T>> = true;
 class SceneNodeDesc {
 
 public:
-    using bool_type = bool;
+    using bool_type = JustBool;
     using number_type = double;
     using string_type = luisa::string;
     using node_type = const SceneNodeDesc *;
@@ -299,7 +313,7 @@ SceneNodeDesc::_property_raw_values(luisa::string_view name) const noexcept {
             _identifier, source_location().string());
         return luisa::nullopt;
     }
-    return luisa::span{std::as_const(*ptr)};
+    return luisa::span{*std::as_const(ptr)};
 }
 
 template<typename T>

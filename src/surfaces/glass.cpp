@@ -22,7 +22,7 @@ inline auto builtin_ior_texture_desc(luisa::string name) noexcept {
             desc->define(SceneNodeTag::TEXTURE, "Constant", {});
             desc->add_property("v", SceneNodeDesc::number_list{ior.x, ior.y, ior.z});
             for (auto &c : name) { c = static_cast<char>(tolower(c)); }
-            return eastl::make_pair(std::move(name), std::move(desc));
+            return luisa::make_pair(std::move(name), std::move(desc));
         };
         using namespace std::string_view_literals;
         return luisa::fixed_map<luisa::string, luisa::shared_ptr<SceneNodeDesc>, 15>{

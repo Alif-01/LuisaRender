@@ -99,7 +99,7 @@ void SceneParserJSON::_parse_node(SceneNodeDesc &desc, const json &node) const n
                 for (auto &&v : array) { values.emplace_back(v.get<double>()); }
                 desc.add_property(item.key(), std::move(values));
             } else if (array[0].is_boolean()) {
-                luisa::vector<bool> values;
+                luisa::vector<JustBool> values;
                 values.reserve(array.size());
                 for (auto &&v : array) { values.emplace_back(v.get<bool>()); }
                 desc.add_property(item.key(), std::move(values));

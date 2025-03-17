@@ -7,10 +7,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-24.04, ubuntu-24.04-arm, ubuntu-22.04 ]
+        include:
+          - os: ubuntu-24.04
+            arch: x86_64
+            cuda-keyring: x86_64
+          - os: ubuntu-24.04-arm
+            arch: aarch64
+            cuda-keyring: sbsa
         compiler:
           - { name: gcc, version: 11 }
-          # - { name: gcc, version: 12 }
           - { name: gcc, version: 13 }
           - { name: clang, version: 14 }
           - { name: clang, version: 15 }
@@ -40,23 +45,15 @@ jobs:
           fi
           sudo apt-get update
           sudo apt-get -y install build-essential cmake ninja-build uuid-dev libxinerama-dev libxcursor-dev libxi-dev libvulkan-dev libxkbcommon-dev libxrandr-dev
-      - name: "Download CUDA Keyring (ubuntu-24.04)"
-        if: matrix.os == 'ubuntu-24.04'
+      - name: "Install CUDA Keyring"
         run: |
-          wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
-      - name: "Download CUDA Keyring (ubuntu-24.04-arm)"
-        if: matrix.os == 'ubuntu-24.04-arm'
-        run: |
-          wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/sbsa/cuda-keyring_1.1-1_all.deb
-      - name: "Download CUDA Keyring (ubuntu-22.04)"
-        if: matrix.os == 'ubuntu-22.04'
-        run: |
-          wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
+          wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/${{ matrix.cuda-keyring }}/cuda-keyring_1.1-1_all.deb
+          sudo apt-get -y remove --purge -s '*cuda*' '*nvidia*'
+          sudo dpkg -i cuda-keyring_1.1-1_all.deb
       - name: "Setup CUDA"
         run: |
-          sudo dpkg -i cuda-keyring_1.1-1_all.deb
           sudo apt-get update
-          sudo apt-get -y install cuda-12.8
+          sudo apt-get -y install cuda
           sudo apt-get -y clean # save some space
       - name: "Setup Vulkan SDK"
         uses: johnnynunez/setup-vulkan-sdk@v1
@@ -140,9 +137,9 @@ jobs:
         with:
           submodules: recursive
       - name: "Setup CUDA"
-        uses: Jimver/cuda-toolkit@master
+        uses: Jimver/cuda-toolkit@v0.2.22
         with:
-          cuda: 12.8.0
+          cuda: 12.8.1
       - name: "Setup Ninja"
         uses: ashutoshvarma/setup-ninja@master
         with:
