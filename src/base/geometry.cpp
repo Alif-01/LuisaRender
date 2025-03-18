@@ -352,11 +352,39 @@ Bool Geometry::_alpha_skip(const Var<Ray> &ray, const Var<ProceduralHit> &hit) c
     return _alpha_skip(*it, u);
 }
 
-void Geometry::_procedural_filter(ProceduralCandidate &c) const noexcept {
-    Var<ProceduralHit> h = c.hit();
-    Var<Ray> ray = c.ray();
-    Var<AABB> ab = aabb(instance(h.inst), h.prim);
-    Float4x4 shape_to_world = instance_to_world(h.inst);
+// void Geometry::_procedural_filter(ProceduralCandidate &c) const noexcept {
+//     Var<ProceduralHit> h = c.hit();
+//     Var<Ray> ray = c.ray();
+//     Var<AABB> ab = aabb(instance(h.inst), h.prim);
+//     Float4x4 shape_to_world = instance_to_world(h.inst);
+//     Float3x3 m = make_float3x3(shape_to_world);
+//     Float3 t = make_float3(shape_to_world[3]);
+//     Float3 aabb_min = m * ab->min() + t;
+//     Float3 aabb_max = m * ab->max() + t;
+
+//     Float3 origin = (aabb_min + aabb_max) * .5f;
+//     Float radius = length(aabb_max - aabb_min) * .5f * inv_sqrt3;
+//     Float3 ray_origin = ray->origin();
+//     Float3 L = origin - ray_origin;
+//     Float3 dir = ray->direction();
+//     Float cos_theta = dot(dir, normalize(L));
+//     $if (cos_theta > 0.f) {
+//         Float d_oc = length(L);
+//         Float tc = d_oc * cos_theta;
+//         Float d = sqrt(d_oc * d_oc - tc * tc);
+//         $if (d <= radius) {
+//             Float t1c = sqrt(radius * radius - d * d);
+//             Float dist = tc - t1c;
+//             $if (dist < ray->t_max()) {
+//                 c.commit(dist);
+//             };
+//         };
+//     };
+// }
+
+Float Geometry::_procedural_intersect(const Var<Ray> &ray, const Var<ProceduralHit> &hit) const noexcept {
+    Var<AABB> ab = aabb(instance(hit.inst), hit.prim);
+    Float4x4 shape_to_world = instance_to_world(hit.inst);
     Float3x3 m = make_float3x3(shape_to_world);
     Float3 t = make_float3(shape_to_world[3]);
     Float3 aabb_min = m * ab->min() + t;
@@ -368,18 +396,19 @@ void Geometry::_procedural_filter(ProceduralCandidate &c) const noexcept {
     Float3 L = origin - ray_origin;
     Float3 dir = ray->direction();
     Float cos_theta = dot(dir, normalize(L));
+
+    Float dist = 0.f;
     $if (cos_theta > 0.f) {
         Float d_oc = length(L);
         Float tc = d_oc * cos_theta;
         Float d = sqrt(d_oc * d_oc - tc * tc);
         $if (d <= radius) {
             Float t1c = sqrt(radius * radius - d * d);
-            Float dist = tc - t1c;
-            $if (dist < ray->t_max()) {
-                c.commit(dist);
-            };
+            Float rd = tc - t1c;
+            dist = ite(rd < ray->t_max(), rd, 0.f);
         };
     };
+    return dist;
 }
 
 Var<CommittedHit> Geometry::trace_closest(const Var<Ray> &ray_in) const noexcept {
@@ -387,25 +416,15 @@ Var<CommittedHit> Geometry::trace_closest(const Var<Ray> &ray_in) const noexcept
         // happy path
         return _accel->traverse(ray_in, {})
             .on_procedural_candidate([&](ProceduralCandidate &c) noexcept {
-                this->_procedural_filter(c);
-            })
-            .trace();
-    } else {
-        return _accel->traverse(ray_in, {})
-            .on_surface_candidate([&](SurfaceCandidate &c) noexcept {
-                $if (!this->_alpha_skip(c.ray(), c.hit())) {
-                    c.commit();
-                };
-            })
-            .on_procedural_candidate([&](ProceduralCandidate &c) noexcept {
-                $if (!this->_alpha_skip(c.ray(), c.hit())) {
-                    this->_procedural_filter(c);
-                };
+                // this->_procedural_filter(c);
+                Float dist = this->_procedural_intersect(c.ray(), c.hit());
+                $if (dist > 0.f) { c.commit(dist); };
             })
             .trace();
     }
     // TODO: DirectX has bug with ray query, so we manually march the ray here
-//     if (_pipeline.device().backend_name() == "dx" || _pipeline.device().backend_name() == "fallback") {
+    // TODO: _accel->intersect only returns TriangleHit not CommittedHit
+//     if (_pipeline.device().backend_name() == "dx") {
 //         auto ray = ray_in;
 //         auto hit = _accel->intersect(ray, {});
 //         constexpr auto max_iterations = 100u;
@@ -427,11 +446,22 @@ Var<CommittedHit> Geometry::trace_closest(const Var<Ray> &ray_in) const noexcept
 //         };
 //         return Var<Hit>{hit.inst, hit.prim, hit.bary};
 //     }
+    
     // use ray query
-    // Callable impl = [this](Var<Ray> ray) noexcept {
-    //     auto rq_hit =
-    // };
-    // return impl(ray_in);
+    return _accel->traverse(ray_in, {})
+        .on_surface_candidate([&](SurfaceCandidate &c) noexcept {
+            $if (!this->_alpha_skip(c.ray(), c.hit())) {
+                c.commit();
+            };
+        })
+        .on_procedural_candidate([&](ProceduralCandidate &c) noexcept {
+            $if (!this->_alpha_skip(c.ray(), c.hit())) {
+                // this->_procedural_filter(c);
+                Float dist = this->_procedural_intersect(c.ray(), c.hit());
+                $if (dist > 0.f) { c.commit(dist); };
+            };
+        })
+        .trace();
 }
 
 Var<bool> Geometry::trace_any(const Var<Ray> &ray_in) const noexcept {
@@ -439,7 +469,9 @@ Var<bool> Geometry::trace_any(const Var<Ray> &ray_in) const noexcept {
         // happy path
         return !_accel->traverse_any(ray_in, {})
             .on_procedural_candidate([&](ProceduralCandidate &c) noexcept {
-                this->_procedural_filter(c);
+                // this->_procedural_filter(c);
+                Float dist = this->_procedural_intersect(c.ray(), c.hit());
+                $if (dist > 0.f) { c.commit(dist); };
             })
             .trace()->miss();
     } else {
@@ -451,12 +483,13 @@ Var<bool> Geometry::trace_any(const Var<Ray> &ray_in) const noexcept {
             })
             .on_procedural_candidate([&](ProceduralCandidate &c) noexcept {
                 $if (!this->_alpha_skip(c.ray(), c.hit())) {
-                    this->_procedural_filter(c);
+                    // this->_procedural_filter(c);
+                    Float dist = this->_procedural_intersect(c.ray(), c.hit());
+                    $if (dist > 0.f) { c.commit(dist); };
                 };
             })
             .trace()->miss();
     }
-    //  (_pipeline.device().backend_name() == "fallback")
 }
 
 Interaction Geometry::triangle_interaction(

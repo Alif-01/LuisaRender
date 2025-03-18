@@ -124,7 +124,8 @@ private:
     [[nodiscard]] Bool _alpha_skip(const Interaction &it, Expr<float> u) const noexcept;
     [[nodiscard]] Bool _alpha_skip(const Var<Ray> &ray, const Var<SurfaceHit> &hit) const noexcept;
     [[nodiscard]] Bool _alpha_skip(const Var<Ray> &ray, const Var<ProceduralHit> &hit) const noexcept;
-    void _procedural_filter(ProceduralCandidate &c) const noexcept;
+    // void _procedural_filter(ProceduralCandidate &c) const noexcept;
+    [[nodiscard]] Float _procedural_intersect(const Var<Ray> &ray, const Var<ProceduralHit> &hit) const noexcept;
 
 public:
     explicit Geometry(Pipeline &pipeline) noexcept;
