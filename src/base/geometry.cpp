@@ -473,7 +473,6 @@ Interaction Geometry::triangle_interaction(
 
     auto tri = triangle(shape, prim_id);
     auto attrib = shading_point(shape, tri, bary, m);
-    // attrib.ns = clamp_shading_normal(attrib.ns, attrib.g.n, -ray->direction());
     return Interaction(
         std::move(shape), inst_id, prim_id, attrib,
         dot(ray->direction(), attrib.g.n) > 0.0f);
@@ -533,10 +532,6 @@ Shape::Handle Geometry::instance(Expr<uint> inst_id) const noexcept {
         _instance_property_buffer->read(inst_id)
     );
 }
-
-// Shape::PropertyHandle Geometry::instance_property(Expr<uint> inst_id) const noexcept {
-//     return Shape::PropertyHandle::decode();
-// }
 
 UInt Geometry::light_instance(Expr<uint> inst_id) const noexcept {
     return _light_instance_buffer->read(inst_id);
@@ -637,9 +632,6 @@ ShadingAttribute Geometry::shading_point(
     auto m = make_float3x3(shape_to_world);
     auto t = make_float3(shape_to_world[3]);
     auto ng_local = normalize(cross(dp0_local, dp1_local));
-    // auto n0_local = clamp_normal_angle(v0->normal(), ng_local, clamp_angle);
-    // auto n1_local = clamp_normal_angle(v1->normal(), ng_local, clamp_angle);
-    // auto n2_local = clamp_normal_angle(v2->normal(), ng_local, clamp_angle);
     auto n0_local = clamp_normal_angle(v0->normal(), ng_local, clamp_angle);
     auto n1_local = clamp_normal_angle(v1->normal(), ng_local, clamp_angle);
     auto n2_local = clamp_normal_angle(v2->normal(), ng_local, clamp_angle);

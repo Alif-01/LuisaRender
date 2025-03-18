@@ -46,13 +46,6 @@ void Frame::flip() noexcept {
     _t = -_t;
 }
 
-// Float3 clamp_shading_normal(Expr<float3> ns, Expr<float3> ng, Expr<float3> w) noexcept {
-//     auto w_refl = reflect(-w, ns);
-//     auto w_refl_clip = ite(dot(w_refl, ng) * dot(w, ng) > 0.f, w_refl,
-//                            normalize(w_refl - ng * dot(w_refl, ng)));
-//     return normalize(w_refl_clip + w);
-// }
-
 /* If the shading normal results in specular reflection in the lower hemisphere, raise the shading
  * normal towards the geometry normal so that the specular reflection is just above the surface.
  * Only used for glossy materials. */
