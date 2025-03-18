@@ -806,7 +806,7 @@ void MegakernelWaveFrontInstance::_render_one_camera(
     auto shutter_samples = camera->node()->shutter_samples();
 
     Clock clock;
-    ProgressBar progress_bar;
+    ProgressBar progress_bar(silent());
     progress_bar.update(0.0);
     uint shutter_spp = 0;
     auto sample_count = device.create_buffer<uint>(1u);

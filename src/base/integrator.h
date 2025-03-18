@@ -37,7 +37,7 @@ public:
         [[nodiscard]] auto light_sampler() noexcept { return _light_sampler.get(); }
         [[nodiscard]] auto light_sampler() const noexcept { return _light_sampler.get(); }
         [[nodiscard]] bool enable_cache() const noexcept { return _integrator->enable_cache(); }
-        [[nodiscard]] bool use_progress() const noexcept { return _integrator->use_progress(); }
+        [[nodiscard]] bool silent() const noexcept { return _integrator->silent(); }
         virtual void render(Stream &stream) noexcept = 0;
         virtual void render_to_buffer(Stream &stream, Camera *camera, luisa::vector<float4> &buffer) noexcept = 0;
     };
@@ -46,7 +46,7 @@ private:
     const Sampler *_sampler;
     const LightSampler *_light_sampler;
     bool _enable_cache;
-    bool _use_progress;
+    bool _silent;
 
 public:
     Integrator(Scene *scene, const SceneNodeDesc *desc) noexcept;
@@ -56,7 +56,7 @@ public:
     [[nodiscard]] virtual luisa::unique_ptr<Instance> build(
         Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept = 0;
     [[nodiscard]] bool enable_cache() const noexcept { return _enable_cache; }
-    [[nodiscard]] bool use_progress() const noexcept { return _use_progress; }
+    [[nodiscard]] bool silent() const noexcept { return _silent; }
 };
 
 class ProgressiveIntegrator : public Integrator {

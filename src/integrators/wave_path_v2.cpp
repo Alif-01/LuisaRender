@@ -1072,7 +1072,7 @@ void WavefrontPathTracingv2Instance::_render_one_camera(
     auto shutter_samples = camera->node()->shutter_samples();
 
     Clock clock;
-    ProgressBar progress_bar(!use_progress());
+    ProgressBar progress_bar(silent());
     progress_bar.update(0.0);
     auto launch_limit = state_count / (KERNEL_COUNT - 1);
     uint shutter_spp = 0;

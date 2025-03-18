@@ -16,7 +16,7 @@ Integrator::Integrator(Scene *scene, const SceneNodeDesc *desc) noexcept:
         "sampler", SceneNodeDesc::shared_default_sampler("independent")))},
     _light_sampler{scene->load_light_sampler(desc->property_node_or_default(
         "light_sampler", SceneNodeDesc::shared_default_light_sampler("uniform")))},
-    _use_progress{desc->property_bool_or_default("use_progress", true)},
+    _silent{desc->property_bool_or_default("silent", false)},
     _enable_cache{desc->property_bool_or_default("enable_cache", true)} { }
 
 luisa::string Integrator::info() const noexcept {
@@ -104,7 +104,7 @@ void ProgressiveIntegrator::Instance::_render_one_camera(
 
     LUISA_INFO("Rendering started.");
     Clock clock;
-    ProgressBar progress(!use_progress());
+    ProgressBar progress(silent());
     progress.update(0.);
     auto dispatch_count = 0u;
     auto sample_id = 0u;

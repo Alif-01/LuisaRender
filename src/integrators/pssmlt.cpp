@@ -615,7 +615,7 @@ private:
 
         clk.tic();
         LUISA_INFO("Rendering started.");
-        ProgressBar progress(!use_progress());
+        ProgressBar progress(silent());
         progress.update(0.);
         auto dispatch_count = 0ull;
         auto mutation_count = 0ull;

@@ -241,7 +241,7 @@ public:
     ) noexcept: PyDesc{name, SceneNodeTag::LIGHT, "diffuse"} {
         add_property_node("emission", emission);
         _node->add_property("scale", intensity);
-        _node->add_property("two_sided", two_sided);
+        _node->add_property("two_sided", JustBool(two_sided));
         _node->add_property("angle", beam_angle);
     }
     virtual ~PyLight() = default;
@@ -339,7 +339,7 @@ public:
         add_property_node("specular_trans", specular_trans);
         add_property_node("diffuse_trans", diffuse_trans);
         if (diffuse_trans) {
-            _node->add_property("thin", true);
+            _node->add_property("thin", JustBool(true));
         }
     }
     ~PyDisneySurface() = default;
@@ -593,8 +593,8 @@ public:
         uint max_depth, uint rr_depth, float rr_threshold
     ) noexcept:
         PyDesc{"", SceneNodeTag::INTEGRATOR, impl_type} {
-        _node->add_property("use_progress", log_level != LogLevel::WARNING);
-        _node->add_property("enable_cache", enable_cache);
+        _node->add_property("silent", JustBool(log_level == LogLevel::WARNING));
+        _node->add_property("enable_cache", JustBool(enable_cache));
         _node->add_property("depth", double(max_depth));
         _node->add_property("rr_depth", double(rr_depth));
         _node->add_property("rr_threshold", rr_threshold);

@@ -1206,7 +1206,7 @@ void GradientPathTracingInstance::_render_one_camera(
 
     LUISA_INFO("Rendering started.");
     Clock clock;
-    ProgressBar progress(!use_progress());
+    ProgressBar progress(silent());
     progress.update(0.);
     auto dispatch_count = 0u;
     auto sample_id = 0u;

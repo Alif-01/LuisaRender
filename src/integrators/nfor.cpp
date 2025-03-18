@@ -451,7 +451,7 @@ void AuxiliaryBufferPathTracingInstance::_render_one_camera(
 
     LUISA_INFO("Rendering started.");
     Clock clock;
-    ProgressBar progress;
+    ProgressBar progress(silent());
     progress.update(0.0);
 
     auto dispatch_count = 0u;
