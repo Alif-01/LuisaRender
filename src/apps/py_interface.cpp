@@ -22,7 +22,7 @@ py::array_t<T> get_default_array(const luisa::vector<T> &a) {
 
 void init(
     std::string_view context_path, std::string_view context_id,
-    uint cuda_device, LogLevel log_level
+    std::string_view backend, uint device_index, LogLevel log_level
 ) noexcept {
     /* add device */
     switch (log_level) {
@@ -32,9 +32,8 @@ void init(
     }
     context_ptr = luisa::make_unique<Context>(luisa::string(context_path), context_id);
     LUISA_INFO("Hardware concurrency: {}", std::thread::hardware_concurrency());
-    luisa::string backend = "cuda";
     compute::DeviceConfig config;
-    config.device_index = cuda_device;      // Please ensure that cuda:cuda_device has enough space
+    config.device_index = device_index;     // Please ensure that cuda:cuda_device has enough space
     device_ptr = luisa::make_unique<Device>(context_ptr->create_device(backend, &config));
     stream_ptr = luisa::make_unique<Stream>(device_ptr->create_stream(StreamTag::COMPUTE));
 }
@@ -335,7 +334,8 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
     m.def("init", &init,
         py::arg("context_path"),
         py::arg("context_id") = "",
-        py::arg("cuda_device") = 0u,
+        py::arg("backend") = "cuda",
+        py::arg("device_index") = 0u,
         py::arg("log_level") = LogLevel::WARNING
     );
     m.def("create_scene", &create_scene, py::return_value_policy::reference);

@@ -80,6 +80,8 @@ public:
             camera->camera = (void *)camera_node;
             camera->denoise = denoise;
             if (denoise) {
+                if (denoiser_ext == nullptr)
+                    LUISA_ERROR_WITH_LOCATION("Denoiser is not supported on this platform.");
                 camera->color_buffer = luisa::make_unique<Buffer<float4>>(
                     _device.create_buffer<float4>(pixel_count));
                 camera->denoised_buffer = luisa::make_unique<Buffer<float4>>(
