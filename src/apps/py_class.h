@@ -455,9 +455,18 @@ public:
 // Film
 class PyFilm: public PyDesc {
 public:
-    PyFilm(const PyUIntArr &resolution) noexcept:
-        PyDesc{"", SceneNodeTag::FILM, "color"} {
+    std::string tone_mapping;
+
+    PyFilm(const PyUIntArr &resolution, float exposure = 0.0f,
+           std::string_view tone_mapping_str = "none") noexcept:
+        PyDesc{"", SceneNodeTag::FILM, "color"},
+        tone_mapping{tone_mapping_str} {
         _node->add_property("resolution", pyarray_to_vector<uint, double>(resolution));
+        // ColorFilm reads "exposure" as float3 — pass all 3 channels the same value
+        if (exposure != 0.0f) {
+            luisa::vector<double> ev{double(exposure), double(exposure), double(exposure)};
+            _node->add_property("exposure", ev);
+        }
     }
     virtual ~PyFilm() = default;
 };
@@ -480,10 +489,13 @@ public:
 // Camera
 class PyCamera: public PyDesc {
 public:
+    std::string tone_mapping{"none"};
+
     PyCamera(
         std::string_view name, std::string_view impl_type,
         PyTransform *pose, PyFilm *film, PyFilter *filter, uint spp
-    ) noexcept: PyDesc{name, SceneNodeTag::CAMERA, impl_type} {
+    ) noexcept: PyDesc{name, SceneNodeTag::CAMERA, impl_type},
+                tone_mapping{film ? film->tone_mapping : "none"} {
         add_property_node("transform", pose);
         add_property_node("film", film);
         add_property_node("filter", filter);

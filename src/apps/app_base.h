@@ -126,6 +126,51 @@ void add_cli_options(cxxopts::Options &parser) noexcept {
     return options;
 }
 
+// Apply tone mapping in linear HDR space, before gamma correction.
+// Supported operators: "aces", "uncharted2" (case-insensitive, prefix-matched).
+// "none" is a no-op.
+void apply_tone_mapping(float *buffer, uint2 resolution, const std::string &op) noexcept {
+    if (op == "none" || op.empty()) return;
+
+    auto pixel_count = resolution.x * resolution.y;
+
+    auto to_lower = [](std::string s) {
+        for (auto &c : s) c = static_cast<char>(std::tolower(c));
+        return s;
+    };
+    auto name = to_lower(op);
+
+    if (name == "aces") {
+        // ACES filmic tonemapping (Narkowicz 2015)
+        auto aces = [](float x) noexcept {
+            constexpr float a = 2.51f, b = 0.03f, c = 2.43f, d = 0.59f, e = 0.14f;
+            return std::clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0f, 1.0f);
+        };
+        for (int i = 0; i < pixel_count; ++i) {
+            buffer[i * 4 + 0] = aces(buffer[i * 4 + 0]);
+            buffer[i * 4 + 1] = aces(buffer[i * 4 + 1]);
+            buffer[i * 4 + 2] = aces(buffer[i * 4 + 2]);
+        }
+    } else if (name == "uncharted2") {
+        // Uncharted 2 (Hable 2010) — punchy, good for dark scenes
+        auto partial = [](float x) noexcept {
+            constexpr float A = 0.15f, B = 0.50f, C = 0.10f, D = 0.20f, E = 0.02f, F = 0.30f;
+            return ((x * (A * x + C * B) + D * E) / (x * (A * x + B) + D * F)) - E / F;
+        };
+        constexpr float W = 11.2f;
+        const float white_scale = 1.0f / partial(W);
+        for (int i = 0; i < pixel_count; ++i) {
+            buffer[i * 4 + 0] = std::clamp(partial(buffer[i * 4 + 0] * 2.0f) * white_scale, 0.0f, 1.0f);
+            buffer[i * 4 + 1] = std::clamp(partial(buffer[i * 4 + 1] * 2.0f) * white_scale, 0.0f, 1.0f);
+            buffer[i * 4 + 2] = std::clamp(partial(buffer[i * 4 + 2] * 2.0f) * white_scale, 0.0f, 1.0f);
+        }
+    } else {
+        LUISA_WARNING_WITH_LOCATION(
+            "Unknown tone mapping operator: \"{}\". "
+            "Available options: \"none\", \"aces\", \"uncharted2\".", op);
+    }
+}
+
 void apply_gamma(float *buffer, uint2 resolution) noexcept {
     static const float gamma_factor = 2.2f;
     auto pixel_count = resolution.x * resolution.y;

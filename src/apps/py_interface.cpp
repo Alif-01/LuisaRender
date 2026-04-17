@@ -231,8 +231,10 @@ PYBIND11_MODULE(LuisaRenderPy, m) {
 
     // Film
     py::class_<PyFilm>(m, "Film")
-        .def(py::init<const PyUIntArr&>(),
-            py::arg("resolution"));
+        .def(py::init<const PyUIntArr&, float, std::string_view>(),
+            py::arg("resolution"),
+            py::arg("exposure") = 0.0f,
+            py::arg("tone_mapping") = "none");
 
     // Filter
     py::class_<PyFilter>(m, "Filter")
