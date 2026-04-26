@@ -103,6 +103,17 @@ public:
     [[nodiscard]] auto back_buffers() const noexcept { return _back_buffers; }
     [[nodiscard]] float3 exposure() const noexcept override { return make_float3(_exposure); }
     [[nodiscard]] auto tone_mapping() const noexcept { return _tone_mapping; }
+    [[nodiscard]] luisa::string_view tone_mapping_str() const noexcept override {
+        switch (_tone_mapping) {
+            case ToneMapping::NONE: return "none";
+            case ToneMapping::UNCHARTED2: return "uncharted2";
+            case ToneMapping::ACES: return "aces";
+            case ToneMapping::AgX: return "agx";
+            case ToneMapping::AgX_GOLDEN: return "agx_golden";
+            case ToneMapping::AgX_PUNCHY: return "agx_punchy";
+            default: return "none";
+        }
+    }
     [[nodiscard]] bool is_display() const noexcept override { return true; }
 
     [[nodiscard]] luisa::unique_ptr<Instance> build(

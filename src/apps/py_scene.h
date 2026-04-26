@@ -125,7 +125,7 @@ public:
             LUISA_INFO("Denoised image in {} ms", denoise_time);
         }
 
-        apply_tone_mapping(buffer_p, resolution, luisa::string{camera_node->film()->tone_mapping()});
+        apply_tone_mapping(buffer_p, resolution, std::string{camera_node->film()->tone_mapping_str()});
         apply_gamma(buffer_p, resolution);
 
         luisa::vector<uint8_t> byte_buffer;

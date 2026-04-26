@@ -21,7 +21,6 @@ class ColorFilm final : public Film {
 private:
     uint2 _resolution{};
     float3 _exposure;
-    luisa::string _tone_mapping;
     float _scale[3]{};
     float _clamp{};
     bool _warn_nan{};
@@ -33,8 +32,7 @@ public:
             "resolution", lazy_construct([desc] {
                 return make_uint2(desc->property_uint_or_default("resolution", 1024u));
             }))},
-        _warn_nan{desc->property_bool_or_default("warn_nan", false)},
-        _tone_mapping{desc->property_string_or_default("tone_mapping", "none")} {
+        _warn_nan{desc->property_bool_or_default("warn_nan", false)} {
         _exposure = desc->property_float3_or_default(
             "exposure", lazy_construct([desc] {
                 return make_float3(desc->property_float_or_default(
@@ -54,7 +52,6 @@ public:
     [[nodiscard]] float clamp() const noexcept override { return _clamp; }
     [[nodiscard]] uint2 resolution() const noexcept override { return _resolution; }
     [[nodiscard]] float3 exposure() const noexcept override { return _exposure; }
-    [[nodiscard]] luisa::string_view tone_mapping() const noexcept override { return _tone_mapping; }
     [[nodiscard]] auto warn_nan() const noexcept { return _warn_nan; }
     [[nodiscard]] luisa::unique_ptr<Instance> build(
         Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept override;

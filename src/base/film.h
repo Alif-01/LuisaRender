@@ -11,6 +11,9 @@ namespace luisa::render {
 
 class Film : public SceneNode {
 
+private:
+    luisa::string _tone_mapping_str;
+
 public:
     struct Accumulation {
         Float3 average;
@@ -47,7 +50,7 @@ public:
     Film(Scene *scene, const SceneNodeDesc *desc) noexcept;
     [[nodiscard]] virtual uint2 resolution() const noexcept = 0;
     [[nodiscard]] virtual float3 exposure() const noexcept = 0;
-    [[nodiscard]] virtual luisa::string_view tone_mapping() const noexcept { return "none"; }
+    [[nodiscard]] virtual luisa::string_view tone_mapping_str() const noexcept { return _tone_mapping_str; }
     [[nodiscard]] virtual luisa::unique_ptr<Instance> build(
         Pipeline &pipeline, CommandBuffer &command_buffer) const noexcept = 0;
     [[nodiscard]] virtual float clamp() const noexcept { return 1024.0f; }
