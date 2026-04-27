@@ -89,7 +89,16 @@ public:
                       "vsync", lazy_construct([desc]() noexcept {
                           return desc->property_bool_or_default("vertical_sync", true);
                       }));
-              }))} {}
+              }))} {
+        switch (_tone_mapping) {
+            case ToneMapping::NONE: _tone_mapping_str = "none"; break;
+            case ToneMapping::UNCHARTED2: _tone_mapping_str = "uncharted2"; break;
+            case ToneMapping::ACES: _tone_mapping_str = "aces"; break;
+            case ToneMapping::AgX: _tone_mapping_str = "agx"; break;
+            case ToneMapping::AgX_GOLDEN: _tone_mapping_str = "agx_golden"; break;
+            case ToneMapping::AgX_PUNCHY: _tone_mapping_str = "agx_punchy"; break;
+        }
+    }
 
     [[nodiscard]] luisa::string_view impl_type() const noexcept override {
         return LUISA_RENDER_PLUGIN_NAME;
@@ -256,7 +265,7 @@ private:
             val = pow(val * slope + offset, power);
             return luma + sat * (val - luma);
         };
-        return agxEotf(agxLook(agx(color)));// TODO: implement AgX tone mapping
+        return agxEotf(agxLook(agx(color)));
     }
     [[nodiscard]] static auto _linear_to_srgb(Expr<float3> color) noexcept {
         return ite(color <= .0031308f,

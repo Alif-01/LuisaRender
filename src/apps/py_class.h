@@ -455,9 +455,13 @@ public:
 // Film
 class PyFilm: public PyDesc {
 public:
-    PyFilm(const PyUIntArr &resolution) noexcept:
+    PyFilm(const PyUIntArr &resolution, float exposure,
+           std::string_view tone_mapping_str) noexcept:
         PyDesc{"", SceneNodeTag::FILM, "color"} {
         _node->add_property("resolution", pyarray_to_vector<uint, double>(resolution));
+        luisa::vector<double> ev{double(exposure), double(exposure), double(exposure)};
+        _node->add_property("exposure", ev);
+        _node->add_property("tone_mapping", luisa::string{tone_mapping_str});
     }
     virtual ~PyFilm() = default;
 };

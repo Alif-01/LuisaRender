@@ -8,7 +8,8 @@
 namespace luisa::render {
 
 Film::Film(Scene *scene, const SceneNodeDesc *desc) noexcept
-    : SceneNode{scene, desc, SceneNodeTag::FILM} {}
+    : SceneNode{scene, desc, SceneNodeTag::FILM},
+      _tone_mapping_str{desc->property_string_or_default("tone_mapping", "none")} {}
     
 
 void Film::Instance::accumulate(Expr<uint2> pixel, Expr<float3> rgb,
