@@ -127,14 +127,15 @@ void add_cli_options(cxxopts::Options &parser) noexcept {
 }
 
 // Apply tone mapping in linear HDR space, before gamma correction.
-// Supported operators: "aces", "uncharted2" (case-insensitive, prefix-matched).
+// Supported operators: "aces", "uncharted2" (case-insensitive).
 // "none" is a no-op.
-void apply_tone_mapping(float *buffer, uint2 resolution, const std::string &op) noexcept {
+void apply_tone_mapping(float *buffer, uint2 resolution, std::string_view op) noexcept {
     if (op == "none" || op.empty()) return;
 
     auto pixel_count = resolution.x * resolution.y;
 
-    auto to_lower = [](std::string s) {
+    auto to_lower = [](std::string_view sv) {
+        std::string s{sv};
         for (auto &c : s) c = static_cast<char>(std::tolower(c));
         return s;
     };

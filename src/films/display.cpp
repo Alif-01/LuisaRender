@@ -89,7 +89,16 @@ public:
                       "vsync", lazy_construct([desc]() noexcept {
                           return desc->property_bool_or_default("vertical_sync", true);
                       }));
-              }))} {}
+              }))} {
+        switch (_tone_mapping) {
+            case ToneMapping::NONE: _tone_mapping_str = "none"; break;
+            case ToneMapping::UNCHARTED2: _tone_mapping_str = "uncharted2"; break;
+            case ToneMapping::ACES: _tone_mapping_str = "aces"; break;
+            case ToneMapping::AgX: _tone_mapping_str = "agx"; break;
+            case ToneMapping::AgX_GOLDEN: _tone_mapping_str = "agx_golden"; break;
+            case ToneMapping::AgX_PUNCHY: _tone_mapping_str = "agx_punchy"; break;
+        }
+    }
 
     [[nodiscard]] luisa::string_view impl_type() const noexcept override {
         return LUISA_RENDER_PLUGIN_NAME;
@@ -103,17 +112,6 @@ public:
     [[nodiscard]] auto back_buffers() const noexcept { return _back_buffers; }
     [[nodiscard]] float3 exposure() const noexcept override { return make_float3(_exposure); }
     [[nodiscard]] auto tone_mapping() const noexcept { return _tone_mapping; }
-    [[nodiscard]] luisa::string_view tone_mapping_str() const noexcept override {
-        switch (_tone_mapping) {
-            case ToneMapping::NONE: return "none";
-            case ToneMapping::UNCHARTED2: return "uncharted2";
-            case ToneMapping::ACES: return "aces";
-            case ToneMapping::AgX: return "agx";
-            case ToneMapping::AgX_GOLDEN: return "agx_golden";
-            case ToneMapping::AgX_PUNCHY: return "agx_punchy";
-            default: return "none";
-        }
-    }
     [[nodiscard]] bool is_display() const noexcept override { return true; }
 
     [[nodiscard]] luisa::unique_ptr<Instance> build(
@@ -267,7 +265,7 @@ private:
             val = pow(val * slope + offset, power);
             return luma + sat * (val - luma);
         };
-        return agxEotf(agxLook(agx(color)));// TODO: implement AgX tone mapping
+        return agxEotf(agxLook(agx(color)));
     }
     [[nodiscard]] static auto _linear_to_srgb(Expr<float3> color) noexcept {
         return ite(color <= .0031308f,
